@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-package uk.gov.hmrc.pensionsschememigration.config
+package config
+
+import com.typesafe.config.Config
 
 import javax.inject.{Inject, Singleton}
 import play.api.Configuration
@@ -23,6 +25,8 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 @Singleton
 class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig) {
 
+  lazy val underlying: Config = config.underlying
+  lazy val appName: String = underlying.getString("appName")
   val authBaseUrl: String = servicesConfig.baseUrl("auth")
 
   val auditingEnabled: Boolean = config.get[Boolean]("auditing.enabled")
