@@ -14,20 +14,15 @@
  * limitations under the License.
  */
 
-package controllers
+package repositories.models
 
-import config.AppConfig
-import play.api.mvc.{Action, AnyContent, ControllerComponents}
-import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import org.joda.time.DateTime
+import play.api.libs.json.{Format, JsValue, Json, OFormat}
+import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
-import javax.inject.{Inject, Singleton}
-import scala.concurrent.Future
+case class LockJson(pstr: String, credId: String, data: JsValue, lastUpdated: DateTime, expireAt: DateTime)
 
-@Singleton()
-class HelloWorldController @Inject()(appConfig: AppConfig, cc: ControllerComponents)
-  extends BackendController(cc) {
-
-  def hello(): Action[AnyContent] = Action.async { implicit request =>
-    Future.successful(Ok("Hello world"))
-  }
+object LockJson {
+  implicit val dateFormat: Format[DateTime] = ReactiveMongoFormats.dateTimeFormats
+  implicit val format: OFormat[LockJson] = Json.format[LockJson]
 }

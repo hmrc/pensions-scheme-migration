@@ -1,3 +1,14 @@
 # microservice specific routes
 
-GET        /hello-world             controllers.HelloWorldController.hello
+GET           /lock                                 controllers.cache.LockCacheController.getLock
+POST          /lock                                 controllers.cache.LockCacheController.lock
+DELETE        /lock                                 controllers.cache.LockCacheController.removeLock()
+
+GET           /lock-by-user                         controllers.cache.LockCacheController.getLockByUser
+DELETE        /lock-by-user                         controllers.cache.LockCacheController.removeLockByUser()
+GET           /lock-on-scheme                       controllers.cache.LockCacheController.getLockOnScheme
+DELETE        /lock-on-scheme                       controllers.cache.LockCacheController.removeLockOnScheme()
+
+GET           /migration-data                       controllers.cache.DataCacheController.get
+POST          /migration-data                       controllers.cache.DataCacheController.save
+DELETE        /migration-data                       controllers.cache.DataCacheController.remove

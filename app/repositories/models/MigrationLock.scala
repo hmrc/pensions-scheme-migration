@@ -14,20 +14,12 @@
  * limitations under the License.
  */
 
-package controllers
+package repositories.models
 
-import config.AppConfig
-import play.api.mvc.{Action, AnyContent, ControllerComponents}
-import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import play.api.libs.json.{Json, OFormat}
 
-import javax.inject.{Inject, Singleton}
-import scala.concurrent.Future
+case class MigrationLock(pstr: String, credId: String, psaId: String)
 
-@Singleton()
-class HelloWorldController @Inject()(appConfig: AppConfig, cc: ControllerComponents)
-  extends BackendController(cc) {
-
-  def hello(): Action[AnyContent] = Action.async { implicit request =>
-    Future.successful(Ok("Hello world"))
-  }
+object MigrationLock {
+  implicit val format: OFormat[MigrationLock] = Json.format[MigrationLock]
 }
