@@ -11,7 +11,7 @@ object AppDependencies {
 
   val test = Seq(
     "uk.gov.hmrc"             %% "bootstrap-test-play-27"   % "4.1.0" % Test,
-    "org.scalatest"           %% "scalatest"                % "3.2.3"  % Test,
+    "org.scalatest"           %% "scalatest"                % "3.0.8"  % Test,
     "com.typesafe.play"       %% "play-test"                % current  % Test,
     "com.vladsch.flexmark"    %  "flexmark-all"             % "0.36.8" % "test, it",
     "org.scalatestplus.play"  %% "scalatestplus-play"       % "4.0.3"  % "test, it",
@@ -20,7 +20,6 @@ object AppDependencies {
     "com.github.tomakehurst"  %  "wiremock"                 % "2.26.0"                % "test",
     "org.scalacheck"          %% "scalacheck"               % "1.14.0"                % "test",
     "org.pegdown"             %  "pegdown"                  % "1.6.0"                 % "test, it",
-    "org.scalatestplus.play"  %% "scalatestplus-play"       % "4.0.2"                 % "test, it",
     "org.mockito"             %  "mockito-all"              % "1.10.19"               % "test",
     "com.github.tomakehurst"  %  "wiremock-jre8"            % "2.26.0"                % "test"
 

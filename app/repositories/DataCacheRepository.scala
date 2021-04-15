@@ -91,7 +91,9 @@ class DataCacheRepository @Inject()(    lockCacheRepository: LockCacheRepository
   def remove(pstr: String)(implicit ec: ExecutionContext): Future[Boolean] = {
     logger.warn(s"Removing row from collection ${collection.name} pstr: $pstr")
     val selector = BSONDocument("pstr" -> pstr)
-    collection.delete.one(selector).map(_.ok)
+    collection.delete.one(selector).flatMap { deletion =>
+      lockCacheRepository.releaseLockByPstr(pstr).map(_ => deletion.ok)
+    }
   }
 
   case object LockCouldNotBeSetException extends Exception("Lock could not be acquired. Needs further investigation")
