@@ -65,14 +65,15 @@ class DataCacheController @Inject()(repository: DataCacheRepository,
   private def withPstr(block: (String, String) => Future[Result])
                       (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
     authorised().retrieve(Retrievals.externalId) {
-      case Some(id) =>
-        val pstr = request.headers.get("pstr").getOrElse(throw MissingHeadersException)
-        block(pstr, id)
+      case Some(id) => block(pstr, id)
       case _ => Future.failed(CredIdNotFoundFromAuth())
     }
   }
-  case object MissingHeadersException extends BadRequestException("Missing pstr from headers")
 
-  case class CredIdNotFoundFromAuth(msg: String = "Not Authorised - Unable to retrieve credentials - externalId")
-    extends UnauthorizedException(msg)
+  private def pstr(implicit request: Request[_]): String = request.headers.get("pstr").getOrElse(throw MissingHeadersException)
 }
+
+case object MissingHeadersException extends BadRequestException("Missing pstr from headers")
+
+case class CredIdNotFoundFromAuth(msg: String = "Not Authorised - Unable to retrieve credentials - externalId")
+  extends UnauthorizedException(msg)

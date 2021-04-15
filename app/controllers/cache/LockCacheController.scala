@@ -99,24 +99,26 @@ class LockCacheController @Inject()(repository: LockCacheRepository,
 
   def removeLockByUser(): Action[AnyContent] = Action.async {
     implicit request =>
+      println("\n\n >>>>>>>>>>>>>>> 1")
       authorised().retrieve(Retrievals.externalId) {
-        case Some(id) => repository.releaseLockByCredId(id).map(_ => Ok)
-        case _ => Future.failed(CredIdNotFoundFromAuth())
+        case Some(id) =>
+          println("\n\n >>>>>>>>>>>>>>> 2")
+          repository.releaseLockByCredId(id).map(_ => Ok)
+        case _ =>
+          println("\n\n >>>>>>>>>>>>>>> 3")
+          Future.failed(CredIdNotFoundFromAuth())
       }
   }
 
   private def withLock(block: MigrationLock => Future[Result])
-                      (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
+                      (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] =
     authorised().retrieve(Retrievals.externalId) {
       case Some(id) =>
         val pstr = request.headers.get("pstr").getOrElse(throw MissingHeadersException)
         val psaId = request.headers.get("psaId").getOrElse(throw MissingHeadersException)
         block(MigrationLock(pstr, id, psaId))
-      case _ => Future.failed(CredIdNotFoundFromAuth())
+      case _ =>
+        Future.failed(CredIdNotFoundFromAuth())
     }
-  }
-  case object MissingHeadersException extends BadRequestException("Missing pstr or psaId from headers")
 
-  case class CredIdNotFoundFromAuth(msg: String = "Not Authorised - Unable to retrieve credentials - externalId")
-    extends UnauthorizedException(msg)
 }
