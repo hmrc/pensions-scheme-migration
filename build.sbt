@@ -25,7 +25,7 @@ lazy val microservice = Project(appName, file("."))
   )
   .settings(silencerSettings)
   .settings(
-    ScoverageKeys.coverageExcludedFiles := "<empty>;Reverse.*;.*repository.*;" +
+    ScoverageKeys.coverageExcludedFiles := "<empty>;Reverse.*;.*repositories.*;" +
       ".*BuildInfo.*;.*javascript.*;.*Routes.*;.*GuiceInjector;",
     ScoverageKeys.coverageMinimum := 80,
     ScoverageKeys.coverageFailOnMinimum := true,
