@@ -24,7 +24,7 @@ import play.api.mvc.AnyContentAsEmpty
 import play.api.test.FakeRequest
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.http.config.AuditingConfig
-import uk.gov.hmrc.play.audit.http.connector.{AuditConnector, AuditResult}
+import uk.gov.hmrc.play.audit.http.connector.{AuditChannel, AuditConnector, AuditCounter, AuditResult}
 import uk.gov.hmrc.play.audit.model.DataEvent
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -75,18 +75,29 @@ object FakeAuditConnector extends AuditConnector {
 
   private var sentEvent: DataEvent = _
 
-  override def auditingConfig: AuditingConfig = AuditingConfig(None, enabled = false, "test audit source")
+  override def auditingConfig: AuditingConfig =
+    AuditingConfig(
+      consumer = None,
+      enabled = false,
+      auditSource = "test audit source",
+      auditSentHeaders = false
+    )
 
-  override def sendEvent(event: DataEvent)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[AuditResult] = {
+  override def sendEvent(event: DataEvent)
+                        (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[AuditResult] = {
     sentEvent = event
     super.sendEvent(event)
   }
 
   def lastSentEvent: DataEvent = sentEvent
 
-  override def materializer: Materializer = ???
+  def materializer: Materializer = ???
 
-  override def lifecycle: ApplicationLifecycle = ???
+  def lifecycle: ApplicationLifecycle = ???
+
+  override def auditChannel: AuditChannel = ???
+
+  override def auditCounter: AuditCounter = ???
 }
 
 case class TestAuditEvent(payload: String) extends AuditEvent {
@@ -94,8 +105,6 @@ case class TestAuditEvent(payload: String) extends AuditEvent {
   override def auditType: String = "TestAuditEvent"
 
   override def details: Map[String, String] =
-    Map(
-      "payload" -> payload
-    )
+    Map("payload" -> payload)
 
 }
