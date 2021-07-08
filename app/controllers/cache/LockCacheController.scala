@@ -99,14 +99,9 @@ class LockCacheController @Inject()(repository: LockCacheRepository,
 
   def removeLockByUser(): Action[AnyContent] = Action.async {
     implicit request =>
-      println("\n\n >>>>>>>>>>>>>>> 1")
       authorised().retrieve(Retrievals.externalId) {
-        case Some(id) =>
-          println("\n\n >>>>>>>>>>>>>>> 2")
-          repository.releaseLockByCredId(id).map(_ => Ok)
-        case _ =>
-          println("\n\n >>>>>>>>>>>>>>> 3")
-          Future.failed(CredIdNotFoundFromAuth())
+        case Some(id) => repository.releaseLockByCredId(id).map(_ => Ok)
+        case _ => Future.failed(CredIdNotFoundFromAuth())
       }
   }
 

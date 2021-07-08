@@ -82,7 +82,6 @@ class LockCacheRepository @Inject()(
     }
 
   def getLockByPstr(pstr: String): Future[Option[MigrationLock]] = {
-    println(s"\n\n >>>>>>>>>>>>>>>>>>>>>> 1234")
     collection.find(pstrBson(pstr), Option.empty[JsObject]).one[LockJson].map(_.map(_.data.as[MigrationLock]))
   }
 
