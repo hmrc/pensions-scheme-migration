@@ -12,3 +12,7 @@ DELETE        /lock-on-scheme                       controllers.cache.LockCacheC
 GET           /migration-data                       controllers.cache.DataCacheController.get
 POST          /migration-data                       controllers.cache.DataCacheController.save
 DELETE        /migration-data                       controllers.cache.DataCacheController.remove
+
+GET           /scheme-data                          controllers.cache.SchemeDataCacheController.get
+POST          /scheme-data                          controllers.cache.SchemeDataCacheController.save
+DELETE        /scheme-data                          controllers.cache.SchemeDataCacheController.remove
