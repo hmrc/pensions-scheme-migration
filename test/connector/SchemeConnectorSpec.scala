@@ -91,8 +91,6 @@ object SchemeConnectorSpec {
   private implicit val hc: HeaderCarrier = HeaderCarrier()
   private implicit val rh: RequestHeader = FakeRequest("", "")
   private val idValue = "test"
-  private val pstr = "20010010AA"
-  private val schemeIFUrl = s"/pension-online/scheme-subscription/pods/$idValue"
   private val validListOfSchemeIFResponse = Json.parse(
     """
       |{
@@ -119,6 +117,6 @@ object SchemeConnectorSpec {
       |""".stripMargin)
 
   private val listOfSchemesIFUrl: String =
-    s"/pension-schemes/$idValue"
+    s"/pension-schemes/schemes/$idValue"
 }
 
