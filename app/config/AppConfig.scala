@@ -25,10 +25,16 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig)
 
   lazy val appName: String = config.get[String]("appName")
   val authBaseUrl: String = servicesConfig.baseUrl("auth")
+  lazy val ifURL: String = servicesConfig.baseUrl(serviceName = "if-hod")
 
   val auditingEnabled: Boolean = config.get[Boolean]("auditing.enabled")
   val graphiteHost: String     = config.get[String]("microservice.metrics.graphite.host")
 
   lazy val authorization: String = "Bearer " + config.getOptional[String]("microservice.services.des-hod.authorizationToken").getOrElse("local")
 
+  lazy val integrationframeworkEnvironment: String = config.getOptional[String](
+    path = "microservice.services.if-hod.env").getOrElse("local")
+  lazy val integrationframeworkAuthorization: String = "Bearer " + config.getOptional[String](
+    path = "microservice.services.if-hod.authorizationToken").getOrElse("local")
+  lazy val listOfSchemesUrl: String = s"$ifURL${config.get[String]("serviceUrls.if.list.of.schemes")}"
 }

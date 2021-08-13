@@ -16,3 +16,5 @@ DELETE        /migration-data                       controllers.cache.DataCacheC
 GET           /scheme-data                          controllers.cache.SchemeDataCacheController.get
 POST          /scheme-data                          controllers.cache.SchemeDataCacheController.save
 DELETE        /scheme-data                          controllers.cache.SchemeDataCacheController.remove
+
+GET           /list-of-schemes                      controllers.SchemeController.listOfLegacySchemes
