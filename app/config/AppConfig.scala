@@ -37,4 +37,5 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig)
   lazy val integrationframeworkAuthorization: String = "Bearer " + config.getOptional[String](
     path = "microservice.services.if-hod.authorizationToken").getOrElse("local")
   lazy val listOfSchemesUrl: String = s"$ifURL${config.get[String]("serviceUrls.if.list.of.schemes")}"
+  lazy val schemeRegistrationIFUrl: String = s"$ifURL${config.get[String]("serviceUrls.if.scheme.register")}"
 }

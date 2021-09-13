@@ -65,4 +65,29 @@ class SchemeConnector @Inject()(
       }
     }
   }
+
+  def registerScheme(
+                      psaId: String,
+                      registerData: JsValue
+                    )(
+                      implicit
+                      headerCarrier: HeaderCarrier,
+                      ec: ExecutionContext
+                    ): Future[Either[HttpException, JsValue]] = {
+
+    val (url, hc, schemaPath) =
+      (config.schemeRegistrationIFUrl.format(psaId),
+        HeaderCarrier(extraHeaders = headerUtils.integrationFrameworkHeader(implicitly[HeaderCarrier](headerCarrier))),
+        "/resources/schemas/schemeSubscriptionIF.json")
+
+    logger.debug(s"[Register-Scheme-Outgoing-Payload] - ${registerData.toString()}")
+
+    http.POST[JsValue, HttpResponse](url, registerData) map { response =>
+      response.status match {
+        case OK =>
+          Right(response.json)
+        case _ => Left(handleErrorResponse("Register scheme", url, response))
+      }
+    }
+  }
 }
