@@ -14,12 +14,9 @@
  * limitations under the License.
  */
 
-package repositories.models
+package models
 
-import play.api.libs.json.{Json, OFormat}
+sealed trait BinaryResult
 
-case class MigrationLock(pstr: String, credId: String, psaId: String)
-
-object MigrationLock {
-  implicit val format: OFormat[MigrationLock] = Json.format[MigrationLock]
-}
+case object OperationSucceeded extends BinaryResult
+case object OperationFailed extends BinaryResult

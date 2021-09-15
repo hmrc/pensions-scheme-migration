@@ -1,3 +1,4 @@
+import play.sbt.routes.RoutesKeys
 import scoverage.ScoverageKeys
 import uk.gov.hmrc.DefaultBuildSettings.integrationTestSettings
 import uk.gov.hmrc.sbtdistributables.SbtDistributablesPlugin.publishingSettings
@@ -29,6 +30,11 @@ lazy val microservice = Project(appName, file("."))
     ScoverageKeys.coverageMinimum := 80,
     ScoverageKeys.coverageFailOnMinimum := true,
     ScoverageKeys.coverageHighlighting := true
+  )
+  .settings(
+    RoutesKeys.routesImport ++= Seq(
+      "models.FeatureToggleName"
+    )
   )
 
 

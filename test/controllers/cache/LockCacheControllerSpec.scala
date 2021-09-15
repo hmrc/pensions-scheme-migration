@@ -16,6 +16,7 @@
 
 package controllers.cache
 
+import models.cache.MigrationLock
 import org.mockito.Matchers.{eq => eqTo, _}
 import org.mockito.Mockito.{reset, when}
 import org.scalatest.{BeforeAndAfter, MustMatchers, WordSpec}
@@ -26,7 +27,6 @@ import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import repositories.LockCacheRepository
-import repositories.models.MigrationLock
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.HeaderCarrier
 

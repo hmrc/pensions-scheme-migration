@@ -26,7 +26,7 @@ import reactivemongo.api.indexes.IndexType.Ascending
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import reactivemongo.play.json.ImplicitBSONHandlers._
-import repositories.models.{DataJson, MigrationLock}
+import models.cache.{DataJson, MigrationLock}
 import uk.gov.hmrc.mongo.ReactiveRepository
 
 import scala.concurrent.{ExecutionContext, Future}

@@ -14,15 +14,15 @@
  * limitations under the License.
  */
 
-package repositories.models
+package models.cache
 
 import org.joda.time.DateTime
 import play.api.libs.json.{Format, JsValue, Json, OFormat}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
-case class LockJson(pstr: String, credId: String, data: JsValue, lastUpdated: DateTime, expireAt: DateTime)
+case class DataJson(pstr: String, data: JsValue, lastUpdated: DateTime, expireAt: DateTime)
 
-object LockJson {
+object DataJson {
   implicit val dateFormat: Format[DateTime] = ReactiveMongoFormats.dateTimeFormats
-  implicit val format: OFormat[LockJson] = Json.format[LockJson]
+  implicit val format: OFormat[DataJson] = Json.format[DataJson]
 }

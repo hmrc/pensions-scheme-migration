@@ -17,10 +17,10 @@
 package controllers.cache
 
 import com.google.inject.Inject
+import models.cache.MigrationLock
 import play.api.libs.json.Json
 import play.api.mvc._
 import repositories.LockCacheRepository
-import repositories.models.MigrationLock
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier}
