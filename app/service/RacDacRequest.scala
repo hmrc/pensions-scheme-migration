@@ -16,7 +16,7 @@
 
 package service
 
-import play.api.libs.json.{Format, Json, OFormat}
+import play.api.libs.json.{Format, JsPath, Json, OFormat, Reads}
 import uk.gov.hmrc.http.{HeaderCarrier, RequestId, SessionId}
 import uk.gov.hmrc.workitem.WorkItem
 
@@ -30,9 +30,16 @@ object RacDacHeaders {
   def apply(hc: HeaderCarrier): RacDacHeaders = new RacDacHeaders(hc.requestId.map(_.value), hc.sessionId.map(_.value))
 }
 
-case class Request(schemeName: String)
+case class Request(schemeName: String, policyNumber: String)
 
 object Request {
+
+  import play.api.libs.functional.syntax._
+
+  implicit val jsonReads: Reads[Request] = (
+    (JsPath \ "schemeName").read[String] and
+      (JsPath \ "policyNumber").read[String]
+    ) (Request.apply _)
   implicit val requestFormat: OFormat[Request] = Json.format
 }
 

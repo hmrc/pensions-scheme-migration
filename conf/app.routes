@@ -18,3 +18,5 @@ POST          /scheme-data                          controllers.cache.SchemeData
 DELETE        /scheme-data                          controllers.cache.SchemeDataCacheController.remove
 
 GET           /list-of-schemes                      controllers.SchemeController.listOfLegacySchemes
+
+POST           /bulk-migration/:psaId                      controllers.TestBulkRacDacController.migrateAllRacDac(psaId: String)

@@ -18,33 +18,32 @@ package service
 
 import com.google.inject.{Inject, Singleton}
 import connector.SchemeConnector
-import play.api.Configuration
 import play.api.libs.json.{JsValue, Json}
 import reactivemongo.bson.BSONObjectID
 import repositories.RacDacRequestsQueueRepository
-import uk.gov.hmrc.http.HttpException
 import uk.gov.hmrc.workitem.{ProcessingStatus, ResultStatus, WorkItem}
 
 import scala.concurrent.Future
 
 @Singleton
-class DefaultDmsSubmissionService @Inject()(
+class RacDacBulkSubmissionService @Inject()(
                                              racDacSubmissionRepo: RacDacRequestsQueueRepository,
-                                             schemeConnector: SchemeConnector,
-                                             configuration: Configuration
-                                           )(implicit ec: DmsSubmissionPollerExecutionContext) {
+                                             schemeConnector: SchemeConnector
+                                           )(implicit ec: RacDacBulkSubmissionPollerExecutionContext) {
 
-  def submitToETMP(racDacRequest: RacDacRequest): Future[Either[HttpException, JsValue]] = {
+  def submitToETMP(racDacRequest: RacDacRequest): Future[Either[Exception, JsValue]] = {
     val psaId = racDacRequest.psaId
     val requestBody = Json.toJson(racDacRequest.request)
     val headerCarrier = racDacRequest.headers.toHeaderCarrier
-    schemeConnector.registerScheme(psaId, requestBody)(headerCarrier, implicitly)
+    schemeConnector.registerRacDac(psaId, requestBody)(headerCarrier, implicitly)
   }
 
-  def enqueue(
-               racDacRequest: RacDacRequest
-             ): Future[Either[Exception, WorkItem[RacDacRequest]]] =
-    racDacSubmissionRepo.push(racDacRequest)
+  def enqueue(requests: Seq[RacDacRequest]): Future[Boolean] = {
+    racDacSubmissionRepo.pushAll(requests) map {
+      case Right(_) => true
+      case _ => false
+    }
+  }
 
   def dequeue: Future[Either[Exception, Option[WorkItem[RacDacRequest]]]] =
     racDacSubmissionRepo.pull
@@ -54,4 +53,8 @@ class DefaultDmsSubmissionService @Inject()(
 
   def setResultStatus(id: BSONObjectID, status: ResultStatus): Future[Either[Exception, Boolean]] =
     racDacSubmissionRepo.setResultStatus(id, status)
+
+  def getAllData(psaId: String): Future[Option[JsValue]] = {
+    racDacSubmissionRepo.getAllDataWithPsaId(psaId)
+  }
 }

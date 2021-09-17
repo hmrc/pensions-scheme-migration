@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-package module
+package service
 
-import com.google.inject.AbstractModule
-import service.DmsSubmissionPoller
+import akka.actor.ActorSystem
+import com.google.inject.Inject
+import play.api.libs.concurrent.CustomExecutionContext
 
-class DmsSubmissionModule extends AbstractModule {
-  override def configure(): Unit =
-    bind(classOf[DmsSubmissionPoller]).asEagerSingleton()
-}
+class RacDacBulkSubmissionPollerExecutionContext @Inject()(actorSystem: ActorSystem)
+    extends CustomExecutionContext(actorSystem, "dms-submission-poller-dispatcher")

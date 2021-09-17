@@ -19,10 +19,12 @@ package repositories
 import com.google.inject.{Inject, Singleton}
 import org.joda.time.DateTime
 import play.api.Configuration
+import play.api.libs.json.{JsObject, JsValue}
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import reactivemongo.play.json.ImplicitBSONHandlers._
+import repositories.models.DataJson
 import service.RacDacRequest
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.workitem._
@@ -56,30 +58,25 @@ class RacDacRequestsQueueRepository @Inject()(configuration: Configuration, reac
 
   private val retryPeriod = inProgressRetryAfter.getMillis.toInt
 
-  private val ttlIndexName: String = "receivedAtTime"
+  private lazy val ttl = servicesConfig.getDuration("racDacWorkItem.submission-poller.mongo.ttl").toSeconds
 
-  private lazy val ttl = servicesConfig.getDuration("dms.submission-poller.mongo.ttl").toSeconds
-
-  private val ttlIndex: Seq[Index] =
-    Seq(Index(
-      key = Seq("receivedAt" -> IndexType.Ascending),
-      name = Some(ttlIndexName),
-      options = BSONDocument("expireAfterSeconds" -> ttl)
-    ))
-
-  (for { _ <- ensureIndexes } yield { () }) recoverWith {
-    case t: Throwable => Future.successful(logger.error(s"Error creating indexes on collection ${collection.name}", t))
-  } andThen {
-    case _ => CollectionDiagnostics.logCollectionInfo(collection)
-  }
-
-  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] =
-    Future.sequence(ttlIndex.map(collection.indexesManager.ensure(_)))
+  override def indexes: Seq[Index] = super.indexes ++ Seq(
+    Index(key = Seq("item.psaId" -> IndexType.Ascending), name = Some("psaIdIdx")),
+    Index(key = Seq("receivedAt" -> IndexType.Ascending), name = Some("receivedAtTime"),
+      options = BSONDocument("expireAfterSeconds" -> ttl))
+  )
 
   def push(racDacRequest: RacDacRequest): Future[Either[Exception, WorkItem[RacDacRequest]]] =
     pushNew(racDacRequest, now, (_: RacDacRequest) => ToDo).map(item => Right(item)).recover {
-      case exception: Exception => Left(WorkItemProcessingException(s"push failed for request due to $message"))
+      case exception: Exception => Left(WorkItemProcessingException(s"push failed for request due to ${exception.getMessage}"))
     }
+
+  def pushAll(racDacRequests: Seq[RacDacRequest]): Future[Either[Exception, Seq[WorkItem[RacDacRequest]]]] = {
+    pushNew(racDacRequests, now, (_: RacDacRequest) => ToDo).map(item => Right(item)).recover {
+      case exception: Exception =>
+        Left(WorkItemProcessingException(s"push failed for request due to ${exception.getMessage}"))
+    }
+  }
 
   def pull: Future[Either[Exception, Option[WorkItem[RacDacRequest]]]] =
     pullOutstanding(failedBefore = now.minusMillis(retryPeriod), availableBefore = now)
@@ -98,6 +95,11 @@ class RacDacRequestsQueueRepository @Inject()(configuration: Configuration, reac
     complete(id, status).map(result => Right(result)).recover {
       case exception: Exception => Left(WorkItemProcessingException(s"setting completion status for $id failed due to ${exception.getMessage}"))
     }
+
+  def getAllDataWithPsaId(psaId: String)(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
+    logger.debug("Calling get in Scheme Data Cache")
+    collection.find(BSONDocument("item.psaId" -> psaId), projection = Option.empty[JsObject]).one[DataJson].map(_.map(_.data))
+  }
 
   case class WorkItemProcessingException(message: String) extends Exception(message)
 }

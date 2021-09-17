@@ -18,7 +18,7 @@ package connector
 
 import com.google.inject.Inject
 import config.AppConfig
-import connector.utils.HttpResponseHelper
+import connector.utils.{HttpResponseHelper, UnrecognisedHttpResponseException}
 import play.api.Logger
 import play.api.http.Status._
 import play.api.libs.json._
@@ -43,8 +43,7 @@ class SchemeConnector @Inject()(
                             )(
                               implicit
                               headerCarrier: HeaderCarrier,
-                              ec: ExecutionContext,
-                              request: RequestHeader
+                              ec: ExecutionContext
                             ): Future[Either[HttpException, JsValue]] = {
     val listOfSchemesUrl = config.listOfSchemesUrl.format(psaId)
 
@@ -66,27 +65,40 @@ class SchemeConnector @Inject()(
     }
   }
 
-  def registerScheme(
+  //Todo: This is a placeholder for the new subscription api
+  def registerRacDac(
                       psaId: String,
                       registerData: JsValue
                     )(
                       implicit
                       headerCarrier: HeaderCarrier,
                       ec: ExecutionContext
-                    ): Future[Either[HttpException, JsValue]] = {
+                    ): Future[Either[Exception, JsValue]] = {
 
-    val (url, hc, schemaPath) =
-      (config.schemeRegistrationIFUrl.format(psaId),
-        HeaderCarrier(extraHeaders = headerUtils.integrationFrameworkHeader(implicitly[HeaderCarrier](headerCarrier))),
-        "/resources/schemas/schemeSubscriptionIF.json")
+    val url = config.racDacStubUrl.format(psaId)
 
-    logger.debug(s"[Register-Scheme-Outgoing-Payload] - ${registerData.toString()}")
+    logger.debug(s"[Register-Rac Dac-Outgoing-Payload] - ${registerData.toString()}")
 
     http.POST[JsValue, HttpResponse](url, registerData) map { response =>
       response.status match {
         case OK =>
           Right(response.json)
-        case _ => Left(handleErrorResponse("Register scheme", url, response))
+        case _ => {
+            val failureResponse = response.status match {
+              case status if is4xx(status) =>
+                UpstreamErrorResponse(
+                  upstreamResponseMessage("Register rac dac", url, status, response.body), status, status, response.headers
+                )
+              case status if is5xx(status) =>
+                UpstreamErrorResponse(
+                  upstreamResponseMessage("Register rac dac", url, status, response.body), status, BAD_GATEWAY
+                )
+              case _ =>
+                new UnrecognisedHttpResponseException("Register rac dac", url, response)
+            }
+
+          Left(failureResponse)
+        }
       }
     }
   }
