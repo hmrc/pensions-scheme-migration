@@ -54,7 +54,4 @@ class RacDacBulkSubmissionService @Inject()(
   def setResultStatus(id: BSONObjectID, status: ResultStatus): Future[Either[Exception, Boolean]] =
     racDacSubmissionRepo.setResultStatus(id, status)
 
-  def getAllData(psaId: String): Future[Option[JsValue]] = {
-    racDacSubmissionRepo.getAllDataWithPsaId(psaId)
-  }
 }

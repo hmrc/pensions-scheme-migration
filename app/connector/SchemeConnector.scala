@@ -43,7 +43,8 @@ class SchemeConnector @Inject()(
                             )(
                               implicit
                               headerCarrier: HeaderCarrier,
-                              ec: ExecutionContext
+                              ec: ExecutionContext,
+                              request: RequestHeader
                             ): Future[Either[HttpException, JsValue]] = {
     val listOfSchemesUrl = config.listOfSchemesUrl.format(psaId)
 
