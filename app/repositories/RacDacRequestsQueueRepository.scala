@@ -96,10 +96,5 @@ class RacDacRequestsQueueRepository @Inject()(configuration: Configuration, reac
       case exception: Exception => Left(WorkItemProcessingException(s"setting completion status for $id failed due to ${exception.getMessage}"))
     }
 
-  def getAllDataWithPsaId(psaId: String)(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
-    logger.debug("Calling get in Scheme Data Cache")
-    collection.find(BSONDocument("item.psaId" -> psaId), projection = Option.empty[JsObject]).one[DataJson].map(_.map(_.data))
-  }
-
   case class WorkItemProcessingException(message: String) extends Exception(message)
 }
