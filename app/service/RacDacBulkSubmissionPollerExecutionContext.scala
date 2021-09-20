@@ -14,20 +14,11 @@
  * limitations under the License.
  */
 
-package controllers
+package service
 
-import config.AppConfig
-import play.api.mvc.{Action, AnyContent, ControllerComponents}
-import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import akka.actor.ActorSystem
+import com.google.inject.Inject
+import play.api.libs.concurrent.CustomExecutionContext
 
-import javax.inject.{Inject, Singleton}
-import scala.concurrent.Future
-
-@Singleton()
-class HelloWorldController @Inject()(appConfig: AppConfig, cc: ControllerComponents)
-  extends BackendController(cc) {
-
-  def hello(): Action[AnyContent] = Action.async { implicit request =>
-    Future.successful(Ok("Hello world"))
-  }
-}
+class RacDacBulkSubmissionPollerExecutionContext @Inject()(actorSystem: ActorSystem)
+    extends CustomExecutionContext(actorSystem, "dms-submission-poller-dispatcher")

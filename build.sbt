@@ -24,14 +24,17 @@ lazy val microservice = Project(appName, file("."))
     javaOptions in Test += "-Dconfig.file=" + Option(System.getProperty("conf/test.application.conf")).getOrElse("conf/test.application.conf")
 
   )
-  .settings(resolvers += Resolver.jcenterRepo)
+  .settings(resolvers ++= Seq(
+    Resolver.jcenterRepo,
+    Resolver.bintrayRepo("hmrc", "releases")
+  ))
   .settings(
     PlayKeys.devSettings += "play.server.http.port" -> "8214"
   )
   .settings(silencerSettings)
   .settings(
     ScoverageKeys.coverageExcludedFiles := "<empty>;Reverse.*;.*repositories.*;" +
-      ".*BuildInfo.*;.*javascript.*;.*Routes.*;.*GuiceInjector;",
+      ".*BuildInfo.*;.*javascript.*;.*Routes.*;.*GuiceInjector;.*Module.*;.*TestBulkRacDacController*.*",
     ScoverageKeys.coverageMinimum := 80,
     ScoverageKeys.coverageFailOnMinimum := true,
     ScoverageKeys.coverageHighlighting := true

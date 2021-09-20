@@ -18,7 +18,7 @@ package connector
 
 import com.google.inject.Inject
 import config.AppConfig
-import connector.utils.HttpResponseHelper
+import connector.utils.{HttpResponseHelper, UnrecognisedHttpResponseException}
 import play.api.Logger
 import play.api.http.Status._
 import play.api.libs.json._
@@ -62,6 +62,44 @@ class SchemeConnector @Inject()(
           logger.debug(s"Call to migration list of schemes API on IF was successful with response ${response.json}")
           Right(response.json)
         case _ => Left(handleErrorResponse("GET", listOfSchemesUrl, response))
+      }
+    }
+  }
+
+  //Todo: This is a placeholder for the new subscription api
+  def registerRacDac(
+                      psaId: String,
+                      registerData: JsValue
+                    )(
+                      implicit
+                      headerCarrier: HeaderCarrier,
+                      ec: ExecutionContext
+                    ): Future[Either[Exception, JsValue]] = {
+
+    val url = config.racDacStubUrl.format(psaId)
+
+    logger.debug(s"[Register-Rac Dac-Outgoing-Payload] - ${registerData.toString()}")
+
+    http.POST[JsValue, HttpResponse](url, registerData) map { response =>
+      response.status match {
+        case OK =>
+          Right(response.json)
+        case _ => {
+            val failureResponse = response.status match {
+              case status if is4xx(status) =>
+                UpstreamErrorResponse(
+                  upstreamResponseMessage("Register rac dac", url, status, response.body), status, status, response.headers
+                )
+              case status if is5xx(status) =>
+                UpstreamErrorResponse(
+                  upstreamResponseMessage("Register rac dac", url, status, response.body), status, BAD_GATEWAY
+                )
+              case _ =>
+                new UnrecognisedHttpResponseException("Register rac dac", url, response)
+            }
+
+          Left(failureResponse)
+        }
       }
     }
   }
