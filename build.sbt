@@ -19,6 +19,11 @@ lazy val microservice = Project(appName, file("."))
   .settings(publishingSettings: _*)
   .configs(IntegrationTest)
   .settings(integrationTestSettings(): _*)
+  .settings(
+    fork in Test := true,
+    javaOptions in Test += "-Dconfig.file=" + Option(System.getProperty("conf/test.application.conf")).getOrElse("conf/test.application.conf")
+
+  )
   .settings(resolvers += Resolver.jcenterRepo)
   .settings(
     PlayKeys.devSettings += "play.server.http.port" -> "8214"
