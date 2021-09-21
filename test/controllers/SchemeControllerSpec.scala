@@ -129,19 +129,19 @@ object SchemeControllerSpec {
                                |  "items": [
                                |    {
                                |      "pstr": "00241768RH",
-                               |      "declarationDate": "0001-01-01T00:00:00",
+                               |      "relationshipStartDate": "0001-01-01T00:00:00",
                                |      "schemeName": "THE AMDAIL PENSION SCHEME",
                                |      "schemeOpenDate": "2006-04-05T00:00:00",
                                |      "racDac": false,
-                               |      "policyNo": ""
+                               |      "policyNumber": ""
                                |    },
                                |    {
                                |      "pstr": "00615269RH",
-                               |      "declarationDate": "2012-02-20T00:00:00",
+                               |      "relationshipStartDate": "2012-02-20T00:00:00",
                                |      "schemeName": "paul qqq",
                                |      "schemeOpenDate": "paul qqq",
                                |      "racDac": true,
-                               |      "policyNo": "24101975"
+                               |      "policyNumber": "24101975"
                                |    }
                                |  ]
                                |}""".stripMargin)
