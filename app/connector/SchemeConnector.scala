@@ -16,9 +16,10 @@
 
 package connector
 
+import audit.{AuditService, ListOfLegacySchemesAuditEvent}
 import com.google.inject.Inject
 import config.AppConfig
-import connector.utils.{HttpResponseHelper, UnrecognisedHttpResponseException}
+import connector.utils.{UnrecognisedHttpResponseException, HttpResponseHelper}
 import play.api.Logger
 import play.api.http.Status._
 import play.api.libs.json._
@@ -31,7 +32,8 @@ import scala.concurrent.{ExecutionContext, Future}
 class SchemeConnector @Inject()(
                               http: HttpClient,
                               config: AppConfig,
-                              headerUtils: HeaderUtils
+                              headerUtils: HeaderUtils,
+                              auditService:AuditService
                             )
   extends HttpErrorFunctions
     with HttpResponseHelper {
@@ -59,9 +61,13 @@ class SchemeConnector @Inject()(
     ).map { response =>
       response.status match {
         case OK =>
+          val totalResults = (response.json \ "totalResults").toOption.flatMap(_.asOpt[Int]).getOrElse(0)
+          auditService.sendEvent(ListOfLegacySchemesAuditEvent(response.status, totalResults, ""))
           logger.debug(s"Call to migration list of schemes API on IF was successful with response ${response.json}")
           Right(response.json)
-        case _ => Left(handleErrorResponse("GET", listOfSchemesUrl, response))
+        case _ =>
+          auditService.sendEvent(ListOfLegacySchemesAuditEvent(response.status, 0, response.body))
+          Left(handleErrorResponse("GET", listOfSchemesUrl, response))
       }
     }
   }
