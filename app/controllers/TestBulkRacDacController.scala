@@ -42,7 +42,7 @@ class TestBulkRacDacController @Inject()(
 
       (psaId, feJson) match {
         case (Some(id), Some(jsValue)) =>
-          val req = (jsValue \ "Request").as[Seq[Request]]
+          val req = (jsValue).as[Seq[Request]]
           val racDacRequests = req.map(r => RacDacRequest(id, r, RacDacHeaders(hc(request))))
           service.enqueue(racDacRequests).map(_ => Accepted)
         case _ =>

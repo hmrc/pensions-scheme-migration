@@ -25,11 +25,11 @@ case class Items(pstr: String, declarationDate: String, racDac: Boolean, schemeN
 object Items {
   implicit val ifReads: Reads[Items] = (
     (JsPath \ "pstr").read[String] and
-      (JsPath \ "declarationDate").read[String] and
+      (JsPath \ "relationshipStartDate").read[String] and
       (JsPath \ "racDac").read[Boolean] and
       (JsPath \ "schemeName").read[String] and
       (JsPath \ "schemeOpenDate").read[String] and
-      (JsPath \ "policyNo").readNullable[String]
+      (JsPath \ "policyNumber").readNullable[String]
     ) (
     (pstr, declarationDate, racDac, schemeName, schemeOpenDate, policyNo) => {
       val policy = if (racDac) policyNo else None

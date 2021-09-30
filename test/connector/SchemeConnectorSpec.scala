@@ -16,16 +16,22 @@
 
 package connector
 
+import audit.{AuditService, ListOfLegacySchemesAuditEvent}
 import base.WireMockHelper
 import com.github.tomakehurst.wiremock.client.WireMock._
+import org.mockito.ArgumentCaptor
+import org.mockito.Mockito.doNothing
 import org.scalatest.Matchers.convertToAnyShouldWrapper
 import org.scalatest._
 import org.scalatestplus.mockito.MockitoSugar
+import play.api.inject.bind
+import play.api.inject.guice.GuiceableModule
 import play.api.libs.json.Json
 import play.api.mvc.RequestHeader
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.http.{HeaderCarrier, NotFoundException, UpstreamErrorResponse}
+import uk.gov.hmrc.http.{UpstreamErrorResponse, HeaderCarrier}
+import org.mockito.Matchers.any
 
 class SchemeConnectorSpec
   extends AsyncFlatSpec
@@ -43,9 +49,18 @@ class SchemeConnectorSpec
 
   override protected def portConfigKey: String = "microservice.services.if-hod.port"
 
+  private val mockAuditService = mock[AuditService]
+
   def connector: SchemeConnector = app.injector.instanceOf[SchemeConnector]
 
-  "SchemeConnector listOfScheme" should "return OK with the list of schemes response for PSA" in {
+  override protected def bindings: Seq[GuiceableModule] =
+    Seq(
+      bind[AuditService].toInstance(mockAuditService)
+    )
+
+  "SchemeConnector listOfScheme" should "return OK with the list of schemes response for PSA and audit the response" in {
+    val captor = ArgumentCaptor.forClass(classOf[ListOfLegacySchemesAuditEvent])
+    doNothing().when(mockAuditService).sendEvent(captor.capture())(any(), any())
     server.stubFor(
       get(listOfSchemesIFUrl)
         .willReturn(
@@ -55,22 +70,32 @@ class SchemeConnectorSpec
 
     connector.listOfLegacySchemes(idValue).map { response =>
       response.right.value shouldBe validListOfSchemeIFResponse
+      val expectedAuditEvent = ListOfLegacySchemesAuditEvent(OK, 2, "")
+      captor.getValue shouldBe expectedAuditEvent
     }
   }
 
-  it should "return 422 when if/ETMP throws Unprocessable Entity" in {
+  it should "return 422 when if/ETMP throws Unprocessable Entity and audit the response" in {
+    val responseBody = "test response body"
+    val captor = ArgumentCaptor.forClass(classOf[ListOfLegacySchemesAuditEvent])
+    doNothing().when(mockAuditService).sendEvent(captor.capture())(any(), any())
     server.stubFor(
       get(listOfSchemesIFUrl)
         .willReturn(
-          aResponse().withStatus(422)
+          aResponse()
+            .withStatus(422)
+            .withBody(responseBody)
         )
     )
     connector.listOfLegacySchemes(idValue).map { response =>
       response.left.value.responseCode shouldBe UNPROCESSABLE_ENTITY
+      val expectedAuditEvent = ListOfLegacySchemesAuditEvent(UNPROCESSABLE_ENTITY, 0, responseBody)
+      captor.getValue shouldBe expectedAuditEvent
     }
   }
 
   it should "throw UpStream5XXResponse when if/ETMP throws Server error" in {
+    doNothing().when(mockAuditService).sendEvent(any())(any(), any())
     server.stubFor(
       get(listOfSchemesIFUrl)
         .willReturn(
@@ -98,19 +123,19 @@ object SchemeConnectorSpec {
       |  "items": [
       |    {
       |      "pstr": "00241768RH",
-      |      "declarationDate": "0001-01-01T00:00:00",
+      |      "relationshipStartDate": "0001-01-01T00:00:00",
       |      "schemeName": "THE AMDAIL PENSION SCHEME",
       |      "schemeOpenDate": "2006-04-05T00:00:00",
       |      "racDac": false,
-      |      "policyNo": ""
+      |      "policyNumber": ""
       |    },
       |    {
       |      "pstr": "00615269RH",
-      |      "declarationDate": "2012-02-20T00:00:00",
+      |      "relationshipStartDate": "2012-02-20T00:00:00",
       |      "schemeName": "paul qqq",
       |      "schemeOpenDate": "paul qqq",
       |      "racDac": true,
-      |      "policyNo": "24101975"
+      |      "policyNumber": "24101975"
       |    }
       |  ]
       |}

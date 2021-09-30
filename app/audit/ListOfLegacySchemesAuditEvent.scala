@@ -14,12 +14,16 @@
  * limitations under the License.
  */
 
-package repositories.models
+package audit
 
-import play.api.libs.json.{Json, OFormat}
+case class ListOfLegacySchemesAuditEvent(status: Int, numberOfSchemes:Int, failureResponse: String) extends AuditEvent {
+  override def auditType: String = "ListOfLegacySchemesAudit"
 
-case class MigrationLock(pstr: String, credId: String, psaId: String)
-
-object MigrationLock {
-  implicit val format: OFormat[MigrationLock] = Json.format[MigrationLock]
+  override def details: Map[String, String] = {
+    Map(
+      "status" -> status.toString,
+      "numberOfSchemes" -> numberOfSchemes.toString,
+      "failureResponse" -> failureResponse
+    )
+  }
 }
