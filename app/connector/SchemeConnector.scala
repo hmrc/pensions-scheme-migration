@@ -61,7 +61,7 @@ class SchemeConnector @Inject()(
     ).map { response =>
       response.status match {
         case OK =>
-          val totalResults = (response.json \ "totalResults").toOption.flatMap(_.asOpt[Int]).getOrElse(0)
+          val totalResults = (response.json \ "totalResults").asOpt[Int].getOrElse(0)
           auditService.sendEvent(ListOfLegacySchemesAuditEvent(response.status, totalResults, ""))
           logger.debug(s"Call to migration list of schemes API on IF was successful with response ${response.json}")
           Right(response.json)

@@ -127,7 +127,7 @@ object SchemeConnectorSpec {
       |      "schemeName": "THE AMDAIL PENSION SCHEME",
       |      "schemeOpenDate": "2006-04-05T00:00:00",
       |      "racDac": false,
-      |      "policyNo": ""
+      |      "policyNumber": ""
       |    },
       |    {
       |      "pstr": "00615269RH",
@@ -135,7 +135,7 @@ object SchemeConnectorSpec {
       |      "schemeName": "paul qqq",
       |      "schemeOpenDate": "paul qqq",
       |      "racDac": true,
-      |      "policyNo": "24101975"
+      |      "policyNumber": "24101975"
       |    }
       |  ]
       |}
