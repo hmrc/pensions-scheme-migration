@@ -33,20 +33,27 @@ class TestBulkRacDacController @Inject()(
                                         )
   extends BackendController(cc) {
 
-  //TODO: This is a test controller to test the rac dac queue submission and the poller. It can be removed or replaced later
-  def migrateAllRacDac(psaId: String): Action[AnyContent] = Action.async {
+  def migrateAllRacDac: Action[AnyContent] = Action.async {
     implicit request => {
       def hc(implicit request: RequestHeader): HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
 
+      val psaId = request.headers.get("psaId")
       val feJson = request.body.asJson
-      feJson match {
-        case Some(jsValue) =>
+
+      (psaId, feJson) match {
+        case (Some(id), Some(jsValue)) =>
           val req = (jsValue \ "Request").as[Seq[Request]]
-          val racDacRequests = req.map(r => RacDacRequest(psaId, r, RacDacHeaders(hc(request))))
+          val racDacRequests = req.map(r => RacDacRequest(id, r, RacDacHeaders(hc(request))))
           service.enqueue(racDacRequests).map(_ => Accepted)
-        case None =>
-          Future.failed(new BadRequestException("Bad Request with missing Body"))
+        case _ =>
+          Future.failed(new BadRequestException("Missing Body or missing psaId in the header"))
       }
+    }
+  }
+
+  def getAllRacDac(psaId: String): Action[AnyContent] = Action.async {
+    implicit request => {
+      service.getAllByPsaId(psaId).map(_ => Ok)
     }
   }
 }

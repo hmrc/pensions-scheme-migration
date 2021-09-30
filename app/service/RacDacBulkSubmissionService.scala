@@ -18,7 +18,7 @@ package service
 
 import com.google.inject.{Inject, Singleton}
 import connector.SchemeConnector
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsObject, JsValue, Json}
 import reactivemongo.bson.BSONObjectID
 import repositories.RacDacRequestsQueueRepository
 import uk.gov.hmrc.workitem.{ProcessingStatus, ResultStatus, WorkItem}
@@ -54,4 +54,11 @@ class RacDacBulkSubmissionService @Inject()(
   def setResultStatus(id: BSONObjectID, status: ResultStatus): Future[Either[Exception, Boolean]] =
     racDacSubmissionRepo.setResultStatus(id, status)
 
+  def getAllByPsaId(psaId: String): Future[Long] = {
+    racDacSubmissionRepo.getTotalNoOfRequestsByPsaId(psaId)
+  }
+
+  def deleteAllByPsa(psaId: String): Future[Boolean] = {
+    racDacSubmissionRepo.deleteAllRequestsForPsaId(psaId)
+  }
 }
