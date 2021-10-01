@@ -17,15 +17,15 @@
 package repositories
 
 import com.google.inject.{Inject, Singleton}
+import models.racDac.{IdList, WorkItemRequest}
 import org.joda.time.DateTime
 import play.api.Configuration
 import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
+import reactivemongo.api.ReadConcern
 import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.api.{Cursor, ReadConcern}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import reactivemongo.play.json.ImplicitBSONHandlers._
-import service.{IdList, RacDacRequest}
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.workitem._
@@ -35,44 +35,46 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class RacDacRequestsQueueRepository @Inject()(configuration: Configuration, reactiveMongoComponent: ReactiveMongoComponent, servicesConfig: ServicesConfig)
                                              (implicit val ec: ExecutionContext) extends
-  WorkItemRepository[RacDacRequest, BSONObjectID](
+  WorkItemRepository[WorkItemRequest, BSONObjectID](
     collectionName = configuration.get[String](path = "mongodb.migration-cache.racDac-work-item-queue.name"),
     mongo = reactiveMongoComponent.mongoConnector.db,
-    itemFormat = RacDacRequest.workItemFormat,
+    itemFormat = WorkItemRequest.workItemFormat,
     config = configuration.underlying
   ) {
 
   private implicit val dateFormats: Format[DateTime] = ReactiveMongoFormats.dateTimeFormats
+
   override def now: DateTime = DateTime.now
 
   override lazy val workItemFields: WorkItemFieldNames = new WorkItemFieldNames {
-      val receivedAt = "receivedAt"
-      val updatedAt = "updatedAt"
-      val availableAt = "receivedAt"
-      val status = "status"
-      val id = "_id"
-      val failureCount = "failureCount"
-    }
+    val receivedAt = "receivedAt"
+    val updatedAt = "updatedAt"
+    val availableAt = "receivedAt"
+    val status = "status"
+    val id = "_id"
+    val failureCount = "failureCount"
+  }
 
   override val inProgressRetryAfterProperty: String = "racDacWorkItem.submission-poller.in-progress-retry-after"
   private val retryPeriod = inProgressRetryAfter.getMillis.toInt
 
   private lazy val ttl = servicesConfig.getDuration("racDacWorkItem.submission-poller.mongo.ttl").toSeconds
+
   override def indexes: Seq[Index] = super.indexes ++ Seq(
     Index(key = Seq("item.psaId" -> IndexType.Ascending), name = Some("psaIdIdx")),
     Index(key = Seq("receivedAt" -> IndexType.Ascending), name = Some("receivedAtTime"),
       options = BSONDocument("expireAfterSeconds" -> ttl))
   )
 
-  def pushAll(racDacRequests: Seq[RacDacRequest]): Future[Either[Exception, Seq[WorkItem[RacDacRequest]]]] = {
-    pushNew(racDacRequests, now, (_: RacDacRequest) => ToDo).map(item => Right(item)).recover {
+  def pushAll(racDacRequests: Seq[WorkItemRequest]): Future[Either[Exception, Seq[WorkItem[WorkItemRequest]]]] = {
+    pushNew(racDacRequests, now, (_: WorkItemRequest) => ToDo).map(item => Right(item)).recover {
       case exception: Exception =>
         logger.error(s"Error occured while pushing items to the queue: ${exception.getMessage}")
         Left(WorkItemProcessingException(s"push failed for request due to ${exception.getMessage}"))
     }
   }
 
-  def pull: Future[Either[Exception, Option[WorkItem[RacDacRequest]]]] =
+  def pull: Future[Either[Exception, Option[WorkItem[WorkItemRequest]]]] =
     pullOutstanding(failedBefore = now.minusMillis(retryPeriod), availableBefore = now)
       .map(workItem => Right(workItem)).recover {
       case exception: Exception => Left(WorkItemProcessingException(s"pull failed due to ${exception.getMessage}"))
@@ -90,34 +92,29 @@ class RacDacRequestsQueueRepository @Inject()(configuration: Configuration, reac
       case exception: Exception => Left(WorkItemProcessingException(s"setting completion status for $id failed due to ${exception.getMessage}"))
     }
 
-  def getAllRequestsByPsaId(psaId: String): Future[List[WorkItem[RacDacRequest]]] = {
-    collection.find(BSONDocument("item.psaId" -> psaId), projection = Option.empty[JsObject]).cursor[WorkItem[RacDacRequest]]()
-      .collect[List](-1, Cursor.FailOnError())
-  }
-
   def getTotalNoOfRequestsByPsaId(psaId: String): Future[Long] = {
-    val selector= Json.obj("item.psaId" -> psaId)
+    val selector = Json.obj("item.psaId" -> psaId)
     collection.count(Some(selector), None, skip = 0, None, ReadConcern.Local)
   }
 
   def getNoOfFailureByPsaId(psaId: String): Future[Long] = {
-    val selector= Json.obj("status" -> "permanently-failed", "item.psaId" -> psaId)
+    val selector = Json.obj(workItemFields.status -> PermanentlyFailed, "item.psaId" -> psaId)
     collection.count(Some(selector), None, skip = 0, None, ReadConcern.Local)
   }
 
-  def deleteAllRequestsForPsaId(psaId: String): Future[Boolean] = {
-    val selector = BSONDocument("item.psaId" -> psaId)
+  def deleteRequest(id: BSONObjectID): Future[Boolean] = {
+    val selector = BSONDocument(workItemFields.id -> id)
     collection.delete.one(selector).map(_.ok)
   }
 
   override def pullOutstanding(failedBefore: DateTime, availableBefore: DateTime)(implicit ec: ExecutionContext):
-  Future[Option[WorkItem[RacDacRequest]]] = {
+  Future[Option[WorkItem[WorkItemRequest]]] = {
 
-    def getWorkItem(idList: IdList): Future[Option[WorkItem[RacDacRequest]]] = {
+    def getWorkItem(idList: IdList): Future[Option[WorkItem[WorkItemRequest]]] = {
       collection.find(
         selector = Json.obj(workItemFields.id -> ReactiveMongoFormats.objectIdWrite.writes(idList._id)),
         projection = Option.empty[JsObject]
-      ).one[WorkItem[RacDacRequest]]
+      ).one[WorkItem[WorkItemRequest]]
     }
 
     val id = findNextItemId(failedBefore, availableBefore)
@@ -137,7 +134,8 @@ class RacDacRequestsQueueRepository @Inject()(configuration: Configuration, reac
 
     Json.obj("$set" -> fields) ++ ifFailed
   }
-  private def findNextItemId(failedBefore: DateTime, availableBefore: DateTime)(implicit ec: ExecutionContext) : Future[Option[IdList]] = {
+
+  private def findNextItemId(failedBefore: DateTime, availableBefore: DateTime)(implicit ec: ExecutionContext): Future[Option[IdList]] = {
 
     def findNextItemIdByQuery(query: JsObject)(implicit ec: ExecutionContext): Future[Option[IdList]] =
       findAndUpdate(

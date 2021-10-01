@@ -17,8 +17,10 @@
 package controllers
 
 import com.google.inject.Inject
+import models.racDac.{RacDacHeaders, RacDacRequest, WorkItemRequest}
+import play.api.libs.json.Json
 import play.api.mvc.{Action, AnyContent, ControllerComponents, RequestHeader}
-import service.{RacDacBulkSubmissionService, RacDacHeaders, RacDacRequest, Request}
+import service.RacDacBulkSubmissionService
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
@@ -42,8 +44,8 @@ class TestBulkRacDacController @Inject()(
 
       (psaId, feJson) match {
         case (Some(id), Some(jsValue)) =>
-          val req = (jsValue).as[Seq[Request]]
-          val racDacRequests = req.map(r => RacDacRequest(id, r, RacDacHeaders(hc(request))))
+          val seqRacDacRequest = jsValue.as[Seq[RacDacRequest]]
+          val racDacRequests = seqRacDacRequest.map(racDacReq => WorkItemRequest(id, racDacReq, RacDacHeaders(hc(request))))
           service.enqueue(racDacRequests).map(_ => Accepted)
         case _ =>
           Future.failed(new BadRequestException("Missing Body or missing psaId in the header"))
@@ -51,9 +53,27 @@ class TestBulkRacDacController @Inject()(
     }
   }
 
-  def getAllRacDac(psaId: String): Action[AnyContent] = Action.async {
+  def isRequestSubmitted: Action[AnyContent] = Action.async {
     implicit request => {
-      service.getAllByPsaId(psaId).map(_ => Ok)
+      val psaId = request.headers.get("psaId")
+      psaId match {
+        case Some(id) =>
+          service.isRequestSubmitted(id).map(isSubmitted => Ok(Json.toJson(isSubmitted)))
+        case _ =>
+          Future.failed(new BadRequestException("Missing psaId in the header"))
+      }
+    }
+  }
+
+  def isAllFailed: Action[AnyContent] = Action.async {
+    implicit request => {
+      val psaId = request.headers.get("psaId")
+      psaId match {
+        case Some(id) =>
+          service.isAllFailed(id).map(isFailed => Ok(Json.toJson(isFailed)))
+        case _ =>
+          Future.failed(new BadRequestException("Missing psaId in the header"))
+      }
     }
   }
 }

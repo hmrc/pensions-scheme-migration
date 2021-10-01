@@ -20,5 +20,5 @@ DELETE        /scheme-data                          controllers.cache.SchemeData
 GET           /list-of-schemes                      controllers.SchemeController.listOfLegacySchemes
 
 POST          /bulk-migration                       controllers.TestBulkRacDacController.migrateAllRacDac
-
-GET           /bulk-migration/:psaId                      controllers.TestBulkRacDacController.getAllRacDac(psaId: String)
+GET           /bulk-migration/isRequestSubmitted    controllers.TestBulkRacDacController.isRequestSubmitted
+GET           /bulk-migration/isAllFailed           controllers.TestBulkRacDacController.isAllFailed

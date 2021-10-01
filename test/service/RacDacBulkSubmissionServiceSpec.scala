@@ -19,6 +19,7 @@ package service
 import akka.actor.ActorSystem
 import akka.util.Timeout
 import connector.SchemeConnector
+import models.racDac.{RacDacHeaders, RacDacRequest}
 import org.joda.time.DateTime
 import org.mockito.Matchers.any
 import org.mockito.Mockito.when

@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package service
+package models.racDac
 
-import play.api.libs.json.{Format, Json, Reads, Writes}
+import play.api.libs.json.{Json, Reads, Writes}
 import reactivemongo.bson.BSONObjectID
 import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 

@@ -17,10 +17,11 @@
 package repositories
 
 import com.typesafe.config.ConfigFactory
+import models.racDac.RacDacHeaders
 import org.scalatest.{MustMatchers, WordSpec}
 import play.api.Configuration
 import play.api.test.Helpers._
-import service.{RacDacHeaders, RacDacRequest, Request}
+import service.Request
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.workitem.{Failed, InProgress, PermanentlyFailed}
 
