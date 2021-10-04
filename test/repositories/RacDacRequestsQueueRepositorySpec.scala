@@ -17,11 +17,10 @@
 package repositories
 
 import com.typesafe.config.ConfigFactory
-import models.racDac.RacDacHeaders
+import models.racDac.{RacDacHeaders, RacDacRequest, WorkItemRequest}
 import org.scalatest.{MustMatchers, WordSpec}
 import play.api.Configuration
 import play.api.test.Helpers._
-import service.Request
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.workitem.{Failed, InProgress, PermanentlyFailed}
 
@@ -49,15 +48,9 @@ class RacDacRequestsQueueRepositorySpec extends WordSpec with MustMatchers with 
   )
 
   private val repository = new RacDacRequestsQueueRepository(config, reactiveMongoComponent, new ServicesConfig(config))
-  private val racDacRequest = RacDacRequest("", Request("", ""), RacDacHeaders(None, None))
+  private val racDacRequest = WorkItemRequest("test psa", RacDacRequest("", ""), RacDacHeaders(None, None))
 
   "RacDacRequestsQueueRepository" when {
-
-    "push" must {
-      "insert a rac dac request" in {
-        await(repository.push(racDacRequest)).map(item => item.item) mustBe Right(racDacRequest)
-      }
-    }
 
     "pushAll" must {
       "insert all rac dac requests" in {
@@ -67,12 +60,11 @@ class RacDacRequestsQueueRepositorySpec extends WordSpec with MustMatchers with 
 
     "pull" must {
       "return some work item if one exists" in {
-        await(repository.push(racDacRequest)).map(item => item.item) mustBe Right(racDacRequest)
+        await(repository.pushAll(Seq(racDacRequest))).map(item => item.map(_.item)) mustBe Right(Seq(racDacRequest))
 
         await(repository.pull).map(maybeWorkItem => maybeWorkItem.map(workItem => workItem.item)) mustBe Right(
           Some(racDacRequest)
         )
-
       }
       "return none if no work item exists " in {
         await(
@@ -84,16 +76,33 @@ class RacDacRequestsQueueRepositorySpec extends WordSpec with MustMatchers with 
     "set processing status" should {
 
       "update the work item status" in {
-        val workItem = await(repository.push(racDacRequest))
-        workItem.map(wi => await(repository.setProcessingStatus(wi.id, Failed)) mustBe Right(true))
+        val workItem = await(repository.pushAll(Seq(racDacRequest)))
+        workItem.map(wi => wi.map(req => await(repository.setProcessingStatus(req.id, Failed)) mustBe Right(true)))
       }
     }
 
     "set result status" should {
       "update the work item status" in {
-        val workItem = await(repository.push(racDacRequest))
-        val _ = workItem.map(wi => await(repository.setProcessingStatus(wi.id, InProgress)))
-        workItem.map(wi => await(repository.setResultStatus(wi.id, PermanentlyFailed)) mustBe Right(true))
+        val workItem = await(repository.pushAll(Seq(racDacRequest)))
+        val _ = workItem.map(wi => wi.map(req => await(repository.setProcessingStatus(req.id, InProgress))))
+        workItem.map(wi => wi.map(req => await(repository.setResultStatus(req.id, PermanentlyFailed)) mustBe Right(true)))
+      }
+    }
+
+    "get total no of requests" should {
+      "return no of requests in the queue" in {
+        val _ = await(repository.pushAll(Seq(racDacRequest)))
+        val noOfRequests = await(repository.getTotalNoOfRequestsByPsaId("test psa"))
+        noOfRequests mustEqual 1
+      }
+    }
+
+    "get no of failures" should {
+      "return no of failed messages in the queue" in {
+        val workItem = await(repository.pushAll(Seq(racDacRequest)))
+        val _ = workItem.map(wi => wi.map(req => await(repository.setProcessingStatus(req.id, PermanentlyFailed))))
+        val noOfRequests = await(repository.getNoOfFailureByPsaId("test psa"))
+        noOfRequests mustEqual 1
       }
     }
   }

@@ -27,12 +27,12 @@ import uk.gov.hmrc.play.http.HeaderCarrierConverter
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class TestBulkRacDacController @Inject()(
-                                          cc: ControllerComponents,
-                                          service: RacDacBulkSubmissionService
-                                        )(
-                                          implicit ec: ExecutionContext
-                                        )
+class BulkRacDacController @Inject()(
+                                      cc: ControllerComponents,
+                                      service: RacDacBulkSubmissionService
+                                    )(
+                                      implicit ec: ExecutionContext
+                                    )
   extends BackendController(cc) {
 
   def migrateAllRacDac: Action[AnyContent] = Action.async {
@@ -41,7 +41,6 @@ class TestBulkRacDacController @Inject()(
 
       val psaId = request.headers.get("psaId")
       val feJson = request.body.asJson
-
       (psaId, feJson) match {
         case (Some(id), Some(jsValue)) =>
           val seqRacDacRequest = jsValue.as[Seq[RacDacRequest]]
