@@ -17,15 +17,16 @@
 package repositories
 
 import com.google.inject.{Inject, Singleton}
+import models.racDac.{IdList, WorkItemRequest}
 import org.joda.time.DateTime
 import play.api.Configuration
-import play.api.libs.json.{JsObject, JsValue}
+import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
+import reactivemongo.api.ReadConcern
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import reactivemongo.play.json.ImplicitBSONHandlers._
-import models.cache.DataJson
-import service.RacDacRequest
+import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 import uk.gov.hmrc.workitem._
 
@@ -34,28 +35,27 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class RacDacRequestsQueueRepository @Inject()(configuration: Configuration, reactiveMongoComponent: ReactiveMongoComponent, servicesConfig: ServicesConfig)
                                              (implicit val ec: ExecutionContext) extends
-  WorkItemRepository[RacDacRequest, BSONObjectID](
+  WorkItemRepository[WorkItemRequest, BSONObjectID](
     collectionName = configuration.get[String](path = "mongodb.migration-cache.racDac-work-item-queue.name"),
     mongo = reactiveMongoComponent.mongoConnector.db,
-    itemFormat = RacDacRequest.workItemFormat,
+    itemFormat = WorkItemRequest.workItemFormat,
     config = configuration.underlying
   ) {
-  override def now: DateTime =
-    DateTime.now
 
-  override lazy val workItemFields: WorkItemFieldNames =
-    new WorkItemFieldNames {
-      val receivedAt = "receivedAt"
-      val updatedAt = "updatedAt"
-      val availableAt = "receivedAt"
-      val status = "status"
-      val id = "_id"
-      val failureCount = "failureCount"
-    }
+  private implicit val dateFormats: Format[DateTime] = ReactiveMongoFormats.dateTimeFormats
 
-  override val inProgressRetryAfterProperty: String =
-    "racDacWorkItem.submission-poller.in-progress-retry-after"
+  override def now: DateTime = DateTime.now
 
+  override lazy val workItemFields: WorkItemFieldNames = new WorkItemFieldNames {
+    val receivedAt = "receivedAt"
+    val updatedAt = "updatedAt"
+    val availableAt = "receivedAt"
+    val status = "status"
+    val id = "_id"
+    val failureCount = "failureCount"
+  }
+
+  override val inProgressRetryAfterProperty: String = "racDacWorkItem.submission-poller.in-progress-retry-after"
   private val retryPeriod = inProgressRetryAfter.getMillis.toInt
 
   private lazy val ttl = servicesConfig.getDuration("racDacWorkItem.submission-poller.mongo.ttl").toSeconds
@@ -66,19 +66,15 @@ class RacDacRequestsQueueRepository @Inject()(configuration: Configuration, reac
       options = BSONDocument("expireAfterSeconds" -> ttl))
   )
 
-  def push(racDacRequest: RacDacRequest): Future[Either[Exception, WorkItem[RacDacRequest]]] =
-    pushNew(racDacRequest, now, (_: RacDacRequest) => ToDo).map(item => Right(item)).recover {
-      case exception: Exception => Left(WorkItemProcessingException(s"push failed for request due to ${exception.getMessage}"))
-    }
-
-  def pushAll(racDacRequests: Seq[RacDacRequest]): Future[Either[Exception, Seq[WorkItem[RacDacRequest]]]] = {
-    pushNew(racDacRequests, now, (_: RacDacRequest) => ToDo).map(item => Right(item)).recover {
+  def pushAll(racDacRequests: Seq[WorkItemRequest]): Future[Either[Exception, Seq[WorkItem[WorkItemRequest]]]] = {
+    pushNew(racDacRequests, now, (_: WorkItemRequest) => ToDo).map(item => Right(item)).recover {
       case exception: Exception =>
+        logger.error(s"Error occured while pushing items to the queue: ${exception.getMessage}")
         Left(WorkItemProcessingException(s"push failed for request due to ${exception.getMessage}"))
     }
   }
 
-  def pull: Future[Either[Exception, Option[WorkItem[RacDacRequest]]]] =
+  def pull: Future[Either[Exception, Option[WorkItem[WorkItemRequest]]]] =
     pullOutstanding(failedBefore = now.minusMillis(retryPeriod), availableBefore = now)
       .map(workItem => Right(workItem)).recover {
       case exception: Exception => Left(WorkItemProcessingException(s"pull failed due to ${exception.getMessage}"))
@@ -95,6 +91,89 @@ class RacDacRequestsQueueRepository @Inject()(configuration: Configuration, reac
     complete(id, status).map(result => Right(result)).recover {
       case exception: Exception => Left(WorkItemProcessingException(s"setting completion status for $id failed due to ${exception.getMessage}"))
     }
+
+  def getTotalNoOfRequestsByPsaId(psaId: String): Future[Long] = {
+    val selector = Json.obj("item.psaId" -> psaId)
+    collection.count(Some(selector), None, skip = 0, None, ReadConcern.Local)
+  }
+
+  def getNoOfFailureByPsaId(psaId: String): Future[Long] = {
+    val selector = Json.obj(workItemFields.status -> PermanentlyFailed, "item.psaId" -> psaId)
+    collection.count(Some(selector), None, skip = 0, None, ReadConcern.Local)
+  }
+
+  def deleteRequest(id: BSONObjectID): Future[Boolean] = {
+    val selector = BSONDocument(workItemFields.id -> id)
+    collection.delete.one(selector).map(_.ok)
+  }
+
+  override def pullOutstanding(failedBefore: DateTime, availableBefore: DateTime)(implicit ec: ExecutionContext):
+  Future[Option[WorkItem[WorkItemRequest]]] = {
+
+    def getWorkItem(idList: IdList): Future[Option[WorkItem[WorkItemRequest]]] = {
+      collection.find(
+        selector = Json.obj(workItemFields.id -> ReactiveMongoFormats.objectIdWrite.writes(idList._id)),
+        projection = Option.empty[JsObject]
+      ).one[WorkItem[WorkItemRequest]]
+    }
+
+    val id = findNextItemId(failedBefore, availableBefore)
+    id.map(_.map(getWorkItem)).flatMap(_.getOrElse(Future.successful(None)))
+  }
+
+  private def setStatusOperation(newStatus: ProcessingStatus, availableAt: Option[DateTime]): JsObject = {
+    val fields = Json.obj(
+      workItemFields.status -> newStatus,
+      workItemFields.updatedAt -> now
+    ) ++ availableAt.map(when => Json.obj(workItemFields.availableAt -> when)).getOrElse(Json.obj())
+
+    val ifFailed =
+      if (newStatus == Failed)
+        Json.obj("$inc" -> Json.obj(workItemFields.failureCount -> 1))
+      else Json.obj()
+
+    Json.obj("$set" -> fields) ++ ifFailed
+  }
+
+  private def findNextItemId(failedBefore: DateTime, availableBefore: DateTime)(implicit ec: ExecutionContext): Future[Option[IdList]] = {
+
+    def findNextItemIdByQuery(query: JsObject)(implicit ec: ExecutionContext): Future[Option[IdList]] =
+      findAndUpdate(
+        query = query,
+        update = setStatusOperation(InProgress, None),
+        fetchNewObject = true,
+        fields = Some(Json.obj(workItemFields.id -> 1))
+      ).map(_.value.map(Json.toJson(_).as[IdList]))
+
+    def todoQuery: JsObject =
+      Json.obj(
+        workItemFields.status -> ToDo,
+        workItemFields.availableAt -> Json.obj("$lt" -> availableBefore)
+      )
+
+    def failedQuery: JsObject =
+      Json.obj("$or" -> Seq(
+        Json.obj(workItemFields.status -> Failed, workItemFields.updatedAt -> Json.obj("$lt" -> failedBefore),
+          workItemFields.availableAt -> Json.obj("$lt" -> availableBefore)),
+        Json.obj(workItemFields.status -> Failed, workItemFields.updatedAt -> Json.obj("$lt" -> failedBefore),
+          workItemFields.availableAt -> Json.obj("$exists" -> false))
+      ))
+
+
+    def inProgressQuery: JsObject =
+      Json.obj(
+        workItemFields.status -> InProgress,
+        workItemFields.updatedAt -> Json.obj("$lt" -> now.minus(inProgressRetryAfter))
+      )
+
+    findNextItemIdByQuery(failedQuery).flatMap {
+      case None => findNextItemIdByQuery(todoQuery).flatMap {
+        case None => findNextItemIdByQuery(inProgressQuery)
+        case item => Future.successful(item)
+      }
+      case item => Future.successful(item)
+    }
+  }
 
   case class WorkItemProcessingException(message: String) extends Exception(message)
 }

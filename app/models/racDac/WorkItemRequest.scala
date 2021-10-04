@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package service
+package models.racDac
 
-import play.api.libs.json.{Format, JsPath, Json, OFormat, Reads}
+import play.api.libs.json.{Format, Json, OFormat}
 import uk.gov.hmrc.http.{HeaderCarrier, RequestId, SessionId}
 import uk.gov.hmrc.workitem.WorkItem
 
@@ -30,29 +30,22 @@ object RacDacHeaders {
   def apply(hc: HeaderCarrier): RacDacHeaders = new RacDacHeaders(hc.requestId.map(_.value), hc.sessionId.map(_.value))
 }
 
-case class Request(schemeName: String, policyNumber: String)
-
-object Request {
-
-  import play.api.libs.functional.syntax._
-
-  implicit val jsonReads: Reads[Request] = (
-    (JsPath \ "schemeName").read[String] and
-      (JsPath \ "policyNumber").read[String]
-    ) (Request.apply _)
-  implicit val requestFormat: OFormat[Request] = Json.format
-}
-
-case class RacDacRequest(
-                          psaId: String,
-                          request: Request,
-                          headers: RacDacHeaders
-                        )
+case class RacDacRequest(schemeName: String, policyNumber: String)
 
 object RacDacRequest {
+  implicit val requestFormat: OFormat[RacDacRequest] = Json.format
+}
 
-  implicit val racdacSubmissionRequestFormat: OFormat[RacDacRequest] = Json.format
+case class WorkItemRequest(
+                            psaId: String,
+                            request: RacDacRequest,
+                            headers: RacDacHeaders
+                          )
 
-  val workItemFormat: Format[WorkItem[RacDacRequest]] = WorkItem.workItemMongoFormat[RacDacRequest]
+object WorkItemRequest {
+
+  implicit val workItemRequestFormat: OFormat[WorkItemRequest] = Json.format
+
+  val workItemFormat: Format[WorkItem[WorkItemRequest]] = WorkItem.workItemMongoFormat[WorkItemRequest]
 }
 
