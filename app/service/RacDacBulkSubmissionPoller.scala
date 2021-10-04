@@ -20,6 +20,7 @@ import akka.actor.ActorSystem
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import models.racDac.WorkItemRequest
 import play.api.Logger.logger
+import play.api.http.Status.CONFLICT
 import play.api.libs.json.JsValue
 import service.RacDacBulkSubmissionPoller.OnCompleteHandler
 import uk.gov.hmrc.http.HttpErrorFunctions.{is4xx, is5xx}
@@ -76,7 +77,7 @@ class RacDacBulkSubmissionPoller @Inject()(
 
   private def assignStatus(workItem: WorkItem[WorkItemRequest], response: Either[Exception, JsValue]): Unit = {
     response match {
-      case Right(_) =>
+      case Right(_) | Left(UpstreamErrorResponse(_, CONFLICT, _, _)) =>
         val _ = racDacBulkSubmissionService.deleteRequest(workItem.id)
       case Left(UpstreamErrorResponse(_, status, _, _)) if is4xx(status) =>
         val _ = racDacBulkSubmissionService.setProcessingStatus(workItem.id, PermanentlyFailed)

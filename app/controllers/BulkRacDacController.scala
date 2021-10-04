@@ -41,6 +41,7 @@ class BulkRacDacController @Inject()(
 
       val psaId = request.headers.get("psaId")
       val feJson = request.body.asJson
+
       (psaId, feJson) match {
         case (Some(id), Some(jsValue)) =>
           val seqRacDacRequest = jsValue.as[Seq[RacDacRequest]]
