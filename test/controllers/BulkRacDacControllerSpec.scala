@@ -17,11 +17,11 @@
 package controllers
 
 import base.SpecBase
-import org.mockito.Matchers.any
-import org.mockito.Mockito._
+import org.mockito.ArgumentMatchers.any
+
 import org.scalatest.BeforeAndAfter
 import org.scalatest.concurrent.{PatienceConfiguration, ScalaFutures}
-import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.MockitoSugar
 import play.api.libs.json.{JsBoolean, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
@@ -58,7 +58,7 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
       ScalaFutures.whenReady(result.failed) { e =>
         e mustBe a[BadRequestException]
         e.getMessage mustBe "Missing Body or missing psaId in the header"
-        verify(racDacBulkSubmissionService, never()).enqueue(any())
+        verify(racDacBulkSubmissionService, never).enqueue(any())
       }
     }
   }
@@ -91,7 +91,7 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
       ScalaFutures.whenReady(result.failed) { e =>
         e mustBe a[BadRequestException]
         e.getMessage mustBe "Missing psaId in the header"
-        verify(racDacBulkSubmissionService, never()).isRequestSubmitted(any())
+        verify(racDacBulkSubmissionService, never).isRequestSubmitted(any())
       }
     }
   }
@@ -124,7 +124,7 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
       ScalaFutures.whenReady(result.failed) { e =>
         e mustBe a[BadRequestException]
         e.getMessage mustBe "Missing psaId in the header"
-        verify(racDacBulkSubmissionService, never()).isAllFailed(any())
+        verify(racDacBulkSubmissionService, never).isAllFailed(any())
       }
     }
   }

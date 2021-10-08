@@ -20,18 +20,18 @@ import audit.{AuditService, ListOfLegacySchemesAuditEvent}
 import base.WireMockHelper
 import com.github.tomakehurst.wiremock.client.WireMock._
 import org.mockito.ArgumentCaptor
-import org.mockito.Mockito.doNothing
-import org.scalatest.Matchers.convertToAnyShouldWrapper
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 import org.scalatest._
-import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.MockitoSugar
 import play.api.inject.bind
 import play.api.inject.guice.GuiceableModule
 import play.api.libs.json.Json
 import play.api.mvc.RequestHeader
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.http.{UpstreamErrorResponse, HeaderCarrier}
-import org.mockito.Matchers.any
+import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
+import org.mockito.ArgumentMatchers.any
+import org.scalatest.flatspec.AsyncFlatSpec
 
 class SchemeConnectorSpec
   extends AsyncFlatSpec
@@ -60,7 +60,7 @@ class SchemeConnectorSpec
 
   "SchemeConnector listOfScheme" should "return OK with the list of schemes response for PSA and audit the response" in {
     val captor = ArgumentCaptor.forClass(classOf[ListOfLegacySchemesAuditEvent])
-    doNothing().when(mockAuditService).sendEvent(captor.capture())(any(), any())
+    doNothing.when(mockAuditService).sendEvent(captor.capture())(any(), any())
     server.stubFor(
       get(listOfSchemesIFUrl)
         .willReturn(
@@ -78,7 +78,7 @@ class SchemeConnectorSpec
   it should "return 422 when if/ETMP throws Unprocessable Entity and audit the response" in {
     val responseBody = "test response body"
     val captor = ArgumentCaptor.forClass(classOf[ListOfLegacySchemesAuditEvent])
-    doNothing().when(mockAuditService).sendEvent(captor.capture())(any(), any())
+    doNothing.when(mockAuditService).sendEvent(captor.capture())(any(), any())
     server.stubFor(
       get(listOfSchemesIFUrl)
         .willReturn(
@@ -95,7 +95,7 @@ class SchemeConnectorSpec
   }
 
   it should "throw UpStream5XXResponse when if/ETMP throws Server error" in {
-    doNothing().when(mockAuditService).sendEvent(any())(any(), any())
+    doNothing.when(mockAuditService).sendEvent(any())(any(), any())
     server.stubFor(
       get(listOfSchemesIFUrl)
         .willReturn(

@@ -18,10 +18,11 @@ package controllers.cache
 
 import akka.util.ByteString
 import org.apache.commons.lang3.RandomUtils
-import org.mockito.Matchers.{eq => eqTo, _}
-import org.mockito.Mockito.{reset, when}
-import org.scalatest.{BeforeAndAfter, MustMatchers, WordSpec}
-import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.ArgumentMatchers.{eq => eqTo, _}
+import org.scalatest.BeforeAndAfter
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import org.mockito.MockitoSugar
 import play.api.inject.bind
 import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.libs.json.Json
@@ -33,7 +34,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.Future
 
-class DataCacheControllerSpec extends WordSpec with MustMatchers with MockitoSugar with BeforeAndAfter {
+class DataCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSugar with BeforeAndAfter {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
@@ -41,9 +42,10 @@ class DataCacheControllerSpec extends WordSpec with MustMatchers with MockitoSug
   private val authConnector: AuthConnector = mock[AuthConnector]
   private val id = "id"
   private val pstr = "pstr"
+  private val psaId = "A2222222"
   private val fakeRequest = FakeRequest().withHeaders("pstr" -> pstr, "psaId" -> psaId)
   private val fakePostRequest = FakeRequest("POST", "/").withHeaders("pstr" -> pstr, "psaId" -> psaId)
-  private val psaId = "A2222222"
+
 
 
   private val modules: Seq[GuiceableModule] = Seq(

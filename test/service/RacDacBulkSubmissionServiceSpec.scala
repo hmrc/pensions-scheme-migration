@@ -21,10 +21,10 @@ import akka.util.Timeout
 import connector.SchemeConnector
 import models.racDac.{RacDacHeaders, RacDacRequest, WorkItemRequest}
 import org.joda.time.DateTime
-import org.mockito.Matchers.any
-import org.mockito.Mockito.when
-import org.scalatest.{MustMatchers, WordSpec}
-import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.ArgumentMatchers.any
+import org.mockito.MockitoSugar
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.Json
 import play.api.test.Helpers.await
 import reactivemongo.bson.BSONObjectID
@@ -36,7 +36,7 @@ import java.util.concurrent.TimeUnit
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
-class RacDacBulkSubmissionServiceSpec() extends WordSpec with MustMatchers with MockitoSugar {
+class RacDacBulkSubmissionServiceSpec() extends AnyWordSpec with Matchers with MockitoSugar {
 
   implicit val timeout: Timeout = Timeout(FiniteDuration(5, TimeUnit.SECONDS))
 
