@@ -98,7 +98,7 @@ class RacDacRequestsQueueRepository @Inject()(configuration: Configuration, reac
   }
 
   def getNoOfFailureByPsaId(psaId: String): Future[Long] = {
-    val selector = Json.obj(workItemFields.status -> PermanentlyFailed, "item.psaId" -> psaId)
+    val selector = Json.obj(workItemFields.status -> JsString(PermanentlyFailed.name), "item.psaId" -> psaId)
     collection.count(Some(selector), None, skip = 0, None, ReadConcern.Local)
   }
 
@@ -147,22 +147,22 @@ class RacDacRequestsQueueRepository @Inject()(configuration: Configuration, reac
 
     def todoQuery: JsObject =
       Json.obj(
-        workItemFields.status -> ToDo,
+        workItemFields.status -> JsString(ToDo.name),
         workItemFields.availableAt -> Json.obj("$lt" -> availableBefore)
       )
 
     def failedQuery: JsObject =
       Json.obj("$or" -> Seq(
-        Json.obj(workItemFields.status -> Failed, workItemFields.updatedAt -> Json.obj("$lt" -> failedBefore),
+        Json.obj(workItemFields.status -> JsString(Failed.name), workItemFields.updatedAt -> Json.obj("$lt" -> failedBefore),
           workItemFields.availableAt -> Json.obj("$lt" -> availableBefore)),
-        Json.obj(workItemFields.status -> Failed, workItemFields.updatedAt -> Json.obj("$lt" -> failedBefore),
+        Json.obj(workItemFields.status -> JsString(Failed.name), workItemFields.updatedAt -> Json.obj("$lt" -> failedBefore),
           workItemFields.availableAt -> Json.obj("$exists" -> false))
       ))
 
 
     def inProgressQuery: JsObject =
       Json.obj(
-        workItemFields.status -> InProgress,
+        workItemFields.status -> JsString(InProgress.name),
         workItemFields.updatedAt -> Json.obj("$lt" -> now.minus(inProgressRetryAfter))
       )
 
