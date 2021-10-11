@@ -44,6 +44,7 @@ class AuditServiceImpl @Inject()(
 
   private val logger = Logger(classOf[AuditServiceImpl])
 
+
   private implicit def toHc(request: RequestHeader): AuditHeaderCarrier =
     auditHeaderCarrier(HeaderCarrierConverter.fromRequestAndSession(request, request.session))
 

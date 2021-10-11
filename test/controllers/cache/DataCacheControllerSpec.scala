@@ -174,3 +174,4 @@ class DataCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
     }
   }
 }
+
