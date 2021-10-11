@@ -31,7 +31,6 @@ class RacDacRequestsQueueRepositorySpec extends WordSpec with MustMatchers with 
     ConfigFactory.parseString(
       """
         |racDacWorkItem {
-        |    queue-name = "queue-name"
         |    submission-poller {
         |        initial-delay = 10 seconds
         |        interval = 1 seconds
@@ -48,7 +47,7 @@ class RacDacRequestsQueueRepositorySpec extends WordSpec with MustMatchers with 
   )
 
   private val repository = new RacDacRequestsQueueRepository(config, reactiveMongoComponent, new ServicesConfig(config))
-  private val racDacRequest = WorkItemRequest("test psa", RacDacRequest("", ""), RacDacHeaders(None, None))
+  private val racDacRequest = WorkItemRequest("test psa", RacDacRequest("test scheme 1", "001"), RacDacHeaders(None, None))
 
   "RacDacRequestsQueueRepository" when {
 
@@ -66,6 +65,7 @@ class RacDacRequestsQueueRepositorySpec extends WordSpec with MustMatchers with 
           Some(racDacRequest)
         )
       }
+
       "return none if no work item exists " in {
         await(
           repository.pull
@@ -93,7 +93,7 @@ class RacDacRequestsQueueRepositorySpec extends WordSpec with MustMatchers with 
       "return no of requests in the queue" in {
         val _ = await(repository.pushAll(Seq(racDacRequest)))
         val noOfRequests = await(repository.getTotalNoOfRequestsByPsaId("test psa"))
-        noOfRequests mustEqual 1
+        noOfRequests mustEqual Right(1)
       }
     }
 
@@ -102,7 +102,14 @@ class RacDacRequestsQueueRepositorySpec extends WordSpec with MustMatchers with 
         val workItem = await(repository.pushAll(Seq(racDacRequest)))
         val _ = workItem.map(wi => wi.map(req => await(repository.setProcessingStatus(req.id, PermanentlyFailed))))
         val noOfRequests = await(repository.getNoOfFailureByPsaId("test psa"))
-        noOfRequests mustEqual 1
+        noOfRequests mustEqual Right(1)
+      }
+    }
+
+    "delete all request" should {
+      "return true if all the requests are deleted" in {
+        val res = await(repository.deleteAll("test psa"))
+        res mustEqual Right(true)
       }
     }
   }

@@ -23,7 +23,7 @@ import models.racDac.{RacDacHeaders, RacDacRequest, WorkItemRequest}
 import org.joda.time.DateTime
 import org.mockito.Matchers.any
 import org.mockito.Mockito.when
-import org.scalatest.{MustMatchers, WordSpec}
+import org.scalatest.{EitherValues, MustMatchers, WordSpec}
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.Json
 import play.api.test.Helpers.await
@@ -36,7 +36,7 @@ import java.util.concurrent.TimeUnit
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
-class RacDacBulkSubmissionServiceSpec() extends WordSpec with MustMatchers with MockitoSugar {
+class RacDacBulkSubmissionServiceSpec() extends WordSpec with MustMatchers with MockitoSugar with EitherValues{
 
   implicit val timeout: Timeout = Timeout(FiniteDuration(5, TimeUnit.SECONDS))
 
@@ -59,15 +59,27 @@ class RacDacBulkSubmissionServiceSpec() extends WordSpec with MustMatchers with 
         when(mockRacDacSubmissionRepo.pull).thenReturn(Future(Right(Some(workItem))))
         await(racDacBulkSubmissionService.dequeue) mustBe Right(Some(workItem))
       }
+
+      "return exception if there is an exception pulling item from the queue" in {
+        val ex = new Exception("message")
+        when(mockRacDacSubmissionRepo.pull).thenReturn(Future(Left(ex)))
+        await(racDacBulkSubmissionService.dequeue) mustBe Left(ex)
+      }
     }
 
     "a dms submission request is made" must {
-      "enqueue the request" in {
+      "return true after successfully enqueue the request" in {
         val workItem: WorkItem[WorkItemRequest] = WorkItem(BSONObjectID.generate(), DateTime.now(),
           DateTime.now(), DateTime.now(), ToDo, 0, racDacRequest)
 
         when(mockRacDacSubmissionRepo.pushAll(any())).thenReturn(Future(Right(Seq(workItem))))
         await(racDacBulkSubmissionService.enqueue(Seq(racDacRequest))) mustBe true
+      }
+
+      "return false if there is an error enqueuing the request" in {
+        val ex = new Exception("message")
+        when(mockRacDacSubmissionRepo.pushAll(any())).thenReturn(Future(Left(ex)))
+        await(racDacBulkSubmissionService.enqueue(Seq(racDacRequest))) mustBe false
       }
     }
 
@@ -75,6 +87,12 @@ class RacDacBulkSubmissionServiceSpec() extends WordSpec with MustMatchers with 
       "return true to indicate that the status has been updated" in {
         when(mockRacDacSubmissionRepo.setProcessingStatus(any(), any())).thenReturn(Future(Right(true)))
         await(racDacBulkSubmissionService.setProcessingStatus(BSONObjectID.generate(), Failed)) mustBe Right(true)
+      }
+
+      "return error if error occurred" in {
+        val ex = new Exception("message")
+        when(mockRacDacSubmissionRepo.setProcessingStatus(any(), any())).thenReturn(Future(Left(ex)))
+        await(racDacBulkSubmissionService.setProcessingStatus(BSONObjectID.generate(), Failed)) mustBe Left(ex)
       }
     }
 
@@ -84,6 +102,14 @@ class RacDacBulkSubmissionServiceSpec() extends WordSpec with MustMatchers with 
           DateTime.now(), DateTime.now(), ToDo, 0, racDacRequest)
         when(mockRacDacSubmissionRepo.setResultStatus(any(), any())).thenReturn(Future(Right(true)))
         await(racDacBulkSubmissionService.setResultStatus(workItem.id, PermanentlyFailed)) mustBe Right(true)
+      }
+
+      "return error if error occurred" in {
+        val workItem: WorkItem[WorkItemRequest] = WorkItem(BSONObjectID.generate(), DateTime.now(),
+          DateTime.now(), DateTime.now(), ToDo, 0, racDacRequest)
+        val ex = new Exception("message")
+        when(mockRacDacSubmissionRepo.setResultStatus(any(), any())).thenReturn(Future(Left(ex)))
+        await(racDacBulkSubmissionService.setResultStatus(workItem.id, PermanentlyFailed)) mustBe Left(ex)
       }
     }
 
@@ -102,29 +128,58 @@ class RacDacBulkSubmissionServiceSpec() extends WordSpec with MustMatchers with 
 
     "the submission poller queries the queue" must {
       "return the correct status of true if the request is submitted" in {
-        when(mockRacDacSubmissionRepo.getTotalNoOfRequestsByPsaId(any())).thenReturn(Future(10L))
-        await(racDacBulkSubmissionService.isRequestSubmitted("test psa id")) mustBe true
+        when(mockRacDacSubmissionRepo.getTotalNoOfRequestsByPsaId(any())).thenReturn(Future(Right(10L)))
+        await(racDacBulkSubmissionService.isRequestSubmitted("test psa id")) mustBe Right(true)
       }
 
-      "return the correct status of true if no request is submitted" in {
-        when(mockRacDacSubmissionRepo.getTotalNoOfRequestsByPsaId(any())).thenReturn(Future(0L))
-        await(racDacBulkSubmissionService.isRequestSubmitted("test psa id")) mustBe false
+      "return the correct status of false if no request is submitted" in {
+        when(mockRacDacSubmissionRepo.getTotalNoOfRequestsByPsaId(any())).thenReturn(Future(Right(0L)))
+        await(racDacBulkSubmissionService.isRequestSubmitted("test psa id")) mustBe Right(false)
+      }
+
+      "return exception if query is failed" in {
+        val ex = new Exception("message")
+        when(mockRacDacSubmissionRepo.getTotalNoOfRequestsByPsaId(any())).thenReturn(Future(Left(ex)))
+        await(racDacBulkSubmissionService.isRequestSubmitted("test psa id")) mustBe Left(ex)
       }
     }
 
     "the submission poller queries the queue" must {
       "return the correct status of true if all request are failed" in {
-        when(mockRacDacSubmissionRepo.getTotalNoOfRequestsByPsaId(any())).thenReturn(Future(10L))
-        when(mockRacDacSubmissionRepo.getNoOfFailureByPsaId(any())).thenReturn(Future(10L))
-        await(racDacBulkSubmissionService.isAllFailed("test psa id")) mustBe true
+        when(mockRacDacSubmissionRepo.getTotalNoOfRequestsByPsaId(any())).thenReturn(Future(Right(10L)))
+        when(mockRacDacSubmissionRepo.getNoOfFailureByPsaId(any())).thenReturn(Future(Right(10L)))
+        await(racDacBulkSubmissionService.isAllFailed("test psa id")) mustBe Right(true)
       }
 
       "return the correct status of false if not all requests are failed" in {
-        when(mockRacDacSubmissionRepo.getTotalNoOfRequestsByPsaId(any())).thenReturn(Future(10L))
-        when(mockRacDacSubmissionRepo.getNoOfFailureByPsaId(any())).thenReturn(Future(5L))
-        await(racDacBulkSubmissionService.isAllFailed("test psa id")) mustBe false
+        when(mockRacDacSubmissionRepo.getTotalNoOfRequestsByPsaId(any())).thenReturn(Future(Right(10L)))
+        when(mockRacDacSubmissionRepo.getNoOfFailureByPsaId(any())).thenReturn(Future(Right(5L)))
+        await(racDacBulkSubmissionService.isAllFailed("test psa id")) mustBe Right(false)
+      }
+
+      "return exception if there is an error" in {
+        when(mockRacDacSubmissionRepo.getTotalNoOfRequestsByPsaId(any())).thenReturn(Future(Right(10L)))
+        when(mockRacDacSubmissionRepo.getNoOfFailureByPsaId(any())).thenReturn(Future(Left(new Exception("message"))))
+        await(racDacBulkSubmissionService.isAllFailed("test psa id")).left.value.getMessage mustBe "getting query for isAllFailed failed"
+      }
+    }
+
+    "the submission poller submits a delete request" must {
+      "return the correct status of true if all request are deleted" in {
+        when(mockRacDacSubmissionRepo.deleteAll(any())).thenReturn(Future(Right(true)))
+        await(racDacBulkSubmissionService.deleteAll("test psa id")) mustBe Right(true)
+      }
+
+      "return the correct status of false if not all requests are deleted" in {
+        when(mockRacDacSubmissionRepo.deleteAll(any())).thenReturn(Future(Right(false)))
+        await(racDacBulkSubmissionService.deleteAll("test psa id")) mustBe Right(false)
+      }
+
+      "return exception if an error occurred" in {
+        val ex = new Exception("message")
+        when(mockRacDacSubmissionRepo.deleteAll(any())).thenReturn(Future(Left(ex)))
+        await(racDacBulkSubmissionService.deleteAll("test psa id")) mustBe Left(ex)
       }
     }
   }
-
 }
