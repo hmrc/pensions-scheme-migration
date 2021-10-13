@@ -18,28 +18,19 @@ package connector
 
 import com.google.inject.Inject
 import config.AppConfig
-import play.api.Logger
 import uk.gov.hmrc.http.HeaderCarrier
 
 import java.util.UUID.randomUUID
 
 class HeaderUtils @Inject()(config: AppConfig) {
-
-  private val logger = Logger(classOf[HeaderUtils])
-
+  private val maxLengthCorrelationIdIF = 36
   def integrationFrameworkHeader(implicit hc: HeaderCarrier): Seq[(String, String)] = {
-    val requestId = getCorrelationId(None)
 
     Seq("Environment" -> config.integrationframeworkEnvironment,
       "Authorization" -> config.integrationframeworkAuthorization,
       "Content-Type" -> "application/json",
-      "CorrelationId" -> requestId)
+      "CorrelationId" -> getCorrelationId)
   }
 
-  private def getCorrelationId(requestId: Option[String]): String = {
-    requestId.getOrElse {
-      logger.error("No Request Id found")
-      randomUUID.toString
-    }.replaceAll("(govuk-tax-)", "").slice(0, 36)
-  }
+  private def getCorrelationId: String = randomUUID.toString.slice(0, maxLengthCorrelationIdIF)
 }
