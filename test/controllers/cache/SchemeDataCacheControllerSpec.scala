@@ -18,10 +18,11 @@ package controllers.cache
 
 import akka.util.ByteString
 import org.apache.commons.lang3.RandomUtils
-import org.mockito.Matchers.{eq => eqTo, _}
-import org.mockito.Mockito.{reset, when}
-import org.scalatest.{BeforeAndAfter, MustMatchers, WordSpec}
-import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.ArgumentMatchers.{eq => eqTo, _}
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.BeforeAndAfter
+import org.mockito.MockitoSugar
 import play.api.inject.bind
 import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.libs.json.Json
@@ -33,7 +34,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.Future
 
-class SchemeDataCacheControllerSpec extends WordSpec with MustMatchers with MockitoSugar with BeforeAndAfter {
+class SchemeDataCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSugar with BeforeAndAfter {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
@@ -42,8 +43,6 @@ class SchemeDataCacheControllerSpec extends WordSpec with MustMatchers with Mock
   private val id = "id"
   private val fakeRequest = FakeRequest()
   private val fakePostRequest = FakeRequest("POST", "/")
-  private val psaId = "A2222222"
-
 
   private val modules: Seq[GuiceableModule] = Seq(
     bind[AuthConnector].toInstance(authConnector),

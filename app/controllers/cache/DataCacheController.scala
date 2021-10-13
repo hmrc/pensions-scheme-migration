@@ -73,6 +73,7 @@ class DataCacheController @Inject()(repository: DataCacheRepository,
   private def pstr(implicit request: Request[_]): String = request.headers.get("pstr").getOrElse(throw MissingHeadersException)
 }
 
+
 case object MissingHeadersException extends BadRequestException("Missing pstr from headers")
 
 case class CredIdNotFoundFromAuth(msg: String = "Not Authorised - Unable to retrieve credentials - externalId")

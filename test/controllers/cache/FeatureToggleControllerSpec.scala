@@ -20,10 +20,9 @@ import base.SpecBase
 import models.FeatureToggle.Enabled
 import models.FeatureToggleName.MigrationTransfer
 import models.OperationSucceeded
-import org.mockito.Matchers.any
-import org.mockito.Mockito.{reset, times, verify, when}
+import org.mockito.ArgumentMatchers.any
 import org.scalatest.BeforeAndAfterEach
-import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.MockitoSugar
 import play.api.libs.json.{JsBoolean, Json}
 import play.api.mvc.ControllerComponents
 import play.api.test.Helpers._
