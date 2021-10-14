@@ -17,6 +17,7 @@
 package repositories
 
 import com.google.inject.Inject
+import models.cache.DataJson
 import org.joda.time.{DateTime, DateTimeZone}
 import org.slf4j.{Logger, LoggerFactory}
 import play.api.Configuration
@@ -26,7 +27,6 @@ import reactivemongo.api.indexes.IndexType.Ascending
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import reactivemongo.play.json.ImplicitBSONHandlers._
-import models.cache.{DataJson, MigrationLock}
 import uk.gov.hmrc.mongo.ReactiveRepository
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -81,3 +81,4 @@ class SchemeDataCacheRepository @Inject()(mongoComponent: ReactiveMongoComponent
     collection.delete.one(selector).map(_.ok)
   }
 }
+

@@ -17,10 +17,11 @@
 package controllers.cache
 
 import models.cache.MigrationLock
-import org.mockito.Matchers.{eq => eqTo, _}
-import org.mockito.Mockito.{reset, when}
-import org.scalatest.{BeforeAndAfter, MustMatchers, WordSpec}
-import org.scalatestplus.mockito.MockitoSugar
+import org.mockito.ArgumentMatchers.{eq => eqTo, _}
+import org.mockito.MockitoSugar
+import org.scalatest.BeforeAndAfter
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import play.api.inject.bind
 import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.libs.json.Json
@@ -32,7 +33,7 @@ import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.Future
 
-class LockCacheControllerSpec extends WordSpec with MustMatchers with MockitoSugar with BeforeAndAfter {
+class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSugar with BeforeAndAfter {
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 

@@ -19,7 +19,7 @@ package service
 import akka.actor.ActorSystem
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import models.racDac.WorkItemRequest
-import play.api.Logger.logger
+import play.api.Logger
 import play.api.http.Status.CONFLICT
 import play.api.libs.json.JsValue
 import service.RacDacBulkSubmissionPoller.OnCompleteHandler
@@ -43,6 +43,8 @@ class RacDacBulkSubmissionPoller @Inject()(
                                    )(implicit
                                      executionContext: RacDacBulkSubmissionPollerExecutionContext
                                    ) {
+
+  private val logger = Logger(classOf[RacDacBulkSubmissionPoller])
 
   private val initialDelay: FiniteDuration = FiniteDuration(
     servicesConfig.getDuration("racDacWorkItem.submission-poller.initial-delay").toMillis, TimeUnit.MILLISECONDS)

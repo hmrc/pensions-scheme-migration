@@ -18,7 +18,8 @@ package repositories
 
 import com.typesafe.config.ConfigFactory
 import models.racDac.{RacDacHeaders, RacDacRequest, WorkItemRequest}
-import org.scalatest.{MustMatchers, WordSpec}
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.matchers.must.Matchers
 import play.api.Configuration
 import play.api.test.Helpers._
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
@@ -26,7 +27,7 @@ import uk.gov.hmrc.workitem.{Failed, InProgress, PermanentlyFailed}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
-class RacDacRequestsQueueRepositorySpec extends WordSpec with MustMatchers with MongoSupport {
+class RacDacRequestsQueueRepositorySpec extends AnyWordSpec with Matchers with MongoSupport {
   val config = Configuration(
     ConfigFactory.parseString(
       """
