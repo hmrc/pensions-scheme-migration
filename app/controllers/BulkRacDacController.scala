@@ -18,8 +18,8 @@ package controllers
 
 import com.google.inject.Inject
 import models.racDac.{RacDacHeaders, RacDacRequest, WorkItemRequest}
-import play.api.libs.json.Json
-import play.api.mvc.{Action, AnyContent, ControllerComponents, RequestHeader}
+import play.api.libs.json.{JsBoolean, JsError, JsSuccess}
+import play.api.mvc._
 import service.RacDacBulkSubmissionService
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -44,9 +44,16 @@ class BulkRacDacController @Inject()(
 
       (psaId, feJson) match {
         case (Some(id), Some(jsValue)) =>
-          val seqRacDacRequest = jsValue.as[Seq[RacDacRequest]]
-          val racDacRequests = seqRacDacRequest.map(racDacReq => WorkItemRequest(id, racDacReq, RacDacHeaders(hc(request))))
-          service.enqueue(racDacRequests).map(_ => Accepted)
+          jsValue.validate[Seq[RacDacRequest]] match {
+            case JsSuccess(seqRacDacRequest, _) =>
+              val racDacRequests = seqRacDacRequest.map(racDacReq => WorkItemRequest(id, racDacReq, RacDacHeaders(hc(request))))
+              service.enqueue(racDacRequests).map {
+                case true => Accepted
+                case false => ServiceUnavailable
+              }
+            case JsError(_) =>
+              Future.failed(new BadRequestException(s"Invalid request received from frontend for rac dac migration"))
+          }
         case _ =>
           Future.failed(new BadRequestException("Missing Body or missing psaId in the header"))
       }
@@ -55,25 +62,41 @@ class BulkRacDacController @Inject()(
 
   def isRequestSubmitted: Action[AnyContent] = Action.async {
     implicit request => {
-      val psaId = request.headers.get("psaId")
-      psaId match {
-        case Some(id) =>
-          service.isRequestSubmitted(id).map(isSubmitted => Ok(Json.toJson(isSubmitted)))
-        case _ =>
-          Future.failed(new BadRequestException("Missing psaId in the header"))
+      withPsa { psaId =>
+        service.isRequestSubmitted(psaId).map {
+          case Right(isSubmitted) => Ok(JsBoolean(isSubmitted))
+          case _ => ServiceUnavailable
+        }
       }
     }
   }
 
   def isAllFailed: Action[AnyContent] = Action.async {
     implicit request => {
-      val psaId = request.headers.get("psaId")
-      psaId match {
-        case Some(id) =>
-          service.isAllFailed(id).map(isFailed => Ok(Json.toJson(isFailed)))
-        case _ =>
-          Future.failed(new BadRequestException("Missing psaId in the header"))
+      withPsa { psaId =>
+        service.isAllFailed(psaId).map {
+          case Right(isFailed) => Ok(JsBoolean(isFailed))
+          case _ => ServiceUnavailable
+        }
       }
+    }
+  }
+
+  def deleteAll: Action[AnyContent] = Action.async {
+    implicit request => {
+      withPsa { psaId =>
+        service.deleteAll(psaId).map {
+          case Right(isDeleted) => Ok(JsBoolean(isDeleted))
+          case _ => ServiceUnavailable
+        }
+      }
+    }
+  }
+
+  private def withPsa(fn: String => Future[Result])(implicit request: Request[AnyContent]): Future[Result] = {
+    request.headers.get("psaId") match {
+      case Some(id) => fn(id)
+      case _ => Future.failed(new BadRequestException("Missing psaId in the header"))
     }
   }
 }

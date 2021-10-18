@@ -55,21 +55,30 @@ class RacDacBulkSubmissionService @Inject()(
   def setResultStatus(id: BSONObjectID, status: ResultStatus): Future[Either[Exception, Boolean]] =
     racDacSubmissionRepo.setResultStatus(id, status)
 
-  def isRequestSubmitted(psaId: String): Future[Boolean] = {
-    racDacSubmissionRepo.getTotalNoOfRequestsByPsaId(psaId).map { noOfRequests =>
-      noOfRequests > 0
+  def isRequestSubmitted(psaId: String): Future[Either[Exception, Boolean]] = {
+    racDacSubmissionRepo.getTotalNoOfRequestsByPsaId(psaId).map {
+      case Right(noOfRequests) => Right(noOfRequests > 0)
+      case Left(ex) => Left(ex)
     }
   }
 
-  def isAllFailed(psaId: String): Future[Boolean] = {
-    racDacSubmissionRepo.getTotalNoOfRequestsByPsaId(psaId).flatMap { noOfRequests =>
-      racDacSubmissionRepo.getNoOfFailureByPsaId(psaId).map { noOfFailures =>
-        noOfRequests == noOfFailures
+  def isAllFailed(psaId: String): Future[Either[Exception, Boolean]] = {
+    for {
+      noOfRequestsE <- racDacSubmissionRepo.getTotalNoOfRequestsByPsaId(psaId)
+      noOfFailuresE <- racDacSubmissionRepo.getNoOfFailureByPsaId(psaId)
+    } yield {
+      (noOfRequestsE, noOfFailuresE) match {
+        case (Right(noOfRequests), Right(noOfFailures)) => Right(noOfRequests == noOfFailures)
+        case _ => Left(new Exception("getting query for isAllFailed failed"))
       }
     }
   }
 
   def deleteRequest(id: BSONObjectID): Future[Boolean] = {
     racDacSubmissionRepo.deleteRequest(id)
+  }
+
+  def deleteAll(psaId: String): Future[Either[Exception, Boolean]] = {
+    racDacSubmissionRepo.deleteAll(psaId)
   }
 }

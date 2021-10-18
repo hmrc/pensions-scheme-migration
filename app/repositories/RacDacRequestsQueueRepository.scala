@@ -69,7 +69,7 @@ class RacDacRequestsQueueRepository @Inject()(configuration: Configuration, reac
   def pushAll(racDacRequests: Seq[WorkItemRequest]): Future[Either[Exception, Seq[WorkItem[WorkItemRequest]]]] = {
     pushNew(racDacRequests, now, (_: WorkItemRequest) => ToDo).map(item => Right(item)).recover {
       case exception: Exception =>
-        logger.error(s"Error occured while pushing items to the queue: ${exception.getMessage}")
+        logger.error(s"Error occurred while pushing items to the queue: ${exception.getMessage}")
         Left(WorkItemProcessingException(s"push failed for request due to ${exception.getMessage}"))
     }
   }
@@ -92,19 +92,34 @@ class RacDacRequestsQueueRepository @Inject()(configuration: Configuration, reac
       case exception: Exception => Left(WorkItemProcessingException(s"setting completion status for $id failed due to ${exception.getMessage}"))
     }
 
-  def getTotalNoOfRequestsByPsaId(psaId: String): Future[Long] = {
+  def getTotalNoOfRequestsByPsaId(psaId: String): Future[Either[Exception, Long]] = {
     val selector = Json.obj("item.psaId" -> psaId)
-    collection.count(Some(selector), None, skip = 0, None, ReadConcern.Local)
+    collection.count(Some(selector), None, skip = 0, None, ReadConcern.Local).map(Right(_)).recover {
+      case exception: Exception =>{
+        logger.error(s"getting total no of requests failed due to ${exception.getMessage}")
+        Left(WorkItemProcessingException(s"getting total no of requests failed due to ${exception.getMessage}"))
+      }
+    }
   }
 
-  def getNoOfFailureByPsaId(psaId: String): Future[Long] = {
+  def getNoOfFailureByPsaId(psaId: String): Future[Either[Exception, Long]] = {
     val selector = Json.obj(workItemFields.status -> JsString(PermanentlyFailed.name), "item.psaId" -> psaId)
-    collection.count(Some(selector), None, skip = 0, None, ReadConcern.Local)
+    collection.count(Some(selector), None, skip = 0, None, ReadConcern.Local).map(Right(_)).recover {
+      case exception: Exception => Left(WorkItemProcessingException(
+        s"getting no of failed requests failed due to ${exception.getMessage}"))
+    }
   }
 
   def deleteRequest(id: BSONObjectID): Future[Boolean] = {
     val selector = BSONDocument(workItemFields.id -> id)
     collection.delete.one(selector).map(_.ok)
+  }
+
+  def deleteAll(psaId: String): Future[Either[Exception, Boolean]] = {
+    val selector = BSONDocument("item.psaId" -> psaId)
+    collection.delete.one(selector).map(_.ok).map(Right(_)).recover {
+      case exception: Exception => Left(WorkItemProcessingException(s"deleting all requests failed due to ${exception.getMessage}"))
+    }
   }
 
   override def pullOutstanding(failedBefore: DateTime, availableBefore: DateTime)(implicit ec: ExecutionContext):

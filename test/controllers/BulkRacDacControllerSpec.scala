@@ -18,10 +18,9 @@ package controllers
 
 import base.SpecBase
 import org.mockito.ArgumentMatchers.any
-
+import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfter
 import org.scalatest.concurrent.{PatienceConfiguration, ScalaFutures}
-import org.mockito.MockitoSugar
 import play.api.libs.json.{JsBoolean, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
@@ -42,13 +41,22 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
 
   "migrateAllRacDac" must {
     val jsValue = """[{"schemeName":"paul qqq","policyNumber":"24101975"}]""".stripMargin
-    val fakeRequest = FakeRequest("GET", "/").withHeaders(("psaId", "A2000001")).withJsonBody(Json.parse(jsValue))
+    val fakeRequest = FakeRequest("POST", "/").withHeaders(("psaId", "A2000001")).withJsonBody(Json.parse(jsValue))
 
     "return ACCEPTED if all the rac dac requests are successfully pushed to the queue" in {
       when(racDacBulkSubmissionService.enqueue(any())).thenReturn(Future.successful(true))
       val result = bulkRacDacController.migrateAllRacDac(fakeRequest)
       ScalaFutures.whenReady(result) { _ =>
         status(result) mustBe ACCEPTED
+        verify(racDacBulkSubmissionService, times(1)).enqueue(any())
+      }
+    }
+
+    "return SERVICE UNAVAILABLE if all the rac dac requests are failed to push to the queue" in {
+      when(racDacBulkSubmissionService.enqueue(any())).thenReturn(Future.successful(false))
+      val result = bulkRacDacController.migrateAllRacDac(fakeRequest)
+      ScalaFutures.whenReady(result) { _ =>
+        status(result) mustBe SERVICE_UNAVAILABLE
         verify(racDacBulkSubmissionService, times(1)).enqueue(any())
       }
     }
@@ -61,13 +69,23 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
         verify(racDacBulkSubmissionService, never).enqueue(any())
       }
     }
+
+    "throw BadRequestException when request is not valid" in {
+      val result = bulkRacDacController.migrateAllRacDac(FakeRequest("POST", "/").withHeaders(("psaId", "A2000001")).
+        withJsonBody(Json.obj("invalid" -> "request")))
+      ScalaFutures.whenReady(result.failed) { e =>
+        e mustBe a[BadRequestException]
+        e.getMessage mustBe "Invalid request received from frontend for rac dac migration"
+        verify(racDacBulkSubmissionService, never).enqueue(any())
+      }
+    }
   }
 
   "isRequestSubmitted" must {
     val fakeRequest = FakeRequest("GET", "/").withHeaders(("psaId", "A2000001"))
 
     "return OK with true if some request is in the queue" in {
-      when(racDacBulkSubmissionService.isRequestSubmitted(any())).thenReturn(Future.successful(true))
+      when(racDacBulkSubmissionService.isRequestSubmitted(any())).thenReturn(Future.successful(Right(true)))
       val result = bulkRacDacController.isRequestSubmitted(fakeRequest)
       ScalaFutures.whenReady(result) { _ =>
         status(result) mustBe OK
@@ -77,7 +95,7 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
     }
 
     "return OK with false if no request is in the queue" in {
-      when(racDacBulkSubmissionService.isRequestSubmitted(any())).thenReturn(Future.successful(false))
+      when(racDacBulkSubmissionService.isRequestSubmitted(any())).thenReturn(Future.successful(Right(false)))
       val result = bulkRacDacController.isRequestSubmitted(fakeRequest)
       ScalaFutures.whenReady(result) { _ =>
         status(result) mustBe OK
@@ -94,13 +112,22 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
         verify(racDacBulkSubmissionService, never).isRequestSubmitted(any())
       }
     }
+
+    "return SERVICE UNAVAILABLE if there is an error occurred while querying" in {
+      when(racDacBulkSubmissionService.isRequestSubmitted(any())).thenReturn(Future.successful(Left(new Exception("message"))))
+      val result = bulkRacDacController.isRequestSubmitted(fakeRequest)
+      ScalaFutures.whenReady(result) { _ =>
+        status(result) mustBe SERVICE_UNAVAILABLE
+        verify(racDacBulkSubmissionService, times(1)).isRequestSubmitted(any())
+      }
+    }
   }
 
   "isAllFailed" must {
     val fakeRequest = FakeRequest("GET", "/").withHeaders(("psaId", "A2000001"))
 
     "return OK with true if all requests in the queue is failed" in {
-      when(racDacBulkSubmissionService.isAllFailed(any())).thenReturn(Future.successful(true))
+      when(racDacBulkSubmissionService.isAllFailed(any())).thenReturn(Future.successful(Right(true)))
       val result = bulkRacDacController.isAllFailed(fakeRequest)
       ScalaFutures.whenReady(result) { _ =>
         status(result) mustBe OK
@@ -110,7 +137,7 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
     }
 
     "return OK with false if some requests in the queue is not failed" in {
-      when(racDacBulkSubmissionService.isAllFailed(any())).thenReturn(Future.successful(false))
+      when(racDacBulkSubmissionService.isAllFailed(any())).thenReturn(Future.successful(Right(false)))
       val result = bulkRacDacController.isAllFailed(fakeRequest)
       ScalaFutures.whenReady(result) { _ =>
         status(result) mustBe OK
@@ -125,6 +152,47 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
         e mustBe a[BadRequestException]
         e.getMessage mustBe "Missing psaId in the header"
         verify(racDacBulkSubmissionService, never).isAllFailed(any())
+      }
+    }
+
+    "return SERVICE_UNAVAILABLE if there is an error occurred" in {
+      when(racDacBulkSubmissionService.isAllFailed(any())).thenReturn(Future.successful(Left(new Exception("message"))))
+      val result = bulkRacDacController.isAllFailed(fakeRequest)
+      ScalaFutures.whenReady(result) { _ =>
+        status(result) mustBe SERVICE_UNAVAILABLE
+        verify(racDacBulkSubmissionService, times(1)).isAllFailed(any())
+      }
+    }
+  }
+
+  "deleteAll" must {
+    val fakeRequest = FakeRequest("DELETE", "/").withHeaders(("psaId", "A2000001"))
+
+    "return OK with true if all requests in the queue is deleted" in {
+      when(racDacBulkSubmissionService.deleteAll(any())).thenReturn(Future.successful(Right(true)))
+      val result = bulkRacDacController.deleteAll(fakeRequest)
+      ScalaFutures.whenReady(result) { _ =>
+        status(result) mustBe OK
+        contentAsJson(result) mustEqual JsBoolean(true)
+        verify(racDacBulkSubmissionService, times(1)).deleteAll(any())
+      }
+    }
+
+    "throw BadRequestException when PSAId is not present in the header" in {
+      val result = bulkRacDacController.deleteAll(FakeRequest("DELETE", "/"))
+      ScalaFutures.whenReady(result.failed) { e =>
+        e mustBe a[BadRequestException]
+        e.getMessage mustBe "Missing psaId in the header"
+        verify(racDacBulkSubmissionService, never).deleteAll(any())
+      }
+    }
+
+    "return SERVICE_UNAVAILABLE if there is an error occurred" in {
+      when(racDacBulkSubmissionService.deleteAll(any())).thenReturn(Future.successful(Left(new Exception("message"))))
+      val result = bulkRacDacController.deleteAll(fakeRequest)
+      ScalaFutures.whenReady(result) { _ =>
+        status(result) mustBe SERVICE_UNAVAILABLE
+        verify(racDacBulkSubmissionService, times(1)).deleteAll(any())
       }
     }
   }
