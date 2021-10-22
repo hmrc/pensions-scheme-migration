@@ -24,6 +24,7 @@ import play.api.Logger
 import play.api.http.Status._
 import play.api.libs.json._
 import play.api.mvc.RequestHeader
+import transformations.etmpToUserAnswers.PsaSchemeDetailsTransformer
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.{HttpClient, _}
 
@@ -48,7 +49,7 @@ class SchemeDetailsConnectorImpl @Inject()(
                                      http: HttpClient,
                                      config: AppConfig,
                                      auditService: AuditService,
-                                     schemeSubscriptionDetailsTransformer: SchemeDetailsTransformer,
+                                     schemeSubscriptionDetailsTransformer: PsaSchemeDetailsTransformer,
                                      schemeAuditService: SchemeAuditService,
                                      headerUtils: HeaderUtils
                                    )
