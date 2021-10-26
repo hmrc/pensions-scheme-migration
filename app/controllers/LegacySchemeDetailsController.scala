@@ -17,7 +17,7 @@
 package controllers
 
 import com.google.inject.Inject
-import connector.SchemeDetailsConnector
+import connector.LegacySchemeDetailsConnector
 import connector.utils.HttpResponseHelper
 import play.api.mvc._
 import uk.gov.hmrc.http._
@@ -25,21 +25,21 @@ import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
-class SchemeDetailsController @Inject()(
-                                         schemeDetailsConnector: SchemeDetailsConnector,
+class LegacySchemeDetailsController @Inject()(
+                                         legacySchemeDetailsConnector: LegacySchemeDetailsConnector,
                                          cc: ControllerComponents
                                        )(implicit ec: ExecutionContext)
   extends BackendController(cc)
     with HttpResponseHelper {
 
-  def getSchemeDetails: Action[AnyContent] = Action.async {
+  def getLegacySchemeDetails(pstr: String, psaId: String): Action[AnyContent] = Action.async {
     implicit request => {
       val psaId = request.headers.get("psaId")
       val pstr = request.headers.get("pstr")
 
       (psaId, pstr) match {
         case (Some(psaId), Some(pstr)) =>
-          schemeDetailsConnector.getSchemeDetails(psaId, pstr).map {
+          legacySchemeDetailsConnector.getSchemeDetails(psaId, pstr).map {
             case Right(json) => Ok(json)
             case Left(e) => result(e)
           }

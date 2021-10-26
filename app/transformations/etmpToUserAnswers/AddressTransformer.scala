@@ -19,6 +19,7 @@ package transformations.etmpToUserAnswers
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
+import utils.CountryOptions
 
 class AddressTransformer extends JsonTransformer {
 
@@ -31,11 +32,16 @@ class AddressTransformer extends JsonTransformer {
         orElse doNothing) reduce
   }
 
-  def getAddress(ifAddressPath: JsPath): Reads[JsObject] = {
+  def getAddress(ifAddressPath: JsPath, countryOptions: CountryOptions): Reads[JsObject] = {
     getCommonAddressElements(ifAddressPath) and
       ((__ \ 'postcode).json.copyFrom((ifAddressPath \ 'postalCode).json.pick)
         orElse doNothing) and
-      (__ \ 'country).json.copyFrom((ifAddressPath \ 'country).json.pick) reduce
-  }
+      getCountry(ifAddressPath, countryOptions) reduce
+}
 
+  def getCountry(ifAddressPath: JsPath, countryOptions: CountryOptions): Reads[JsObject] = {
+   (ifAddressPath \ 'country).read[String].flatMap
+    { countryName =>
+       (__ \ 'country).json.put(JsString(countryOptions.getCountryCodeFromName(countryName))) }
+  }
 }

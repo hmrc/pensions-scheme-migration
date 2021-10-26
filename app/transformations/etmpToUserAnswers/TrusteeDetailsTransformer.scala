@@ -20,8 +20,9 @@ import com.google.inject.Inject
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
+import utils.CountryOptions
 
-class TrusteeDetailsTransformer @Inject()(addressTransformer: AddressTransformer) extends JsonTransformer {
+class TrusteeDetailsTransformer @Inject()(addressTransformer: AddressTransformer, countryOptions: CountryOptions) extends JsonTransformer {
 
   val userAnswersTrusteesReads: Reads[JsObject] = {
     (__ \ 'items \ 'schemeTrustees).readNullable(__.read(
@@ -40,7 +41,7 @@ class TrusteeDetailsTransformer @Inject()(addressTransformer: AddressTransformer
     (__ \ 'trusteeKind).json.put(JsString("individual")) and
       userAnswersIndividualDetailsReads("trusteeDetails") and
       userAnswersNinoReads and
-      addressTransformer.getAddress( __ \ 'correspAddrDetails) and
+      addressTransformer.getAddress( __ \ 'correspAddrDetails, countryOptions) and
       userAnswersContactDetailsReads reduce
 
   def userAnswersTrusteeCompanyReads: Reads[JsObject] =
@@ -49,7 +50,7 @@ class TrusteeDetailsTransformer @Inject()(addressTransformer: AddressTransformer
       userAnswersVatReads and
       userAnswersPayeReads and
       userAnswersCrnReads and
-      addressTransformer.getAddress( __ \ 'correspAddrDetails) and
+      addressTransformer.getAddress( __ \ 'correspAddrDetails, countryOptions) and
       userAnswersContactDetailsReads reduce
 
 }

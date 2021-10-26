@@ -20,8 +20,9 @@ import com.google.inject.Inject
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
+import utils.CountryOptions
 
-class EstablisherDetailsTransformer @Inject()(addressTransformer: AddressTransformer) extends JsonTransformer {
+class EstablisherDetailsTransformer @Inject()(addressTransformer: AddressTransformer, countryOptions: CountryOptions) extends JsonTransformer {
 
 
   val userAnswersEstablishersReads: Reads[JsObject] = {
@@ -41,7 +42,7 @@ class EstablisherDetailsTransformer @Inject()(addressTransformer: AddressTransfo
     (__ \ 'establisherKind).json.put(JsString("individual")) and
       userAnswersIndividualDetailsReads("establisherDetails") and
       userAnswersNinoReads and
-      addressTransformer.getAddress( __ \ 'correspAddrDetails) and
+      addressTransformer.getAddress( __ \ 'correspAddrDetails, countryOptions) and
       userAnswersContactDetailsReads  reduce
   }
 
@@ -51,6 +52,6 @@ class EstablisherDetailsTransformer @Inject()(addressTransformer: AddressTransfo
       userAnswersVatReads and
       userAnswersPayeReads and
       userAnswersCrnReads and
-      addressTransformer.getAddress( __ \ 'correspAddrDetails) and
+      addressTransformer.getAddress( __ \ 'correspAddrDetails, countryOptions) and
       userAnswersContactDetailsReads reduce
 }

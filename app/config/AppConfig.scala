@@ -23,6 +23,8 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 @Singleton
 class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig) {
 
+  private def loadConfig(key: String): String = config.getOptional[String](key).getOrElse(throw new Exception(s"Missing configuration key: $key"))
+
   lazy val appName: String = config.get[String]("appName")
   val authBaseUrl: String = servicesConfig.baseUrl("auth")
   lazy val ifURL: String = servicesConfig.baseUrl(serviceName = "if-hod")
@@ -40,4 +42,5 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig)
   lazy val schemeDetailsUrl: String = s"$ifURL${config.get[String]("serviceUrls.if.scheme.details")}"
   lazy val schemeRegistrationIFUrl: String = s"$ifURL${config.get[String]("serviceUrls.if.scheme.register")}"
   lazy val racDacStubUrl: String = s"$ifURL${config.get[String]("serviceUrls.if.racDac.stub")}"
+  lazy val locationCanonicalList: String = loadConfig("location.canonical.list.all")
 }

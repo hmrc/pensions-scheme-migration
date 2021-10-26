@@ -30,8 +30,8 @@ import uk.gov.hmrc.http.{HttpClient, _}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-@ImplementedBy(classOf[SchemeDetailsConnectorImpl])
-trait SchemeDetailsConnector {
+@ImplementedBy(classOf[LegacySchemeDetailsConnectorImpl])
+trait LegacySchemeDetailsConnector {
 
   def getSchemeDetails(
                         psaId: String,
@@ -45,7 +45,7 @@ trait SchemeDetailsConnector {
 
 }
 
-class SchemeDetailsConnectorImpl @Inject()(
+class LegacySchemeDetailsConnectorImpl @Inject()(
                                      http: HttpClient,
                                      config: AppConfig,
                                      auditService: AuditService,
@@ -53,10 +53,10 @@ class SchemeDetailsConnectorImpl @Inject()(
                                      schemeAuditService: SchemeAuditService,
                                      headerUtils: HeaderUtils
                                    )
-  extends SchemeDetailsConnector
+  extends LegacySchemeDetailsConnector
     with HttpResponseHelper {
 
-  private val logger = Logger(classOf[SchemeDetailsConnectorImpl])
+  private val logger = Logger(classOf[LegacySchemeDetailsConnector])
 
   case class SchemeFailedMapToUserAnswersException() extends Exception
 
