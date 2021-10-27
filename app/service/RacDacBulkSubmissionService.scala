@@ -62,13 +62,14 @@ class RacDacBulkSubmissionService @Inject()(
     }
   }
 
-  def isAllFailed(psaId: String): Future[Either[Exception, Boolean]] = {
+  def isAllFailed(psaId: String): Future[Either[Exception, Option[Boolean]]] = {
     for {
       noOfRequestsE <- racDacSubmissionRepo.getTotalNoOfRequestsByPsaId(psaId)
       noOfFailuresE <- racDacSubmissionRepo.getNoOfFailureByPsaId(psaId)
     } yield {
       (noOfRequestsE, noOfFailuresE) match {
-        case (Right(noOfRequests), Right(noOfFailures)) => Right(noOfRequests == noOfFailures)
+        case (Right(noOfRequests), Right(_)) if noOfRequests == 0 => Right(None)
+        case (Right(noOfRequests), Right(noOfFailures)) => Right(Some(noOfRequests == noOfFailures))
         case _ => Left(new Exception("getting query for isAllFailed failed"))
       }
     }
