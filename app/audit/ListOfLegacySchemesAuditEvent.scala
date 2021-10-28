@@ -16,11 +16,14 @@
 
 package audit
 
-case class ListOfLegacySchemesAuditEvent(status: Int, numberOfSchemes:Int, failureResponse: String) extends AuditEvent {
+case class ListOfLegacySchemesAuditEvent(psaId: String, status: Int, numberOfSchemes:Int, failureResponse: String)
+  extends AuditEvent {
+
   override def auditType: String = "ListOfLegacySchemesAudit"
 
   override def details: Map[String, String] = {
     Map(
+      "psaId" -> psaId,
       "status" -> status.toString,
       "numberOfSchemes" -> numberOfSchemes.toString,
       "failureResponse" -> failureResponse

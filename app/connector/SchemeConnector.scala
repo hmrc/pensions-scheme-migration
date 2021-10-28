@@ -40,14 +40,11 @@ class SchemeConnector @Inject()(
 
   private val logger = Logger(classOf[SchemeConnector])
 
-  def listOfLegacySchemes(
-                              psaId: String
-                            )(
-                              implicit
-                              headerCarrier: HeaderCarrier,
-                              ec: ExecutionContext,
-                              request: RequestHeader
-                            ): Future[Either[HttpException, JsValue]] = {
+  def listOfLegacySchemes(psaId: String)
+                         (implicit headerCarrier: HeaderCarrier,
+                          ec: ExecutionContext,
+                          request: RequestHeader): Future[Either[HttpException, JsValue]] = {
+
     val listOfSchemesUrl = config.listOfSchemesUrl.format(psaId)
 
     implicit val hc: HeaderCarrier = HeaderCarrier(extraHeaders =
@@ -62,11 +59,11 @@ class SchemeConnector @Inject()(
       response.status match {
         case OK =>
           val totalResults = (response.json \ "totalResults").asOpt[Int].getOrElse(0)
-          auditService.sendEvent(ListOfLegacySchemesAuditEvent(response.status, totalResults, ""))
+          auditService.sendEvent(ListOfLegacySchemesAuditEvent(psaId, response.status, totalResults, ""))
           logger.debug(s"Call to migration list of schemes API on IF was successful with response ${response.json}")
           Right(response.json)
         case _ =>
-          auditService.sendEvent(ListOfLegacySchemesAuditEvent(response.status, 0, response.body))
+          auditService.sendEvent(ListOfLegacySchemesAuditEvent(psaId, response.status, 0, response.body))
           Left(handleErrorResponse("GET", listOfSchemesUrl, response))
       }
     }

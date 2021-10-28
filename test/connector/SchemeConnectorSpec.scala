@@ -70,7 +70,7 @@ class SchemeConnectorSpec
 
     connector.listOfLegacySchemes(idValue).map { response =>
       response.right.value shouldBe validListOfSchemeIFResponse
-      val expectedAuditEvent = ListOfLegacySchemesAuditEvent(OK, 2, "")
+      val expectedAuditEvent = ListOfLegacySchemesAuditEvent(idValue, OK, 2, "")
       captor.getValue shouldBe expectedAuditEvent
     }
   }
@@ -89,7 +89,7 @@ class SchemeConnectorSpec
     )
     connector.listOfLegacySchemes(idValue).map { response =>
       response.left.value.responseCode shouldBe UNPROCESSABLE_ENTITY
-      val expectedAuditEvent = ListOfLegacySchemesAuditEvent(UNPROCESSABLE_ENTITY, 0, responseBody)
+      val expectedAuditEvent = ListOfLegacySchemesAuditEvent(idValue, UNPROCESSABLE_ENTITY, 0, responseBody)
       captor.getValue shouldBe expectedAuditEvent
     }
   }
