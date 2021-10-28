@@ -126,8 +126,17 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
   "isAllFailed" must {
     val fakeRequest = FakeRequest("GET", "/").withHeaders(("psaId", "A2000001"))
 
+    "return No Content if there is no requests in the queue" in {
+      when(racDacBulkSubmissionService.isAllFailed(any())).thenReturn(Future.successful(Right(None)))
+      val result = bulkRacDacController.isAllFailed(fakeRequest)
+      ScalaFutures.whenReady(result) { _ =>
+        status(result) mustBe NO_CONTENT
+        verify(racDacBulkSubmissionService, times(1)).isAllFailed(any())
+      }
+    }
+
     "return OK with true if all requests in the queue is failed" in {
-      when(racDacBulkSubmissionService.isAllFailed(any())).thenReturn(Future.successful(Right(true)))
+      when(racDacBulkSubmissionService.isAllFailed(any())).thenReturn(Future.successful(Right(Some(true))))
       val result = bulkRacDacController.isAllFailed(fakeRequest)
       ScalaFutures.whenReady(result) { _ =>
         status(result) mustBe OK
@@ -137,7 +146,7 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
     }
 
     "return OK with false if some requests in the queue is not failed" in {
-      when(racDacBulkSubmissionService.isAllFailed(any())).thenReturn(Future.successful(Right(false)))
+      when(racDacBulkSubmissionService.isAllFailed(any())).thenReturn(Future.successful(Right(Some(false))))
       val result = bulkRacDacController.isAllFailed(fakeRequest)
       ScalaFutures.whenReady(result) { _ =>
         status(result) mustBe OK

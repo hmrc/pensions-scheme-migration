@@ -143,16 +143,22 @@ class RacDacBulkSubmissionServiceSpec() extends WordSpec with MustMatchers with 
     }
 
     "the submission poller queries the queue" must {
+      "return none if no request are in the queue" in {
+        when(mockRacDacSubmissionRepo.getTotalNoOfRequestsByPsaId(any)).thenReturn(Future(Right(0)))
+        when(mockRacDacSubmissionRepo.getNoOfFailureByPsaId(any)).thenReturn(Future(Right(0)))
+        await(racDacBulkSubmissionService.isAllFailed("test psa id")) mustBe Right(None)
+      }
+
       "return the correct status of true if all request are failed" in {
         when(mockRacDacSubmissionRepo.getTotalNoOfRequestsByPsaId(any)).thenReturn(Future(Right(10L)))
         when(mockRacDacSubmissionRepo.getNoOfFailureByPsaId(any)).thenReturn(Future(Right(10L)))
-        await(racDacBulkSubmissionService.isAllFailed("test psa id")) mustBe Right(true)
+        await(racDacBulkSubmissionService.isAllFailed("test psa id")) mustBe Right(Some(true))
       }
 
       "return the correct status of false if not all requests are failed" in {
         when(mockRacDacSubmissionRepo.getTotalNoOfRequestsByPsaId(any)).thenReturn(Future(Right(10L)))
         when(mockRacDacSubmissionRepo.getNoOfFailureByPsaId(any)).thenReturn(Future(Right(5L)))
-        await(racDacBulkSubmissionService.isAllFailed("test psa id")) mustBe Right(false)
+        await(racDacBulkSubmissionService.isAllFailed("test psa id")) mustBe Right(Some(false))
       }
 
       "return exception if there is an error" in {
