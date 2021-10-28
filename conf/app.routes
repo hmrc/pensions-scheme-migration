@@ -18,7 +18,7 @@ POST          /scheme-data                          controllers.cache.SchemeData
 DELETE        /scheme-data                          controllers.cache.SchemeDataCacheController.remove
 
 GET           /list-of-schemes                      controllers.SchemeController.listOfLegacySchemes
-GET           /pension-schemes/schemes/:pstr/GetSchemeDetails?psaId=:psaId      controllers.LegacySchemeDetailsController.getLegacySchemeDetails(pstr: String, psaId: String)
+GET           /getLegacySchemeDetails               controllers.LegacySchemeDetailsController.getLegacySchemeDetails
 
 POST          /bulk-migration                       controllers.BulkRacDacController.migrateAllRacDac
 GET           /bulk-migration/isRequestInProgress    controllers.BulkRacDacController.isRequestSubmitted

@@ -20,6 +20,8 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
 
+import scala.language.postfixOps
+
 trait JsonTransformer {
 
   val doNothing: Reads[JsObject] = {
@@ -27,52 +29,64 @@ trait JsonTransformer {
   }
 
   def userAnswersIndividualDetailsReads(userAnswersPath: String): Reads[JsObject] =
-    (__ \ userAnswersPath \ 'firstName).json.copyFrom((__ \ 'personDetails \ 'firstName).json.pick) and
-    (__ \ userAnswersPath \ 'lastName).json.copyFrom((__ \ 'personDetails \ 'lastName).json.pick) and
-    (__ \ 'dateOfBirth).json.copyFrom((__ \ 'personDetails \ 'dateOfBirth).json.pick) reduce
+    (__ \ 'personDetails).readNullable[JsObject].flatMap {
+      _ =>
+        (__ \ userAnswersPath \ 'firstName).json.copyFrom((__ \ 'personDetails \ 'firstName).json.pick) and
+          (__ \ userAnswersPath \ 'lastName).json.copyFrom((__ \ 'personDetails \  'lastName).json.pick) and
+            (__ \ 'dateOfBirth).json.copyFrom((__ \ 'personDetails \ 'dateOfBirth).json.pick) reduce
+    } orElse doNothing
 
   def userAnswersNinoReads: Reads[JsObject] =
-    (__ \ "nino").read[String].flatMap { _ =>
-    (__ \ 'hasNino).json.put(JsBoolean(true)) and
-      (__ \ 'nino).json.copyFrom((__ \ 'nino).json.pick) reduce
-  } orElse {
-    (__ \ 'hasNino).json.put(JsBoolean(false)) and
-      (__ \ 'noNinoReason).json.copyFrom((__ \ 'noNinoReason).json.pick) reduce
-  } orElse {
-    doNothing
-  }
+    (__ \ 'nino).readNullable[String].flatMap {
+      case Some(nino) if !nino.equals("") =>
+        (__ \ 'hasNino).json.put(JsBoolean(true)) and
+          (__ \ 'nino\ 'value).json.put(JsString(nino)) reduce
+      case _ =>
+        (__ \ 'noNinoReason).readNullable[String].flatMap {
+          _.map { noNinoReason =>
+            (__ \ 'hasNino).json.put(JsBoolean(false)) and
+              (__ \ 'noNinoReason).json.put(JsString(noNinoReason)) reduce
+          } getOrElse doNothing
+        } orElse doNothing
+    } orElse doNothing
+
 
   def userAnswersContactDetailsReads: Reads[JsObject] =
-    (__ \ 'email).json.copyFrom((__ \ 'correspContDetails \ 'email).json.pick) and
-      (__ \ 'phone).json.copyFrom((__ \ 'correspContDetails \ 'telephone).json.pick) reduce
+    ((__ \ 'email).json.copyFrom((__ \ 'correspContDetails \ 'email).json.pick) orElse doNothing) and
+      ((__ \ 'phone).json.copyFrom((__ \ 'correspContDetails \ 'telephone).json.pick) orElse doNothing) reduce
 
   def userAnswersCompanyDetailsReads: Reads[JsObject] =
-    (__ \ 'companyDetails \ 'companyName).json.copyFrom((__ \ 'comOrOrganisationName).json.pick)
+    (__ \ 'companyDetails \ 'companyName).json.copyFrom((__ \ 'comOrOrganisationName).json.pick) orElse doNothing
 
   def userAnswersCrnReads: Reads[JsObject] =
-    (__ \ "crnNumber").read[String].flatMap { _ =>
-      (__ \ 'haveCompanyNumber).json.put(JsBoolean(true)) and
-        (__ \ 'companyNumber \ 'value).json.copyFrom((__ \ 'crnNumber).json.pick) reduce
-    } orElse {
-      (__ \ 'haveCompanyNumber).json.put(JsBoolean(false)) and
-        (__ \ 'noCompanyNumberReason).json.copyFrom((__ \ 'noCrnReason).json.pick) reduce
-    } orElse {
-      doNothing
-    }
+    (__ \ 'crnNumber).readNullable[String].flatMap {
+      case Some(crnNumber) if !crnNumber.equals("") =>
+        (__ \ 'haveCompanyNumber).json.put(JsBoolean(true)) and
+          (__ \ 'companyNumber \ 'value).json.put(JsString(crnNumber)) reduce
+      case _ =>
+        (__ \ 'noCrnReason).readNullable[String].flatMap {
+          _.map { noCrnReason =>
+            (__ \ 'haveCompanyNumber).json.put(JsBoolean(false)) and
+              (__ \ 'noCompanyNumberReason).json.put(JsString(noCrnReason)) reduce
+          } getOrElse doNothing
+        } orElse doNothing
+    } orElse doNothing
 
   def userAnswersVatReads: Reads[JsObject] =
-    (__ \ "vatRegistrationNumber").read[String].flatMap { _ =>
-      (__ \ 'haveVat).json.put(JsBoolean(true)) and
-        (__ \ 'vat).json.copyFrom((__ \ 'vatRegistrationNumber).json.pick) reduce
-    } orElse {
+    (__ \ 'vatRegistrationNumber).readNullable[String].flatMap {
+      case Some(vatRegistrationNumber) if !vatRegistrationNumber.equals("") =>
+        (__ \ 'haveVat).json.put(JsBoolean(true)) and
+          (__ \ 'vat\ 'value).json.put(JsString(vatRegistrationNumber)) reduce
+      case _ =>
       (__ \ 'haveVat).json.put(JsBoolean(false))
-    }
+    } orElse doNothing
 
   def userAnswersPayeReads: Reads[JsObject] =
-    (__ \ "payeReference").read[String].flatMap { _ =>
+    (__ \ "payeReference").readNullable[String].flatMap {
+      case Some(payeReference) if !payeReference.equals("") =>
       (__ \ 'havePaye).json.put(JsBoolean(true)) and
-        (__ \ 'paye).json.copyFrom((__ \ 'payeReference).json.pick) reduce
-    } orElse {
-      (__ \ 'havePaye).json.put(JsBoolean(false))
-    }
+        (__ \ 'paye\ 'value).json.put(JsString(payeReference)) reduce
+      case _ =>
+        (__ \ 'havePaye).json.put(JsBoolean(false))
+    } orElse doNothing
 }

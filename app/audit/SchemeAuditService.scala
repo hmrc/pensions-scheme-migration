@@ -26,12 +26,12 @@ class SchemeAuditService {
 
   def sendSchemeDetailsEvent(psaId: String,
                              pstr: String)
-                            (sendEvent: SchemeDetailsAuditEvent => Unit): PartialFunction[Try[Either[HttpException, JsValue]], Unit] = {
+                            (sendEvent: LegacySchemeDetailsAuditEvent => Unit): PartialFunction[Try[Either[HttpException, JsValue]], Unit] = {
 
 
     case Success(Right(schemeDetails)) =>
       sendEvent(
-        SchemeDetailsAuditEvent(
+        LegacySchemeDetailsAuditEvent(
           psaId = psaId,
           pstr = pstr,
           status = Status.OK,
@@ -40,7 +40,7 @@ class SchemeAuditService {
       )
     case Success(Left(e)) =>
       sendEvent(
-        SchemeDetailsAuditEvent(
+        LegacySchemeDetailsAuditEvent(
           psaId = psaId,
           pstr = pstr,
           status = e.responseCode,
@@ -49,7 +49,7 @@ class SchemeAuditService {
       )
     case Failure(e: UpstreamErrorResponse) =>
       sendEvent(
-        SchemeDetailsAuditEvent(
+        LegacySchemeDetailsAuditEvent(
           psaId = psaId,
           pstr = pstr,
           status = e.statusCode,
@@ -58,7 +58,7 @@ class SchemeAuditService {
       )
     case Failure(e: HttpException) =>
       sendEvent(
-        SchemeDetailsAuditEvent(
+        LegacySchemeDetailsAuditEvent(
           psaId = psaId,
           pstr = pstr,
           status = e.responseCode,

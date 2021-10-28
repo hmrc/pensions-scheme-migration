@@ -21,19 +21,15 @@ import models.enumeration.{SchemeMembers, SchemeType}
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
+import utils.CountryOptions
 
 import scala.language.postfixOps
 
 class SchemeDetailsTransformer @Inject()(
-                                          addressTransformer: AddressTransformer
+                                          addressTransformer: AddressTransformer,
+                                          countryOptions: CountryOptions
                                         )
   extends JsonTransformer {
-
-  val beforeYouStartReads: Reads[JsObject] = (
-    (__ \ 'schemeName ).json.copyFrom((__ \ 'items \ 'schemeName).json.pick) and
-      schemeTypeReads and
-    (__ \ 'schemeEstablishedCountry ).json.copyFrom((__ \ 'items \ 'schemeEstablishedCountry).json.pick) //TODO
-  ) reduce
 
   val schemeTypeReads: Reads[JsObject] = (__ \ 'items \ 'pensionSchemeStructure).readNullable[String].flatMap {
     _.map {
@@ -43,6 +39,12 @@ class SchemeDetailsTransformer @Inject()(
         )
     }.getOrElse((__ \ 'schemeType).json.put(JsString(SchemeType.other.name)))
   }
+
+  val beforeYouStartReads: Reads[JsObject] = (
+    (__ \ 'schemeName ).json.copyFrom((__ \ 'items \ 'schemeName).json.pick) and
+    schemeTypeReads and
+    (addressTransformer.getCountry(__ \ 'schemeEstablishedCountry , __ \ 'items \ 'schemeEstablishedCountry, countryOptions)  orElse doNothing)
+  ) reduce
 
   val aboutMembershipReads: Reads[JsObject] = (__ \ 'items \ 'currentSchemeMembers).readNullable[String].flatMap {
     _.flatMap {

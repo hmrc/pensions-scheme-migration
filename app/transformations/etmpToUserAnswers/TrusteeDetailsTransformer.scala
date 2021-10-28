@@ -41,7 +41,7 @@ class TrusteeDetailsTransformer @Inject()(addressTransformer: AddressTransformer
     (__ \ 'trusteeKind).json.put(JsString("individual")) and
       userAnswersIndividualDetailsReads("trusteeDetails") and
       userAnswersNinoReads and
-      addressTransformer.getAddress( __ \ 'correspAddrDetails, countryOptions) and
+      addressTransformer.getAddress( __ \ 'address, __ \ 'correspAddrDetails, countryOptions) and
       userAnswersContactDetailsReads reduce
 
   def userAnswersTrusteeCompanyReads: Reads[JsObject] =
@@ -50,7 +50,7 @@ class TrusteeDetailsTransformer @Inject()(addressTransformer: AddressTransformer
       userAnswersVatReads and
       userAnswersPayeReads and
       userAnswersCrnReads and
-      addressTransformer.getAddress( __ \ 'correspAddrDetails, countryOptions) and
+      addressTransformer.getAddress( __ \ 'address, __ \ 'correspAddrDetails, countryOptions) and
       userAnswersContactDetailsReads reduce
 
 }

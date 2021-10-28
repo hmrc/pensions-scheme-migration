@@ -24,42 +24,39 @@ import play.api.libs.json.Json
 import javax.inject.{Inject, Singleton}
 
 @Singleton
-class CountryOptions(val options: Seq[InputOption]) {
+class CountryOptions @Inject()(environment: Environment, config: AppConfig)  {
 
-  @Inject()
-  def this(environment: Environment, config: AppConfig) {
-    this(
+ val options = {
       environment.resourceAsStream(config.locationCanonicalList).flatMap {
         in =>
           val locationJsValue = Json.parse(in)
           Json.fromJson[Seq[Seq[String]]](locationJsValue).asOpt.map {
             _.map { countryList =>
-              InputOption(countryList(1).replaceAll("country:", ""), countryList.head)
+              Country( countryList.head, countryList(1))
             }
           }
       }.getOrElse {
         throw new ConfigException.BadValue(config.locationCanonicalList, "country json does not exist")
       }
-    )
   }
 
-  def getCountryCodeFromName(name: String): String =
+  def getCountryCodeFromName(name: String): Option[String] = {
     options
-      .find(_.value == name)
-      .map(_.label)
-      .getOrElse(name)
+      .find(_.name == name)
+      .map(_.code)
+  }
 
 }
 
 object CountryOptions {
 
-  def getCountries(environment: Environment, fileName: String): Seq[InputOption] = {
+  def getCountries(environment: Environment, fileName: String): Seq[Country] = {
     environment.resourceAsStream(fileName).flatMap {
       in =>
         val locationJsValue = Json.parse(in)
         Json.fromJson[Seq[Seq[String]]](locationJsValue).asOpt.map {
           _.map { countryList =>
-            InputOption(countryList(1).replaceAll("country:", ""), countryList.head)
+            Country(countryList(1).replaceAll("country:", ""), countryList.head)
           }
         }
     }.getOrElse {

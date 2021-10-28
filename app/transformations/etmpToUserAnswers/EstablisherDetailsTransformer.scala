@@ -42,7 +42,7 @@ class EstablisherDetailsTransformer @Inject()(addressTransformer: AddressTransfo
     (__ \ 'establisherKind).json.put(JsString("individual")) and
       userAnswersIndividualDetailsReads("establisherDetails") and
       userAnswersNinoReads and
-      addressTransformer.getAddress( __ \ 'correspAddrDetails, countryOptions) and
+      addressTransformer.getAddress( __ \ 'address, __ \ 'correspAddrDetails, countryOptions) and
       userAnswersContactDetailsReads  reduce
   }
 
@@ -52,6 +52,6 @@ class EstablisherDetailsTransformer @Inject()(addressTransformer: AddressTransfo
       userAnswersVatReads and
       userAnswersPayeReads and
       userAnswersCrnReads and
-      addressTransformer.getAddress( __ \ 'correspAddrDetails, countryOptions) and
+      addressTransformer.getAddress( __ \ 'address, __ \ 'correspAddrDetails, countryOptions) and
       userAnswersContactDetailsReads reduce
 }

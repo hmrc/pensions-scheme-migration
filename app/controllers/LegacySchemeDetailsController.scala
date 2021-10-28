@@ -32,7 +32,7 @@ class LegacySchemeDetailsController @Inject()(
   extends BackendController(cc)
     with HttpResponseHelper {
 
-  def getLegacySchemeDetails(pstr: String, psaId: String): Action[AnyContent] = Action.async {
+  def getLegacySchemeDetails: Action[AnyContent] = Action.async {
     implicit request => {
       val psaId = request.headers.get("psaId")
       val pstr = request.headers.get("pstr")

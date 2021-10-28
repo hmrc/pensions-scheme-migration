@@ -70,7 +70,7 @@ class LegacySchemeDetailsConnectorImpl @Inject()(
                                  request: RequestHeader
                                ): Future[Either[HttpException, JsObject]] = {
     val (url, hc) = (
-      config.schemeDetailsUrl.format(pstr, psaId),
+      config.legacySchemeDetailsUrl.format(pstr, psaId),
       HeaderCarrier(extraHeaders = headerUtils.integrationFrameworkHeader(implicitly[HeaderCarrier](headerCarrier)))
     )
 
@@ -90,7 +90,8 @@ class LegacySchemeDetailsConnectorImpl @Inject()(
           case JsSuccess(value, _) =>
             logger.debug(s"Get-Scheme-details-UserAnswersJson - $value")
             Right(value)
-          case JsError(e) => throw JsResultException(e)
+          case JsError(e) =>
+            throw JsResultException(e)
         }
       case _ =>
         Left(handleErrorResponse("GET", url, response))

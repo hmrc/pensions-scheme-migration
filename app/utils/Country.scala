@@ -16,4 +16,4 @@
 
 package utils
 
-case class InputOption(value: String, label: String, dataTarget: Option[String] = None, hint: Set[String] = Set.empty)
+case class Country(name: String, code: String)
