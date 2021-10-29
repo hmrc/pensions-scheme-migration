@@ -18,7 +18,7 @@ package controllers
 
 import com.google.inject.Inject
 import models.racDac.{RacDacHeaders, RacDacRequest, WorkItemRequest}
-import play.api.libs.json.{JsBoolean, JsError, JsSuccess}
+import play.api.libs.json.{JsBoolean, JsError, JsSuccess, Json}
 import play.api.mvc._
 import service.RacDacBulkSubmissionService
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier}
@@ -75,7 +75,8 @@ class BulkRacDacController @Inject()(
     implicit request => {
       withPsa { psaId =>
         service.isAllFailed(psaId).map {
-          case Right(isFailed) => Ok(JsBoolean(isFailed))
+          case Right(None) => NoContent
+          case Right(Some(isFailed)) => Ok(JsBoolean(isFailed))
           case _ => ServiceUnavailable
         }
       }
