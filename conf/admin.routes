@@ -1,5 +1,3 @@
-GET        /metrics             com.kenshoo.play.metrics.MetricsController.metrics
-
 GET        /feature-toggles                    controllers.cache.FeatureToggleController.getAll()
 GET        /feature-toggles/:toggleName        controllers.cache.FeatureToggleController.get(toggleName: FeatureToggleName)
 PUT        /feature-toggles/:toggleName        controllers.cache.FeatureToggleController.put(toggleName: FeatureToggleName)

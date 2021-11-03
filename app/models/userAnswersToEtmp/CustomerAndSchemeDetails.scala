@@ -16,6 +16,7 @@
 
 package models.userAnswersToEtmp
 
+import models.enumeration.{BenefitsProvisionType, BenefitsType, SchemeMembers, SchemeType}
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
@@ -37,9 +38,9 @@ object CustomerAndSchemeDetails {
   def apiReads: Reads[CustomerAndSchemeDetails] = (
     (JsPath \ "schemeName").read[String] and
       (JsPath \ "schemeType").read[(String, Option[String])](schemeTypeReads) and
-      (JsPath \ "moreThanTenTrustees").readNullable[Boolean] and
-      (JsPath \ "membership").read[String] and
-      (JsPath \ "membershipFuture").read[String] and
+      (JsPath \ "otherTrustees").readNullable[Boolean] and
+      (JsPath \ "currentMembers").read[String] and
+      (JsPath \ "futureMembers").read[String] and
       (JsPath \ "investmentRegulated").read[Boolean] and
       (JsPath \ "occupationalPensionScheme").read[Boolean] and
       (JsPath \ "securedBenefits").read[Boolean] and
@@ -80,16 +81,16 @@ object CustomerAndSchemeDetails {
 
   private def benefitsReads: Reads[(String, Option[String])] =
     (JsPath \ "benefits").read[String] flatMap {
-      case benefits if !benefits.equalsIgnoreCase("opt2") =>
+      case benefits if !benefits.equalsIgnoreCase("definedBenefitsOnly") =>
         moneyPurchaseBenefits(benefits)
       case _ =>
         (JsPath \ "benefits").read[String].map(benefits =>
-          (Benefits.valueWithName(benefits), None: Option[String]))
+          (BenefitsProvisionType.valueWithName(benefits), None: Option[String]))
     }
 
   private def moneyPurchaseBenefits(benefits: String): Reads[(String, Option[String])] =
     (JsPath \ "moneyPurchaseBenefits").read[String].map {
       moneyPurchaseBenefits =>
-        (Benefits.valueWithName(benefits), Some(moneyPurchaseBenefits))
+        (BenefitsProvisionType.valueWithName(benefits), Some(BenefitsType.valueWithName(moneyPurchaseBenefits)))
     }
 }

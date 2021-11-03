@@ -23,6 +23,8 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 @Singleton
 class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig) {
 
+  private def loadConfig(key: String): String = config.getOptional[String](key).getOrElse(throw new Exception(s"Missing configuration key: $key"))
+
   lazy val appName: String = config.get[String]("appName")
   val authBaseUrl: String = servicesConfig.baseUrl("auth")
   lazy val ifURL: String = servicesConfig.baseUrl(serviceName = "if-hod")
@@ -37,5 +39,7 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig)
   lazy val integrationframeworkAuthorization: String = "Bearer " + config.getOptional[String](
     path = "microservice.services.if-hod.authorizationToken").getOrElse("local")
   lazy val listOfSchemesUrl: String = s"$ifURL${config.get[String]("serviceUrls.if.list.of.schemes")}"
+  lazy val legacySchemeDetailsUrl: String = s"$ifURL${config.get[String]("serviceUrls.if.legacy.scheme.details")}"
   lazy val schemeRegistrationIFUrl: String = s"$ifURL${config.get[String]("serviceUrls.if.scheme.register")}"
+  lazy val locationCanonicalList: String = loadConfig("location.canonical.list.all")
 }
