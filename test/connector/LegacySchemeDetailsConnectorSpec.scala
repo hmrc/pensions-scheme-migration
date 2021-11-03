@@ -16,22 +16,21 @@
 
 package connector
 
-import audit.{AuditService, LegacySchemeDetailsAuditEvent, ListOfLegacySchemesAuditEvent}
+import audit.{AuditService, LegacySchemeDetailsAuditEvent}
 import base.{JsonFileReader, WireMockHelper}
 import com.github.tomakehurst.wiremock.client.WireMock._
-import connector.SchemeConnectorSpec.idValue
 import org.mockito.ArgumentMatchers.any
 import org.mockito.{ArgumentCaptor, MockitoSugar}
 import org.scalatest._
 import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
-import play.api.http.Status.{BAD_REQUEST, FORBIDDEN, NOT_FOUND, OK, UNPROCESSABLE_ENTITY}
+import play.api.http.Status._
 import play.api.inject.bind
 import play.api.inject.guice.GuiceableModule
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.RequestHeader
 import play.api.test.FakeRequest
-import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, NotFoundException, UpstreamErrorResponse}
+import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, UpstreamErrorResponse}
 
 
 class LegacySchemeDetailsConnectorSpec
