@@ -61,9 +61,9 @@ class RacDacRequestsQueueRepository @Inject()(configuration: Configuration, reac
   private lazy val ttl = servicesConfig.getDuration("racDacWorkItem.submission-poller.mongo.ttl").toSeconds
 
   override def indexes: Seq[Index] = super.indexes ++ Seq(
-    Index(key = Seq("item.psaId" -> IndexType.Ascending), name = Some("psaIdIdx")),
+    Index(key = Seq("item.psaId" -> IndexType.Ascending), name = Some("psaIdIdx"), background = true),
     Index(key = Seq("receivedAt" -> IndexType.Ascending), name = Some("receivedAtTime"),
-      options = BSONDocument("expireAfterSeconds" -> ttl))
+      options = BSONDocument("expireAfterSeconds" -> ttl), background = true)
   )
 
   def pushAll(racDacRequests: Seq[WorkItemRequest]): Future[Either[Exception, Seq[WorkItem[WorkItemRequest]]]] = {
