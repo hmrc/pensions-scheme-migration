@@ -36,7 +36,7 @@ class RacDacBulkSubmissionService @Inject()(
     val psaId = racDacRequest.psaId
     val requestBody = Json.toJson(racDacRequest.request)
     val headerCarrier = racDacRequest.headers.toHeaderCarrier
-    schemeConnector.registerRacDac(psaId, requestBody)(headerCarrier, implicitly)
+    schemeConnector.registerScheme(psaId, requestBody)(headerCarrier, implicitly)
   }
 
   def enqueue(requests: Seq[WorkItemRequest]): Future[Boolean] = {

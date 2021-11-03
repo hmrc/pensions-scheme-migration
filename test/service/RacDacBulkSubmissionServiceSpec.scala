@@ -113,13 +113,13 @@ class RacDacBulkSubmissionServiceSpec() extends WordSpec with MustMatchers with 
 
     "the submission poller pulls the work item" must {
       "submit the request to ETMP successfully" in {
-        when(mockSchemeConnector.registerRacDac(any, any)(any, any)).thenReturn(Future(Right(Json.obj())))
+        when(mockSchemeConnector.registerScheme(any, any)(any, any)).thenReturn(Future(Right(Json.obj())))
         await(racDacBulkSubmissionService.submitToETMP(racDacRequest)) mustBe Right(Json.obj())
       }
 
       "failed submission to ETMP" in {
         val iException = new InternalServerException("Error")
-        when(mockSchemeConnector.registerRacDac(any, any)(any, any)).thenReturn(Future(Left(iException)))
+        when(mockSchemeConnector.registerScheme(any, any)(any, any)).thenReturn(Future(Left(iException)))
         await(racDacBulkSubmissionService.submitToETMP(racDacRequest)) mustBe Left(iException)
       }
     }

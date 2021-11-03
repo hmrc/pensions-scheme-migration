@@ -20,6 +20,7 @@ import com.google.inject.Inject
 import connector.SchemeConnector
 import connector.utils.HttpResponseHelper
 import models.ListOfLegacySchemes
+import play.api.Logger
 import play.api.libs.json.Json
 import play.api.mvc._
 import uk.gov.hmrc.http._
@@ -36,6 +37,8 @@ class SchemeController @Inject()(
                                 )
   extends BackendController(cc) with HttpResponseHelper {
 
+  private val logger = Logger(classOf[SchemeController])
+
   def listOfLegacySchemes: Action[AnyContent] = Action.async {
     implicit request => {
       val psaId = request.headers.get("psaId")
@@ -50,4 +53,22 @@ class SchemeController @Inject()(
       }
     }
   }
+
+  def registerMigrationScheme: Action[AnyContent] = Action.async {
+    implicit request => {
+      val psaId = request.headers.get("psaId")
+      val feJson = request.body.asJson
+      logger.debug(s"[PSA-Scheme-Migration-Incoming-Payload] $feJson")
+
+      (psaId, feJson) match {
+        case (Some(psa), Some(jsValue)) =>
+          schemeService.registerScheme(psa, jsValue).map {
+            case Right(json) => Ok(json)
+            case Left(e) => result(e)
+          }
+        case _ => Future.failed(new BadRequestException("Bad Request without PSAId or request body"))
+      }
+    } recoverWith recoverFromError
+  }
+
 }
