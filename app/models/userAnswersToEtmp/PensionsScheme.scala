@@ -20,73 +20,22 @@ import models.userAnswersToEtmp.establisher.EstablisherDetails
 import models.userAnswersToEtmp.trustee.TrusteeDetails
 import play.api.libs.functional.syntax._
 import play.api.libs.json.{Format, _}
-import utils.Lens
 
-case class PensionsScheme(customerAndSchemeDetails: CustomerAndSchemeDetails, pensionSchemeDeclaration: Declaration,
-                          establisherDetails: EstablisherDetails, trusteeDetails: TrusteeDetails,
-                          changeOfEstablisherOrTrustDetails: Option[Boolean] = None)
+case class PensionsScheme(schemeMigrationDetails:SchemeMigrationDetails,
+                          customerAndSchemeDetails: CustomerAndSchemeDetails, pensionSchemeDeclaration: PensionSchemeDeclaration,
+                          establisherDetails: EstablisherDetails, trusteeDetails: TrusteeDetails)
 
 object PensionsScheme {
 
   implicit val formatsPensionsScheme: Format[PensionsScheme] = Json.format[PensionsScheme]
 
   def registerApiReads: Reads[PensionsScheme] = (
+    SchemeMigrationDetails.reads and
     CustomerAndSchemeDetails.apiReads and
       PensionSchemeDeclaration.apiReads and
       EstablisherDetails.readsEstablisherDetails and
-      TrusteeDetails.readsTrusteeDetails and
-      (JsPath \ "changeOfEstablisherOrTrustDetails").readNullable[Boolean]
-    ) ((custAndSchemeDetails, declaration, estDetails, trusteeDetails, changeFlag) =>
-    PensionsScheme(custAndSchemeDetails, declaration, estDetails, trusteeDetails, changeFlag)
+      TrusteeDetails.readsTrusteeDetails
+    ) ((schemeMigrationDetails,custAndSchemeDetails, declaration, estDetails, trusteeDetails) =>
+    PensionsScheme(schemeMigrationDetails,custAndSchemeDetails, declaration, estDetails, trusteeDetails)
   )
-
-  def updateApiReads: Reads[PensionsScheme] = (
-    CustomerAndSchemeDetails.updateReads and
-      PensionSchemeUpdateDeclaration.reads and
-      EstablisherDetails.readsEstablisherDetails and
-      TrusteeDetails.readsTrusteeDetails and
-      (JsPath \ "changeOfEstablisherOrTrustDetails").readNullable[Boolean]
-    ) ((custAndSchemeDetails, declaration, estDetails, trusteeDetails, changeFlag) =>
-    PensionsScheme(custAndSchemeDetails, declaration, estDetails, trusteeDetails, changeFlag)
-  )
-
-  def updateWrite(psaId: String): Writes[PensionsScheme] = (
-    (JsPath \ "schemeDetails").write(CustomerAndSchemeDetails.updateWrites(psaId)) and
-      (JsPath \ "pensionSchemeDeclaration").write(Declaration.writes) and
-      (JsPath \ "establisherAndTrustDetailsType").write(updateWriteEstablisherAndTrustDetails)
-    ) (schemeDetails => (
-    schemeDetails.customerAndSchemeDetails,
-    schemeDetails.pensionSchemeDeclaration,
-    (schemeDetails.changeOfEstablisherOrTrustDetails.getOrElse(false),
-      Some(schemeDetails.customerAndSchemeDetails.haveMoreThanTenTrustee.getOrElse(false)),
-      schemeDetails.establisherDetails,
-      getOptionalTrustee(schemeDetails.trusteeDetails)))
-  )
-
-  val updateWriteEstablisherAndTrustDetails: Writes[(
-    Boolean, Option[Boolean], EstablisherDetails, Option[TrusteeDetails])] = {
-    ((JsPath \ "changeOfEstablisherOrTrustDetails").write[Boolean] and
-      (JsPath \ "haveMoreThanTenTrustees").writeNullable[Boolean] and
-      (JsPath \ "establisherDetails").write(EstablisherDetails.updateWrites) and
-      (JsPath \ "trusteeDetailsType").writeNullable(TrusteeDetails.updateWrites)
-      ) (element => element)
-  }
-
-  private def getOptionalTrustee(trusteeDetails: TrusteeDetails): Option[TrusteeDetails] = {
-    if (trusteeDetails.companyTrusteeDetail.isEmpty &&
-      trusteeDetails.individualTrusteeDetail.isEmpty &&
-      trusteeDetails.partnershipTrusteeDetail.isEmpty) None else Some(trusteeDetails)
-  }
-
-  val pensionSchemeHaveInvalidBank: Lens[PensionsScheme, Boolean] = new Lens[PensionsScheme, Boolean] {
-    override def get: PensionsScheme => Boolean = pensionsScheme => pensionsScheme.customerAndSchemeDetails.haveInvalidBank
-
-    override def set: (PensionsScheme, Boolean) => PensionsScheme =
-      (pensionsScheme, haveInvalidBank) =>
-        pensionsScheme.copy(
-          customerAndSchemeDetails =
-            pensionsScheme.customerAndSchemeDetails.copy(haveInvalidBank = haveInvalidBank)
-        )
-  }
-
 }

@@ -16,18 +16,21 @@
 
 package service
 
+import audit.{AuditService, SchemeAuditService}
 import com.google.inject.{Inject, Singleton}
 import connector.SchemeConnector
-import models.userAnswersToEtmp.PensionsScheme
+import models.userAnswersToEtmp.{PensionsScheme, RACDACPensionsScheme}
+import play.api.Logger
 import play.api.libs.json.{JsObject, JsResultException, JsValue, Json}
 import play.api.mvc.RequestHeader
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpException}
-import play.api.Logger
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class PensionSchemeService @Inject()(schemeConnector: SchemeConnector
+class PensionSchemeService @Inject()(schemeConnector: SchemeConnector,
+                                     schemeAuditService: SchemeAuditService,
+                                     auditService: AuditService
                                     ) {
 
   private val logger = Logger(classOf[PensionSchemeService])
@@ -45,10 +48,9 @@ class PensionSchemeService @Inject()(schemeConnector: SchemeConnector
       valid = {
         validPensionsScheme =>
           val registerData = Json.toJson(validPensionsScheme).as[JsObject]
-          schemeConnector.registerScheme(psaId, registerData)
-        //              andThen {
-        //                schemeAuditService.sendSchemeSubscriptionEvent(psaId, pensionsScheme, bankAccount.isDefined)(auditService.sendEvent)
-        //              }
+          schemeConnector.registerScheme(psaId, registerData) andThen {
+            schemeAuditService.sendSchemeSubscriptionEvent(psaId, pstr = "", validPensionsScheme)(auditService.sendEvent)
+          }
       }
     )
   }
@@ -56,7 +58,7 @@ class PensionSchemeService @Inject()(schemeConnector: SchemeConnector
   def registerRacDac(psaId: String, json: JsValue)
                     (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader):
   Future[Either[HttpException, JsValue]] = {
-    json.validate[PensionsScheme](PensionsScheme.registerApiReads).fold(
+    json.validate[RACDACPensionsScheme](RACDACPensionsScheme.reads).fold(
       invalid = {
         errors =>
           val ex = JsResultException(errors)
