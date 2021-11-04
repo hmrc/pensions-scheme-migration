@@ -1,6 +1,8 @@
 {
   "schemeName": "QROPS Rejected",
-  "schemeType": "corp",
+  "schemeType":{
+    "name" : "corp"
+  },
   "currentMembers": "opt2",
   "investmentRegulated": true,
   "occupationalPensionScheme": true,
