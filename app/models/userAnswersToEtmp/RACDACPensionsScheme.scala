@@ -20,17 +20,20 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json.{Format, Json, Reads}
 
 case class RACDACPensionsScheme(
-  racdacScheme: Boolean,
-  racdacSchemeDetails: RACDACSchemeDetails,
-  racdacSchemeDeclaration: RACDACDeclaration
-)
+                                 schemeMigrationDetails: SchemeMigrationDetails,
+                                 racdacScheme: Boolean,
+                                 racdacSchemeDetails: RACDACSchemeDetails,
+                                 racdacSchemeDeclaration: RACDACDeclaration
+                               )
 
 object RACDACPensionsScheme {
   val reads: Reads[RACDACPensionsScheme] = (
+    SchemeMigrationDetails.reads and
     RACDACSchemeDetails.reads and
       RACDACDeclaration.reads
-    ) ((racDACSchemeDetails, racDACDeclaration) =>
+    ) ((schemeMigrationDetails,racDACSchemeDetails, racDACDeclaration) =>
     RACDACPensionsScheme(
+      schemeMigrationDetails,
       racdacScheme = true,
       racdacSchemeDetails = racDACSchemeDetails,
       racdacSchemeDeclaration = racDACDeclaration

@@ -47,17 +47,6 @@ object PensionSchemeDeclaration {
       declaration,
       None, None, None, None)
 
-//    val dormant = (dec: PensionSchemeDeclaration) => {
-//      declarationDormant.fold(dec)(value => {
-//        if (value == "no") {
-//          dec.copy(box4 = Some(true))
-//        } else {
-//          dec.copy(box5 = Some(true))
-//        }
-//      }
-//      )
-//    }
-
     val isMasterTrust = (dec: PensionSchemeDeclaration) => {
       if (schemeTypeName == "master")
         dec.copy(box3 = Some(true))

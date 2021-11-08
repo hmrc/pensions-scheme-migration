@@ -19,7 +19,8 @@ package controllers
 import com.google.inject.Inject
 import connector.SchemeConnector
 import connector.utils.HttpResponseHelper
-import models.ListOfLegacySchemes
+import models.MigrationType.isRacDac
+import models.{ListOfLegacySchemes, MigrationType}
 import play.api.Logger
 import play.api.libs.json.Json
 import play.api.mvc._
@@ -56,15 +57,21 @@ class SchemeController @Inject()(
     }
   }
 
-  def registerMigrationScheme: Action[AnyContent] = Action.async {
+  def registerScheme(migrationType:MigrationType): Action[AnyContent] = Action.async {
     implicit request => {
       val psaId = request.headers.get("psaId")
       val feJson = request.body.asJson
-      logger.debug(s"[PSA-Scheme-Migration-Incoming-Payload] $feJson")
-
-      (psaId, feJson) match {
-        case (Some(psa), Some(jsValue)) =>
-          pensionSchemeService.registerScheme(psa, jsValue).map {
+      val checkRacDac: Boolean=isRacDac(migrationType)
+      logger.debug(s"[PSA-Scheme-Migration-Incoming-Payload] $feJson for Migration Type: $checkRacDac")
+      (psaId,feJson) match {
+        case (Some(psa),Some(jsValue)) =>
+          val registerSchemeCall = {
+            if (checkRacDac)
+              pensionSchemeService.registerRacDac(psa, jsValue)
+            else
+              pensionSchemeService.registerScheme(psa, jsValue)
+          }
+          registerSchemeCall.map {
             case Right(json) => Ok(json)
             case Left(e) => result(e)
           }

@@ -23,16 +23,16 @@ case class SchemeMigrationDetails(
                                    pstrOrTpssId: String,
                                    registrationStartDate: String,
                                    psaRelationshipStartDate: String
-)
+                                 )
 
 object SchemeMigrationDetails {
   val reads: Reads[SchemeMigrationDetails] =
     (
       (JsPath \ "pstr").read[String] and
-      (JsPath \ "schemeOpenDate").read[String] and
-      (JsPath \ "relationshipStartDate").read[String]
-    ) (
-      (pstrOrTpssId, registrationStartDate,psaRelationshipStartDate) => SchemeMigrationDetails(pstrOrTpssId, registrationStartDate,psaRelationshipStartDate)
+        (JsPath \ "schemeOpenDate").read[String] and
+        ( (JsPath \ "relationshipStartDate").read[String] orElse (JsPath \ "declarationDate").read[String])
+      ) (
+      (pstrOrTpssId, registrationStartDate, psaRelationshipStartDate) => SchemeMigrationDetails(pstrOrTpssId, registrationStartDate, psaRelationshipStartDate)
     )
 
   implicit val formats: Format[SchemeMigrationDetails] = Json.format[SchemeMigrationDetails]
