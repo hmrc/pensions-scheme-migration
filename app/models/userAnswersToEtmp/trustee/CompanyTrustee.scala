@@ -17,8 +17,7 @@
 package models.userAnswersToEtmp.trustee
 
 import models.userAnswersToEtmp.ReadsHelper.previousAddressDetails
-import models.userAnswersToEtmp.{Company, PreviousAddressDetails, CorrespondenceContactDetails, CorrespondenceAddressDetails}
-import play.api.libs.functional.syntax._
+import models.userAnswersToEtmp.{Company, CorrespondenceAddressDetails, CorrespondenceContactDetails, PreviousAddressDetails}
 import play.api.libs.json._
 import utils.UtrHelper.stripUtr
 

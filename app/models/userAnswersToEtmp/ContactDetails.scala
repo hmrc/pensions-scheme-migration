@@ -30,10 +30,6 @@ object ContactDetails {
       ((JsPath \ "phoneNumber").read[String] orElse (JsPath \ "phone").read[String] )
     ) ((email, phone) => ContactDetails(telephone = phone, email = email))
 
-  val readsCompanyContactDetails: Reads[ContactDetails] = (
-    (JsPath \ "companyEmail").read[String]  and
-      (JsPath \ "companyPhone").read[String]
-    ) ((email, phone) => ContactDetails(telephone = phone, email = email))
 
   val readsPartnershipContactDetails: Reads[ContactDetails] = (
     (JsPath \ "partnershipEmail").read[String]  and

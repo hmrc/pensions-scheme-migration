@@ -17,10 +17,8 @@
 package service
 
 import com.google.inject.{Inject, Singleton}
-import connector.SchemeConnector
 import models.racDac.WorkItemRequest
 import play.api.libs.json.{JsValue, Json}
-import play.api.mvc.RequestHeader
 import reactivemongo.bson.BSONObjectID
 import repositories.RacDacRequestsQueueRepository
 import uk.gov.hmrc.workitem.{ProcessingStatus, ResultStatus, WorkItem}

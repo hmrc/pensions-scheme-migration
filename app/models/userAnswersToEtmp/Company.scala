@@ -34,7 +34,7 @@ object Company {
       (JsPath \ "companyNumber").readNullable[String]((__ \ "value").read[String]) and
       (JsPath \ "noCompanyNumberReason").readNullable[String] and
       (JsPath \ "address").read[Address] and
-      ContactDetails.readsCompanyContactDetails and
+      ContactDetails.readsContactDetails and
       (JsPath \ "tradingTime").readNullable[Boolean] and
       (JsPath \ "previousAddress").readNullable[Address] and
       (JsPath \ "addressYears").read[Boolean]
