@@ -33,6 +33,8 @@ trait HttpResponseHelper extends HttpErrorFunctions {
     response.status match {
       case BAD_REQUEST =>
         throw new BadRequestException(badRequestMessage(httpMethod, url, response.body))
+      case CONFLICT =>
+        new ConflictException(response.body)
       case UNPROCESSABLE_ENTITY =>
         new UnprocessableEntityException(response.body)
       case status if is4xx(status) =>

@@ -16,17 +16,19 @@
 
 package models.userAnswersToEtmp
 
+import play.api.libs.functional.syntax.toFunctionalBuilderOps
+
 case class RACDACDeclaration(
-  box12: Boolean,
-  box13: Boolean,
-  box14: Boolean
-)
+                              box12: Boolean,
+                              box13: Boolean,
+                              box14: Boolean
+                            )
 
 object RACDACDeclaration {
+
   import play.api.libs.json._
 
-  val reads: Reads[RACDACDeclaration] =
-      (JsPath \ "racdac" \ "declaration").read[Boolean].map( d => RACDACDeclaration(d, d, d) )
+  val reads: Reads[RACDACDeclaration] = (Reads.pure(true) and Reads.pure(true) and Reads.pure(true)) (RACDACDeclaration.apply _)
 
   implicit val formats: Format[RACDACDeclaration] = Json.format[RACDACDeclaration]
 

@@ -29,7 +29,9 @@ object RACDACSchemeDetails {
   val reads: Reads[RACDACSchemeDetails] =
     (
       (JsPath \ "schemeName").read[String] and
-        (JsPath \ "contractOrPolicyNumber").read[String] and
+        ( (JsPath \ "contractOrPolicyNumber").read[String]
+          orElse((JsPath \ "policyNumber").read[String])
+          orElse((JsPath \ "policyNo").read[String])) and
         (JsPath \ "schemeOpenDate").read[String]
       ) (
       (name, contractOrPolicyNumber, registrationStartDate) => RACDACSchemeDetails(name, contractOrPolicyNumber, registrationStartDate)

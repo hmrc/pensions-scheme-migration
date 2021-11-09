@@ -16,27 +16,23 @@
 
 package service
 
-import audit.{AuditService, SchemeAuditService}
 import com.google.inject.{Inject, Singleton}
 import connector.SchemeConnector
 import models.userAnswersToEtmp.{PensionsScheme, RACDACPensionsScheme}
 import play.api.Logger
 import play.api.libs.json.{JsObject, JsResultException, JsValue, Json}
-import play.api.mvc.RequestHeader
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpException}
 
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class PensionSchemeService @Inject()(schemeConnector: SchemeConnector,
-                                     schemeAuditService: SchemeAuditService,
-                                     auditService: AuditService
+class PensionSchemeService @Inject()(schemeConnector: SchemeConnector
                                     ) {
 
   private val logger = Logger(classOf[PensionSchemeService])
 
   def registerScheme(psaId: String, json: JsValue)
-                    (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader):
+                    (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext):
   Future[Either[HttpException, JsValue]] = {
     json.validate[PensionsScheme](PensionsScheme.registerApiReads).fold(
       invalid = {
@@ -48,15 +44,13 @@ class PensionSchemeService @Inject()(schemeConnector: SchemeConnector,
       valid = {
         validPensionsScheme =>
           val registerData = Json.toJson(validPensionsScheme).as[JsObject]
-          schemeConnector.registerScheme(psaId, registerData) andThen {
-            schemeAuditService.sendSchemeSubscriptionEvent(psaId, pstr = "", validPensionsScheme)(auditService.sendEvent)
-          }
+          schemeConnector.registerScheme(psaId, registerData)
       }
     )
   }
 
   def registerRacDac(psaId: String, json: JsValue)
-                    (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: RequestHeader):
+                    (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext):
   Future[Either[HttpException, JsValue]] = {
     json.validate[RACDACPensionsScheme](RACDACPensionsScheme.reads).fold(
       invalid = {
@@ -69,9 +63,6 @@ class PensionSchemeService @Inject()(schemeConnector: SchemeConnector,
         validRacDacPensionsScheme =>
           val registerData = Json.toJson(validRacDacPensionsScheme).as[JsObject]
           schemeConnector.registerScheme(psaId, registerData)
-        //              andThen {
-        //                schemeAuditService.sendSchemeSubscriptionEvent(psaId, pensionsScheme, bankAccount.isDefined)(auditService.sendEvent)
-        //              }
       }
     )
   }
