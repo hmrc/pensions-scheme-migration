@@ -1,0 +1,127 @@
+{
+  "schemeName": "QROPS Rejected",
+  "schemeType":{
+    "name" : "corp"
+  },
+  "currentMembers": "opt2",
+  "investmentRegulated": true,
+  "occupationalPensionScheme": true,
+  "schemeEstablishedCountry": "SI",
+  "securedBenefits": false,
+  "racDac": false,
+  "schemeOpenDate": "2017-04-06",
+  "relationshipStartDate": "2017-04-06",
+  "establishers": [
+    {
+      "establisherKind": "individual",
+      "establisherDetails": {
+        "firstName": "User",
+        "lastName": "One"
+      },
+      "dateOfBirth": "1955-03-29",
+      "hasNino": true,
+      "nino": {
+        "value":"AA999999A"
+      },
+      "address": {
+        "addressLine1": "addressline1",
+        "addressLine2": "addressline2",
+        "addressLine3": "addressline3",
+        "addressLine4": "addressline4",
+        "postcode": "TF3 5TR",
+        "country": "NO"
+      },
+      "email": "aaa@gmail.com",
+      "phone": "0042334"
+    },
+    {
+      "establisherKind": "individual",
+      "establisherDetails": {
+        "firstName": "Second",
+        "lastName": "User"
+      },
+      "dateOfBirth": "1955-03-29",
+      "hasNino": false,
+      "noNinoReason": "Test",
+      "address": {
+        "addressLine1": "addressline1",
+        "addressLine2": "addressline2",
+        "addressLine3": "",
+        "addressLine4": "",
+        "postcode": "",
+        "country": "NO"
+      },
+      "email": "bbb@gmail.com",
+      "phone": "00442335"
+    },
+    {
+      "establisherKind": "company",
+      "companyDetails": {
+        "companyName": "dsfdsf"
+      },
+      "address": {
+        "addressLine1": "sdfdsf",
+        "addressLine2": "sdfdsf",
+        "addressLine3": "",
+        "addressLine4": "",
+        "postcode": ""
+      },
+      "email": "sdf@sdf",
+      "phone": "23234",
+      "haveCompanyNumber" : false,
+      "noCompanyNumberReason": "fsdfdsf",
+      "haveVat": false,
+      "havePaye": false
+    },
+    {
+      "establisherKind": "company",
+      "companyDetails": {
+        "companyName": "sfdsfdsfsdf"
+      },
+      "address": {
+        "addressLine1": "sdfdsfdsf",
+        "addressLine2": "sdfdsfdsf",
+        "addressLine3": "",
+        "addressLine4": "",
+        "postcode": "",
+        "country": "LI"
+      },
+      "email": "sdfds@dfdsf",
+      "phone": "324324",
+      "haveCompanyNumber" : true,
+      "companyNumber": {
+        "value":"123458"
+      },
+      "haveVat": true,
+      "vat": {
+        "value":"01234567890"
+      },
+      "havePaye": true,
+      "paye": {
+        "value":"1234567"
+      }
+    }
+  ],
+  "trustees": [
+    {
+      "trusteeKind": "company",
+      "companyDetails": {
+        "companyName": "asdsad"
+      },
+      "address": {
+        "addressLine1": "asdasd",
+        "addressLine2": "asdsada",
+        "addressLine3": "",
+        "addressLine4": "",
+        "postcode": "",
+        "country": "NO"
+      },
+      "email": "asdasd@dfdsf",
+      "phone": "34234",
+      "haveCompanyNumber": false,
+      "noCompanyNumberReason": "dsfdsfsdf",
+      "haveVat": false,
+      "havePaye": false
+    }
+  ]
+}
