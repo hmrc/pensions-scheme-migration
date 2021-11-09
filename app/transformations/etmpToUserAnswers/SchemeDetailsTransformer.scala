@@ -34,10 +34,10 @@ class SchemeDetailsTransformer @Inject()(
   val schemeTypeReads: Reads[JsObject] = (__ \ 'items \ 'pensionSchemeStructure).readNullable[String].flatMap {
     _.map {
       schemeType =>
-        (__ \ 'schemeType).json.put(
+        (__ \ 'schemeType \ 'name).json.put(
           JsString(SchemeType.nameWithValue(schemeType))
         )
-    }.getOrElse((__ \ 'schemeType).json.put(JsString(SchemeType.other.name)))
+    }.getOrElse((__ \ 'schemeType \ 'name).json.put(JsString(SchemeType.other.name)))
   }
 
   val beforeYouStartReads: Reads[JsObject] = (

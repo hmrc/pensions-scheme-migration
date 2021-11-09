@@ -221,7 +221,7 @@ trait PensionSchemeJsValueGenerators extends PensionSchemeGenerators {
     ),
       Json.obj(
         "schemeName" -> schemeName,
-        "schemeType" -> SchemeType.nameWithValue(pensionSchemeStructure.getOrElse("other")),
+        "schemeType" -> Json.obj("name" -> SchemeType.nameWithValue(pensionSchemeStructure.getOrElse("other"))),
         "schemeEstablishedCountry" -> schemeEstablishedCode,
         "currentMembers" -> SchemeMembers.nameWithValue(currentSchemeMembers),
         "investmentRegulated" -> isRegulatedSchemeInvestment,
@@ -261,7 +261,7 @@ trait PensionSchemeJsValueGenerators extends PensionSchemeGenerators {
     )),
       Json.obj(
         "schemeName" -> schemeName,
-        "schemeType" -> SchemeType.nameWithValue(pensionSchemeStructure.getOrElse("other")),
+        "schemeType" -> Json.obj("name" -> SchemeType.nameWithValue(pensionSchemeStructure.getOrElse("other"))),
         "schemeEstablishedCountry" -> schemeEstablishedCode,
         "currentMembers" -> SchemeMembers.nameWithValue(currentSchemeMembers),
         "investmentRegulated" -> isRegulatedSchemeInvestment,
