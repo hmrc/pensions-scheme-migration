@@ -39,9 +39,16 @@ class RacDacBulkSubmissionService @Inject()(
   }
 
   def enqueue(requests: Seq[WorkItemRequest]): Future[Boolean] = {
-    racDacSubmissionRepo.pushAll(requests) map {
-      case Right(_) => true
-      case _ => false
+    requests match {
+      case firstReq +: remainingReq =>
+        racDacSubmissionRepo.push(firstReq) map {
+        case Right(_) =>
+          racDacSubmissionRepo.pushAll(remainingReq)
+          true
+        case _ =>
+          false
+      }
+      case Nil => Future(false)
     }
   }
 

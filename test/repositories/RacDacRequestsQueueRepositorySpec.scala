@@ -59,6 +59,12 @@ class RacDacRequestsQueueRepositorySpec extends AnyWordSpec with Matchers with M
       }
     }
 
+    "push" must {
+      "insert rac dac request" in {
+        await(repository.push(racDacRequest)).map(_.item) mustBe Right(racDacRequest)
+      }
+    }
+
     "pull" must {
       "return some work item if one exists" in {
         await(repository.pushAll(Seq(racDacRequest))).map(item => item.map(_.item)) mustBe Right(Seq(racDacRequest))
