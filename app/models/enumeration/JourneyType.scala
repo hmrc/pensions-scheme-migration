@@ -14,15 +14,16 @@
  * limitations under the License.
  */
 
-package audit
+package models.enumeration
 
-import models.Event
-import uk.gov.hmrc.domain.PsaId
+import models.enumeration.binders.EnumPathBinder
+import play.api.mvc.PathBindable
 
-case class RetirementOrDeferredAnnuityContractMigrationMigrationEmailEvent(psaId: PsaId, event: Event) extends AuditEvent {
+object JourneyType extends Enumeration {
+  type Name = Value
+  val SCHEME_MIG: JourneyType.Value = Value("SchemeMigration")
+  val RACDAC_IND_MIG: JourneyType.Value = Value("RetirementOrDeferredAnnuityContractMigration")
+  val RACDAC_BULK_MIG: JourneyType.Value = Value("RetirementOrDeferredAnnuityContractBulkMigration")
 
-  override def auditType: String = "RetirementOrDeferredAnnuityContractMigrationMigrationEmailStatusEvent"
-
-  override def details: Map[String, String] = Map("psaId" -> psaId.id, "event" -> event.toString)
-
+  implicit val journeyTypePathBinder: PathBindable[Name] = EnumPathBinder.pathBinder(this)
 }

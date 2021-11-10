@@ -16,8 +16,9 @@
 
 package controllers
 
-import audit.{AuditService, SchemeMigrationEmailEvent}
+import audit.{AuditService, EmailAuditEvent}
 import com.google.inject.Inject
+import models.enumeration.JourneyType
 import models.{EmailEvents, Opened}
 import play.api.Logger
 import play.api.libs.json.JsValue
@@ -38,7 +39,7 @@ class EmailResponseController @Inject()(
 
   private val logger = Logger(classOf[EmailResponseController])
 
-  def retrieveStatus(id: String): Action[JsValue] = Action(parsers.tolerantJson) {
+  def retrieveStatus(id: String,journeyType:JourneyType.Name): Action[JsValue] = Action(parsers.tolerantJson) {
     implicit request =>
       validatePsaId(id) match {
         case Right(psaId) =>
@@ -48,8 +49,8 @@ class EmailResponseController @Inject()(
               valid.events.filterNot(
                 _.event == Opened
               ).foreach { event =>
-                logger.debug(s"Email Audit event is $event")
-                auditService.sendEvent(SchemeMigrationEmailEvent(psaId, event.event))
+                logger.debug(s"Email Audit event coming from $journeyType is $event")
+                auditService.sendEvent(EmailAuditEvent(psaId,journeyType,event.event))
               }
               Ok
             }
