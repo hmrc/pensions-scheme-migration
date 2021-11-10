@@ -74,6 +74,14 @@ class RacDacRequestsQueueRepository @Inject()(configuration: Configuration, reac
     }
   }
 
+  def push(racDacRequest: WorkItemRequest): Future[Either[Exception, WorkItem[WorkItemRequest]]] = {
+    pushNew(racDacRequest, now, (_: WorkItemRequest) => ToDo).map(item => Right(item)).recover {
+      case exception: Exception =>
+        logger.error(s"Error occurred while pushing items to the queue: ${exception.getMessage}")
+        Left(WorkItemProcessingException(s"push failed for request due to ${exception.getMessage}"))
+    }
+  }
+
   def pull: Future[Either[Exception, Option[WorkItem[WorkItemRequest]]]] =
     pullOutstanding(failedBefore = now.minusMillis(retryPeriod), availableBefore = now)
       .map(workItem => Right(workItem)).recover {

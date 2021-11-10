@@ -22,7 +22,9 @@ import connector.SchemeConnector
 import models.racDac.{RacDacHeaders, RacDacRequest, WorkItemRequest}
 import org.joda.time.DateTime
 import org.mockito.scalatest.MockitoSugar
-import org.scalatest.{EitherValues, MustMatchers, WordSpec}
+import org.scalatest.EitherValues
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.Json
 import play.api.test.Helpers.await
 import reactivemongo.bson.BSONObjectID
@@ -34,7 +36,7 @@ import java.util.concurrent.TimeUnit
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
-class RacDacBulkSubmissionServiceSpec() extends WordSpec with MustMatchers with MockitoSugar with EitherValues{
+class RacDacBulkSubmissionServiceSpec() extends AnyWordSpec with Matchers with MockitoSugar with EitherValues{
 
   implicit val timeout: Timeout = Timeout(FiniteDuration(5, TimeUnit.SECONDS))
 
@@ -67,17 +69,22 @@ class RacDacBulkSubmissionServiceSpec() extends WordSpec with MustMatchers with 
 
     "a dms submission request is made" must {
       "return true after successfully enqueue the request" in {
+        reset(mockRacDacSubmissionRepo)
         val workItem: WorkItem[WorkItemRequest] = WorkItem(BSONObjectID.generate(), DateTime.now(),
           DateTime.now(), DateTime.now(), ToDo, 0, racDacRequest)
 
         when(mockRacDacSubmissionRepo.pushAll(any)).thenReturn(Future(Right(Seq(workItem))))
+        when(mockRacDacSubmissionRepo.push(any)).thenReturn(Future(Right(workItem)))
         await(racDacBulkSubmissionService.enqueue(Seq(racDacRequest))) mustBe true
+        verify(mockRacDacSubmissionRepo, times(1)).pushAll(any)
       }
 
       "return false if there is an error enqueuing the request" in {
+        reset(mockRacDacSubmissionRepo)
         val ex = new Exception("message")
-        when(mockRacDacSubmissionRepo.pushAll(any)).thenReturn(Future(Left(ex)))
+        when(mockRacDacSubmissionRepo.push(any)).thenReturn(Future(Left(ex)))
         await(racDacBulkSubmissionService.enqueue(Seq(racDacRequest))) mustBe false
+        verify(mockRacDacSubmissionRepo, never).pushAll(any)
       }
     }
 
