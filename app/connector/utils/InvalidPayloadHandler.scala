@@ -24,6 +24,7 @@ import play.api.libs.json._
 
 import javax.inject.Inject
 import scala.collection.JavaConverters._
+import java.io.InputStream
 
 @ImplementedBy(classOf[InvalidPayloadHandlerImpl])
 trait InvalidPayloadHandler {
@@ -37,7 +38,7 @@ trait InvalidPayloadHandler {
 class InvalidPayloadHandlerImpl @Inject() extends InvalidPayloadHandler {
   private val logger = Logger(classOf[InvalidPayloadHandler])
   private[utils] def loadSchema(schemaFileName: String): JsonSchema = {
-    val schemaUrl: String = getClass.getResource(schemaFileName).toString
+    val schemaUrl: InputStream = getClass.getResource(schemaFileName).openStream()
     val factory = JsonSchemaFactory.getInstance(SpecVersion.VersionFlag.V4)
     factory.getSchema(schemaUrl)
   }

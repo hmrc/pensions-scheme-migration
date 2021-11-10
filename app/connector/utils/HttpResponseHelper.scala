@@ -19,9 +19,11 @@ package connector.utils
 import akka.util.ByteString
 import play.api.http.HttpEntity
 import play.api.http.Status._
+import play.api.libs.json.JsResultException
 import play.api.mvc.{ResponseHeader, Result}
 import uk.gov.hmrc.http._
 
+import scala.concurrent.Future
 import scala.util.matching.Regex
 
 trait HttpResponseHelper extends HttpErrorFunctions {
@@ -61,6 +63,37 @@ trait HttpResponseHelper extends HttpErrorFunctions {
     }
 
     Result(ResponseHeader(ex.responseCode), httpEntity)
+  }
+
+  def recoverFromError: PartialFunction[Throwable, Future[Result]] = {
+    case e: JsResultException =>
+      Future.failed(new BadRequestException(e.getMessage))
+    case e: BadRequestException =>
+      Future.failed(new BadRequestException(e.message))
+    case e: NotFoundException =>
+      Future.failed(new NotFoundException(e.message))
+    case e: UpstreamErrorResponse =>
+      e match {
+        case Upstream4xxResponse(message, statusCode, reportAs, headers) =>
+          Future.failed(
+            throwAppropriateException(UpstreamErrorResponse(message, statusCode, reportAs, headers))
+          )
+        case Upstream5xxResponse(message, statusCode, reportAs, headers) =>
+          Future.failed(
+            UpstreamErrorResponse(message, statusCode, reportAs, headers)
+          )
+      }
+    case e: Exception =>
+      Future.failed(new Exception(e.getMessage))
+  }
+
+  private def throwAppropriateException(e: UpstreamErrorResponse): Exception = {
+    e.statusCode match {
+      case CONFLICT if e.message.contains("DUPLICATE_SUBMISSION") =>
+        new ConflictException(e.message)
+      case _ =>
+        UpstreamErrorResponse(e.message, e.statusCode, e.reportAs)
+    }
   }
 }
 

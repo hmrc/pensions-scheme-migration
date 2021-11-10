@@ -77,7 +77,7 @@ class SchemeController @Inject()(
           }
         case _ => Future.failed(new BadRequestException("Bad Request without PSAId or request body"))
       }
-    }
+    }recoverWith recoverFromError
   }
 
 }

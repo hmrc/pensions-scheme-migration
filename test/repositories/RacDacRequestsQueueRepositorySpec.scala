@@ -18,8 +18,8 @@ package repositories
 
 import com.typesafe.config.ConfigFactory
 import models.racDac.{RacDacHeaders, RacDacRequest, WorkItemRequest}
-import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.must.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import play.api.Configuration
 import play.api.test.Helpers._
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
@@ -48,7 +48,8 @@ class RacDacRequestsQueueRepositorySpec extends AnyWordSpec with Matchers with M
   )
 
   private val repository = new RacDacRequestsQueueRepository(config, reactiveMongoComponent, new ServicesConfig(config))
-  private val racDacRequest = WorkItemRequest("test psa", RacDacRequest("test scheme 1", "001"), RacDacHeaders(None, None))
+  private val racDacRequest = WorkItemRequest("test psa",
+    RacDacRequest("test scheme 1", "001","00615269RH","2012-02-20","2020-01-01"), RacDacHeaders(None, None))
 
   "RacDacRequestsQueueRepository" when {
 
