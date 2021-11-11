@@ -39,7 +39,7 @@ class EmailResponseController @Inject()(
 
   private val logger = Logger(classOf[EmailResponseController])
 
-  def retrieveStatus(id: String, journeyType: JourneyType.Name): Action[JsValue] = Action(parsers.tolerantJson) {
+  def retrieveStatus( journeyType: JourneyType.Name, id: String): Action[JsValue] = Action(parsers.tolerantJson) {
     implicit request =>
       validatePsaId(id) match {
         case Right(psaId) =>

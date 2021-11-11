@@ -46,7 +46,7 @@ class EmailResponseControllerSpec extends SpecBase {
 
             val controller = app.injector.instanceOf[EmailResponseController]
 
-            val result = controller.retrieveStatus(encrypted, eventType)(fakeRequest.withBody(Json.toJson(emailEvents)))
+            val result = controller.retrieveStatus(eventType,encrypted)(fakeRequest.withBody(Json.toJson(emailEvents)))
 
             status(result) mustBe OK
             fakeAuditService.verifySent(EmailAuditEvent(psa, eventType, Sent)) mustBe true
@@ -70,7 +70,7 @@ class EmailResponseControllerSpec extends SpecBase {
 
       val controller = app.injector.instanceOf[EmailResponseController]
 
-      val result = controller.retrieveStatus(encrypted, JourneyType.SCHEME_MIG)(fakeRequest.withBody(validJson))
+      val result = controller.retrieveStatus(JourneyType.SCHEME_MIG, encrypted)(fakeRequest.withBody(validJson))
 
       status(result) mustBe BAD_REQUEST
       fakeAuditService.verifyNothingSent mustBe true
@@ -92,7 +92,7 @@ class EmailResponseControllerSpec extends SpecBase {
 
         val controller = app.injector.instanceOf[EmailResponseController]
 
-        val result = controller.retrieveStatus(psa, JourneyType.RACDAC_IND_MIG)(fakeRequest.withBody(Json.toJson(emailEvents)))
+        val result = controller.retrieveStatus(JourneyType.RACDAC_IND_MIG,psa)(fakeRequest.withBody(Json.toJson(emailEvents)))
 
         status(result) mustBe FORBIDDEN
         contentAsString(result) mustBe "Malformed PSAID"
