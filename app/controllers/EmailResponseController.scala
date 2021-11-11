@@ -39,7 +39,7 @@ class EmailResponseController @Inject()(
 
   private val logger = Logger(classOf[EmailResponseController])
 
-  def retrieveStatus(id: String,journeyType:JourneyType.Name): Action[JsValue] = Action(parsers.tolerantJson) {
+  def retrieveStatus(id: String, journeyType: JourneyType.Name): Action[JsValue] = Action(parsers.tolerantJson) {
     implicit request =>
       validatePsaId(id) match {
         case Right(psaId) =>
@@ -50,7 +50,7 @@ class EmailResponseController @Inject()(
                 _.event == Opened
               ).foreach { event =>
                 logger.debug(s"Email Audit event coming from $journeyType is $event")
-                auditService.sendEvent(EmailAuditEvent(psaId,journeyType,event.event))
+                auditService.sendEvent(EmailAuditEvent(psaId, journeyType, event.event))
               }
               Ok
             }
