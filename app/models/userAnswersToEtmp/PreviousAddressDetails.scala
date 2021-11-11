@@ -25,15 +25,9 @@ case class PreviousAddressDetails(isPreviousAddressLast12Month: Boolean,
 object PreviousAddressDetails {
   implicit val formats: Format[PreviousAddressDetails] = Json.format[PreviousAddressDetails]
 
-  val psaSubmissionWrites: Writes[PreviousAddressDetails] = (
-    (JsPath \ "isPreviousAddressLast12Month").write[Boolean] and
-      (JsPath \ "previousAddressDetail").writeNullable[Address]
-    ) (previousAddress => (previousAddress.isPreviousAddressLast12Month, previousAddress.previousAddressDetails))
-
-
   def apiReads(typeOfAddressDetail: String): Reads[PreviousAddressDetails] = (
-    (JsPath \ s"${typeOfAddressDetail}AddressYears").read[Boolean] and
-      (JsPath \ s"${typeOfAddressDetail}PreviousAddress").readNullable[Address]
+    (JsPath \ "addressYears").read[Boolean] and
+      (JsPath \ "previousAddress").readNullable[Address]
     ) ((addressLast12Months, address) => {
     PreviousAddressDetails(addressLast12Months, address)
   })
