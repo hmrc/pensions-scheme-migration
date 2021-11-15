@@ -89,7 +89,7 @@ class DataCacheRepository @Inject()(    lockCacheRepository: LockCacheRepository
       projection = Option.empty[JsObject]).one[DataJson].map{ dataJsonOpt =>
       dataJsonOpt.map{dataJson =>
         dataJson.data.as[JsObject] ++
-        Json.obj("expireAt" -> JsNumber(dataJson.expireAt.getMillis))
+        Json.obj("expireAt" -> JsNumber(dataJson.expireAt.minusDays(1).getMillis))
       }
     }
   }
