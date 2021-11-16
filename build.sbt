@@ -29,6 +29,7 @@ lazy val microservice = Project(appName, file("."))
     Resolver.bintrayRepo("hmrc", "releases")
   ))
   .settings(
+    RoutesKeys.routesImport ++= Seq("models.enumeration.JourneyType"),
     PlayKeys.devSettings += "play.server.http.port" -> "8214"
   )
   .settings(silencerSettings)

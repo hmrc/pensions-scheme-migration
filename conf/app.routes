@@ -25,3 +25,5 @@ POST          /bulk-migration                       controllers.BulkRacDacContro
 GET           /bulk-migration/isRequestInProgress    controllers.BulkRacDacController.isRequestSubmitted
 GET           /bulk-migration/isAllFailed           controllers.BulkRacDacController.isAllFailed
 DELETE        /bulk-migration/deleteAll             controllers.BulkRacDacController.deleteAll
+
+POST          /email-response/:journeyType/:id      controllers.EmailResponseController.retrieveStatus(journeyType: JourneyType.Name, id: String)
