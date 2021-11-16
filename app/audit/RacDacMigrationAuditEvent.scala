@@ -26,7 +26,7 @@ case class RacDacMigrationAuditEvent(
                                     response: Option[JsValue]
                                   ) extends AuditEvent {
 
-  override def auditType: String = "RacDacMigrationAudit"
+  override def auditType: String = "RetirementOrDeferredAnnuityContractMigrationAudit"
 
   override def details: Map[String, String] = Map(
     "psaId"     ->    psaId,
