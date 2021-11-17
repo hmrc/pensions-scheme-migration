@@ -85,7 +85,13 @@ class DataCacheRepository @Inject()(    lockCacheRepository: LockCacheRepository
 
   def get(pstr: String)(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
     logger.debug("Calling get in Migration Data Cache")
-    collection.find(BSONDocument("pstr" -> pstr), projection = Option.empty[JsObject]).one[DataJson].map(_.map(_.data))
+    collection.find(BSONDocument("pstr" -> pstr),
+      projection = Option.empty[JsObject]).one[DataJson].map{ dataJsonOpt =>
+      dataJsonOpt.map{dataJson =>
+        dataJson.data.as[JsObject] ++
+        Json.obj("expireAt" -> JsNumber(dataJson.expireAt.minusDays(1).getMillis))
+      }
+    }
   }
 
   def remove(pstr: String)(implicit ec: ExecutionContext): Future[Boolean] = {
