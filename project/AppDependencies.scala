@@ -12,6 +12,7 @@ object AppDependencies {
     "com.typesafe.play"       %% "play-json-joda"             % "2.6.10",
     "com.typesafe.play"       %% "play-json"                  % "2.6.10",
     "uk.gov.hmrc"             %% "work-item-repo"             % "8.1.0-play-28",
+    "com.networknt"           %  "json-schema-validator"      % "1.0.49",
     ehcache
   )
 

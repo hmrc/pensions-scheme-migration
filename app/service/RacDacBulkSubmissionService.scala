@@ -17,7 +17,6 @@
 package service
 
 import com.google.inject.{Inject, Singleton}
-import connector.SchemeConnector
 import models.racDac.WorkItemRequest
 import play.api.libs.json.{JsValue, Json}
 import reactivemongo.bson.BSONObjectID
@@ -29,14 +28,14 @@ import scala.concurrent.Future
 @Singleton
 class RacDacBulkSubmissionService @Inject()(
                                              racDacSubmissionRepo: RacDacRequestsQueueRepository,
-                                             schemeConnector: SchemeConnector
+                                             pensionSchemeService: PensionSchemeService,
                                            )(implicit ec: RacDacBulkSubmissionPollerExecutionContext) {
 
   def submitToETMP(racDacRequest: WorkItemRequest): Future[Either[Exception, JsValue]] = {
     val psaId = racDacRequest.psaId
     val requestBody = Json.toJson(racDacRequest.request)
     val headerCarrier = racDacRequest.headers.toHeaderCarrier
-    schemeConnector.registerRacDac(psaId, requestBody)(headerCarrier, implicitly)
+    pensionSchemeService.registerRacDac(psaId, requestBody)(headerCarrier, implicitly)
   }
 
   def enqueue(requests: Seq[WorkItemRequest]): Future[Boolean] = {

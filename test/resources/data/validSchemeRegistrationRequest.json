@@ -1,0 +1,526 @@
+{
+  "schemeMigrationDetails":{
+    "pstrOrTpssId":"88615269RH",
+    "registrationStartDate":"2017-04-06",
+    "psaRelationshipStartDate":"2017-04-06"
+  },
+  "customerAndSchemeDetails":{
+    "schemeName":"Legacy Scheme Filled",
+    "isSchemeMasterTrust":false,
+    "schemeStructure":"Other",
+    "otherSchemeStructure":"OTHERRRRRR SCHEME TYPE",
+    "currentSchemeMembers":"1",
+    "futureSchemeMembers":"2 to 11",
+    "isRegulatedSchemeInvestment":true,
+    "isOccupationalPensionScheme":true,
+    "areBenefitsSecuredContractInsuranceCompany":false,
+    "doesSchemeProvideBenefits":"Mixture of money purchase benefits and defined benefits",
+    "tcmpBenefitType":"02",
+    "schemeEstablishedCountry":"SI",
+    "haveInvalidBank":false
+  },
+  "pensionSchemeDeclaration":{
+    "box6":true,
+    "box7":true,
+    "box8":true,
+    "box10":true
+  },
+  "establisherDetails":{
+    "individual":[
+      {
+        "personalDetails":{
+          "firstName":"User",
+          "lastName":"One One",
+          "dateOfBirth":"1955-03-29"
+        },
+        "utr":"1234567890",
+        "correspondenceAddressDetails":{
+          "addressDetails":{
+            "line4":"addressline4",
+            "line3":"addressline3",
+            "line2":"addressline234",
+            "line1":"addressline123",
+            "countryCode":"NO",
+            "postalCode":"TF3 5TR",
+            "addressType":"NON-UK"
+          }
+        },
+        "correspondenceContactDetails":{
+          "contactDetails":{
+            "telephone":"0042334",
+            "email":"aye@h.com"
+          }
+        },
+        "previousAddressDetails":{
+          "isPreviousAddressLast12Month":true,
+          "previousAddressDetails":{
+            "line4":"Anytown",
+            "line3":"Some District",
+            "line2":"7 Other Place",
+            "line1":"Flat 3",
+            "countryCode":"GB",
+            "postalCode":"ZZ1 1ZZ",
+            "addressType":"UK"
+          }
+        }
+      },
+      {
+        "personalDetails":{
+          "firstName":"Second",
+          "lastName":"User",
+          "dateOfBirth":"1955-03-29"
+        },
+        "noNinoReason":"Test",
+        "utr":"0987654321",
+        "correspondenceAddressDetails":{
+          "addressDetails":{
+            "line2":"addressline2",
+            "line1":"addressline1",
+            "countryCode":"NO",
+            "addressType":"NON-UK"
+          }
+        },
+        "correspondenceContactDetails":{
+          "contactDetails":{
+            "telephone":"00442335",
+            "email":"bbb@gmail.com"
+          }
+        },
+        "previousAddressDetails":{
+          "isPreviousAddressLast12Month":true,
+          "previousAddressDetails":{
+            "line4":"LINEE4",
+            "line3":"LINEEE3",
+            "line2":"ADRSSSS2",
+            "line1":"ADDRESS 1",
+            "countryCode":"BS",
+            "postalCode":"393001",
+            "addressType":"NON-UK"
+          }
+        }
+      }
+    ],
+    "companyOrOrganization":[
+      {
+        "organizationName":"dsfdsf",
+        "noUtrReason":"asdsadasd",
+        "noCrnReason":"fsdfdsf",
+        "haveMoreThanTenDirectorOrPartner":true,
+        "correspondenceAddressDetails":{
+          "addressDetails":{
+            "line3":"Anytown",
+            "line2":"Some District",
+            "line1":"4 Other Place",
+            "countryCode":"GB",
+            "postalCode":"ZZ1 1ZZ",
+            "addressType":"UK"
+          }
+        },
+        "correspondenceContactDetails":{
+          "contactDetails":{
+            "telephone":"23234",
+            "email":"sdf@sdf"
+          }
+        },
+        "previousAddressDetails":{
+          "isPreviousAddressLast12Month":true,
+          "previousAddressDetails":{
+            "line3":"Anytown",
+            "line2":"Some District",
+            "line1":"10 Other Place",
+            "countryCode":"GB",
+            "postalCode":"ZZ1 1ZZ",
+            "addressType":"UK"
+          }
+        },
+        "directorDetails":[
+          {
+            "personalDetails":{
+              "firstName":"DIRECONE",
+              "lastName":"DIRECONE",
+              "dateOfBirth":"2000-01-01"
+            },
+            "noNinoReason":"asdasd",
+            "noUtrReason":"asdasd",
+            "correspondenceAddressDetails":{
+              "addressDetails":{
+                "line3":"Anytown",
+                "line2":"Some District",
+                "line1":"2 Other Place",
+                "countryCode":"GB",
+                "postalCode":"ZZ1 1ZZ",
+                "addressType":"UK"
+              }
+            },
+            "correspondenceContactDetails":{
+              "contactDetails":{
+                "telephone":"23432",
+                "email":"direcccc@g.com"
+              }
+            }
+          },
+          {
+            "personalDetails":{
+              "firstName":"SEC",
+              "lastName":"SEC",
+              "dateOfBirth":"2000-01-01"
+            },
+            "noNinoReason":"asdsad",
+            "noUtrReason":"sadasdsad",
+            "correspondenceAddressDetails":{
+              "addressDetails":{
+                "line3":"Anytown",
+                "line2":"Some District",
+                "line1":"4 Other Place",
+                "countryCode":"GB",
+                "postalCode":"ZZ1 1ZZ",
+                "addressType":"UK"
+              }
+            },
+            "correspondenceContactDetails":{
+              "contactDetails":{
+                "telephone":"4534",
+                "email":"SECdir@g.com"
+              }
+            }
+          },
+          {
+            "personalDetails":{
+              "firstName":"DIRECTHREE",
+              "lastName":"DIRECTHREE",
+              "dateOfBirth":"2000-01-01"
+            },
+            "noNinoReason":"NO NINO",
+            "noUtrReason":"NO UTRR THREE",
+            "correspondenceAddressDetails":{
+              "addressDetails":{
+                "line3":"Anytown",
+                "line2":"Some District",
+                "line1":"2 Other Place",
+                "countryCode":"GB",
+                "postalCode":"ZZ1 1ZZ",
+                "addressType":"UK"
+              }
+            },
+            "correspondenceContactDetails":{
+              "contactDetails":{
+                "telephone":"234324",
+                "email":"direccctheec@g.com"
+              }
+            }
+          },
+          {
+            "personalDetails":{
+              "firstName":"NIGNEE",
+              "lastName":"NINEEEE",
+              "dateOfBirth":"2000-01-01"
+            },
+            "noNinoReason":"NO NINO NINEEE",
+            "noUtrReason":"NO UTRR NIINEEE",
+            "correspondenceAddressDetails":{
+              "addressDetails":{
+                "line3":"Anytown",
+                "line2":"Some District",
+                "line1":"3 Other Place",
+                "countryCode":"GB",
+                "postalCode":"ZZ1 1ZZ",
+                "addressType":"UK"
+              }
+            },
+            "correspondenceContactDetails":{
+              "contactDetails":{
+                "telephone":"232",
+                "email":"sixxxxx@g.com"
+              }
+            }
+          },
+          {
+            "personalDetails":{
+              "firstName":"NIGNEE",
+              "lastName":"NINEEEE",
+              "dateOfBirth":"2000-01-01"
+            },
+            "noNinoReason":"NO NINO NINEEE",
+            "noUtrReason":"NO UTRR NIINEEE",
+            "correspondenceAddressDetails":{
+              "addressDetails":{
+                "line3":"Anytown",
+                "line2":"Some District",
+                "line1":"3 Other Place",
+                "countryCode":"GB",
+                "postalCode":"ZZ1 1ZZ",
+                "addressType":"UK"
+              }
+            },
+            "correspondenceContactDetails":{
+              "contactDetails":{
+                "telephone":"232",
+                "email":"sixxxxx@g.com"
+              }
+            }
+          },
+          {
+            "personalDetails":{
+              "firstName":"NIGNEE",
+              "lastName":"NINEEEE",
+              "dateOfBirth":"2000-01-01"
+            },
+            "noNinoReason":"NO NINO NINEEE",
+            "noUtrReason":"NO UTRR NIINEEE",
+            "correspondenceAddressDetails":{
+              "addressDetails":{
+                "line3":"Anytown",
+                "line2":"Some District",
+                "line1":"3 Other Place",
+                "countryCode":"GB",
+                "postalCode":"ZZ1 1ZZ",
+                "addressType":"UK"
+              }
+            },
+            "correspondenceContactDetails":{
+              "contactDetails":{
+                "telephone":"232",
+                "email":"sixxxxx@g.com"
+              }
+            }
+          },
+          {
+            "personalDetails":{
+              "firstName":"NIGNEE",
+              "lastName":"NINEEEE",
+              "dateOfBirth":"2000-01-01"
+            },
+            "noNinoReason":"NO NINO NINEEE",
+            "noUtrReason":"NO UTRR NIINEEE",
+            "correspondenceAddressDetails":{
+              "addressDetails":{
+                "line3":"Anytown",
+                "line2":"Some District",
+                "line1":"3 Other Place",
+                "countryCode":"GB",
+                "postalCode":"ZZ1 1ZZ",
+                "addressType":"UK"
+              }
+            },
+            "correspondenceContactDetails":{
+              "contactDetails":{
+                "telephone":"232",
+                "email":"sixxxxx@g.com"
+              }
+            }
+          },
+          {
+            "personalDetails":{
+              "firstName":"NIGNEE",
+              "lastName":"NINEEEE",
+              "dateOfBirth":"2000-01-01"
+            },
+            "noNinoReason":"NO NINO NINEEE",
+            "noUtrReason":"NO UTRR NIINEEE",
+            "correspondenceAddressDetails":{
+              "addressDetails":{
+                "line3":"Anytown",
+                "line2":"Some District",
+                "line1":"3 Other Place",
+                "countryCode":"GB",
+                "postalCode":"ZZ1 1ZZ",
+                "addressType":"UK"
+              }
+            },
+            "correspondenceContactDetails":{
+              "contactDetails":{
+                "telephone":"232",
+                "email":"sixxxxx@g.com"
+              }
+            }
+          },
+          {
+            "personalDetails":{
+              "firstName":"NIGNEE",
+              "lastName":"NINEEEE",
+              "dateOfBirth":"2000-01-01"
+            },
+            "noNinoReason":"NO NINO NINEEE",
+            "noUtrReason":"NO UTRR NIINEEE",
+            "correspondenceAddressDetails":{
+              "addressDetails":{
+                "line3":"Anytown",
+                "line2":"Some District",
+                "line1":"3 Other Place",
+                "countryCode":"GB",
+                "postalCode":"ZZ1 1ZZ",
+                "addressType":"UK"
+              }
+            },
+            "correspondenceContactDetails":{
+              "contactDetails":{
+                "telephone":"232",
+                "email":"sixxxxx@g.com"
+              }
+            }
+          },
+          {
+            "personalDetails":{
+              "firstName":"TEN",
+              "lastName":"TEN",
+              "dateOfBirth":"1989-01-03"
+            },
+            "referenceOrNino":"AB123456B",
+            "utr":"4567890123",
+            "correspondenceAddressDetails":{
+              "addressDetails":{
+                "line3":"Anytown",
+                "line2":"Some District",
+                "line1":"4 Other Place",
+                "countryCode":"GB",
+                "postalCode":"ZZ1 1ZZ",
+                "addressType":"UK"
+              }
+            },
+            "correspondenceContactDetails":{
+              "contactDetails":{
+                "telephone":"423434234",
+                "email":"ten@g.com"
+              }
+            }
+          }
+        ]
+      },
+      {
+        "organizationName":"sfdsfdsfsdf",
+        "utr":"6543211234",
+        "crnNumber":"123458",
+        "vatRegistrationNumber":"123456789",
+        "payeReference":"123AB456",
+        "haveMoreThanTenDirectorOrPartner":false,
+        "correspondenceAddressDetails":{
+          "addressDetails":{
+            "line2":"sdfdsfdsf",
+            "line1":"sdfdsfdsf",
+            "countryCode":"LI",
+            "addressType":"NON-UK"
+          }
+        },
+        "correspondenceContactDetails":{
+          "contactDetails":{
+            "telephone":"234",
+            "email":"sdfds@dfdsf"
+          }
+        },
+        "directorDetails":[
+          {
+            "personalDetails":{
+              "firstName":"dsf",
+              "lastName":"dsf",
+              "dateOfBirth":"2020-01-01"
+            },
+            "noNinoReason":"asdf",
+            "noUtrReason":"asd",
+            "correspondenceAddressDetails":{
+              "addressDetails":{
+                "line3":"Anytown",
+                "line2":"Some District",
+                "line1":"3 Other Place",
+                "countryCode":"GB",
+                "postalCode":"ZZ1 1ZZ",
+                "addressType":"UK"
+              }
+            },
+            "correspondenceContactDetails":{
+              "contactDetails":{
+                "telephone":"234234",
+                "email":"sdsad@g.com"
+              }
+            }
+          }
+        ]
+      }
+    ],
+    "partnership":[
+
+    ]
+  },
+  "trusteeDetails":{
+    "individualTrusteeDetail":[
+      {
+        "personalDetails":{
+          "firstName":"Third",
+          "lastName":"User",
+          "dateOfBirth":"1955-03-29"
+        },
+        "referenceOrNino":"AA999999B",
+        "noUtrReason":"23",
+        "correspondenceAddressDetails":{
+          "addressDetails":{
+            "line4":"addressline4",
+            "line3":"addressline3",
+            "line2":"addressline2",
+            "line1":"addressline1",
+            "countryCode":"NO",
+            "postalCode":"TF3 8TR",
+            "addressType":"NON-UK"
+          }
+        },
+        "correspondenceContactDetails":{
+          "contactDetails":{
+            "telephone":"0142334",
+            "email":"sfdsd@g.com"
+          }
+        }
+      },
+      {
+        "personalDetails":{
+          "firstName":"Fourth",
+          "lastName":"User",
+          "dateOfBirth":"1955-03-30"
+        },
+        "noNinoReason":"Test",
+        "noUtrReason":"sdfdsf",
+        "correspondenceAddressDetails":{
+          "addressDetails":{
+
+            "line2":"addressline2",
+            "line1":"addressline1",
+            "countryCode":"GB",
+            "postalCode":"ZZ11ZZ",
+            "addressType":"UK"
+          }
+        },
+        "correspondenceContactDetails":{
+          "contactDetails":{
+            "telephone":"00442735",
+            "email":"ddb@gmail.com"
+          }
+        }
+      }
+    ],
+    "companyTrusteeDetail":[
+      {
+        "organizationName":"asdsad",
+        "noUtrReason":"sdfdsfdsf",
+        "noCrnReason":"dsfdsfsdf",
+        "vatRegistrationNumber":"222456289",
+        "payeReference":"123AB456",
+        "correspondenceAddressDetails":{
+          "addressDetails":{
+
+            "line2":"asdsada",
+            "line1":"asdasd",
+            "countryCode":"NL",
+
+            "addressType":"NON-UK"
+          }
+        },
+        "correspondenceContactDetails":{
+          "contactDetails":{
+            "telephone":"23141234",
+            "email":"asdasd@dfdsf"
+          }
+        }
+      }
+    ],
+    "partnershipTrusteeDetail":[
+
+    ]
+  }
+}

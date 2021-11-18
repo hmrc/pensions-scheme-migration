@@ -18,7 +18,7 @@ package controllers
 
 import com.google.inject.Inject
 import models.racDac.{RacDacHeaders, RacDacRequest, WorkItemRequest}
-import play.api.libs.json.{JsBoolean, JsError, JsSuccess, Json}
+import play.api.libs.json.{JsBoolean, JsError, JsSuccess}
 import play.api.mvc._
 import service.RacDacBulkSubmissionService
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier}
