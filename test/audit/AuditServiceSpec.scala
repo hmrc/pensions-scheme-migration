@@ -18,17 +18,20 @@ package audit
 
 import akka.stream.Materializer
 import org.scalatest.Inside
-import org.scalatest.matchers.should.Matchers
 import org.scalatest.flatspec.AsyncFlatSpec
-import play.api.inject.{ApplicationLifecycle, bind}
+import org.scalatest.matchers.should.Matchers
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.inject.{ApplicationLifecycle, bind}
+import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.AnyContentAsEmpty
-import play.api.test.FakeRequest
+import play.api.test.{FakeHeaders, FakeRequest}
 import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.play.audit.AuditExtensions.auditHeaderCarrier
 import uk.gov.hmrc.play.audit.http.config.AuditingConfig
 import uk.gov.hmrc.play.audit.http.connector.{AuditChannel, AuditConnector, AuditResult, DatastreamMetrics}
-import uk.gov.hmrc.play.audit.model.DataEvent
+import uk.gov.hmrc.play.audit.model.{DataEvent, ExtendedDataEvent}
 
+import java.util.UUID
 import scala.concurrent.{ExecutionContext, Future}
 
 class AuditServiceSpec extends AsyncFlatSpec with Matchers with Inside {
@@ -53,7 +56,6 @@ class AuditServiceSpec extends AsyncFlatSpec with Matchers with Inside {
     }
 
   }
-
 }
 
 object AuditServiceSpec {
@@ -65,6 +67,7 @@ object AuditServiceSpec {
     .build()
 
   def fakeRequest(): FakeRequest[AnyContentAsEmpty.type] = FakeRequest("", "")
+  def fakeHeader(): FakeHeaders = FakeHeaders(Seq.empty)
 
   def auditService(): AuditService = app.injector.instanceOf[AuditService]
 
@@ -76,6 +79,7 @@ object AuditServiceSpec {
 object FakeAuditConnector extends AuditConnector {
 
   private var sentEvent: DataEvent = _
+  private var sentExtendedDataEvent: ExtendedDataEvent = _
 
   override def auditingConfig: AuditingConfig =
     AuditingConfig(
@@ -90,8 +94,20 @@ object FakeAuditConnector extends AuditConnector {
     sentEvent = event
     super.sendEvent(event)
   }
+  override def sendExplicitAudit(auditType: String, detail: Map[String, String])
+                        (implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
+    sentExtendedDataEvent= ExtendedDataEvent(
+      auditSource = auditingConfig.auditSource,
+      auditType   = auditType,
+      eventId     = UUID.randomUUID().toString,
+      tags        = hc.toAuditTags(),
+      detail      = Json.toJson(detail).as[JsObject]
+    )
+    super.sendExtendedEvent(sentExtendedDataEvent)
+  }
 
   def lastSentEvent: DataEvent = sentEvent
+  def lastSentExtendedDataEvent: ExtendedDataEvent = sentExtendedDataEvent
 
   def materializer: Materializer = ???
 

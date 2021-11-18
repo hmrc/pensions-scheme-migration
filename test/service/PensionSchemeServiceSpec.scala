@@ -32,6 +32,7 @@
 
 package service
 
+import audit._
 import base.SpecBase
 import connector.SchemeConnector
 import models.enumeration.SchemeType
@@ -43,10 +44,11 @@ import org.mockito.MockitoSugar._
 import org.scalatest.EitherValues
 import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers
+import play.api.http.Status
 import play.api.libs.json._
 import play.api.mvc.AnyContentAsEmpty
 import play.api.test.FakeRequest
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier}
 
 import scala.concurrent.Future
 
@@ -56,7 +58,13 @@ class PensionSchemeServiceSpec
     with EitherValues {
 
   import PensionSchemeServiceSpec._
-
+  val schemeSubscription: SchemeMigrationAuditEvent = SchemeMigrationAuditEvent(
+    psaId = psaId,
+    pstr = pstr,
+    status = Status.OK,
+    request = Json.obj(),
+    response = None
+  )
 
   "registerScheme" must "return the result of submitting a pensions scheme " in {
     reset(schemeConnector)
@@ -76,7 +84,7 @@ class PensionSchemeServiceSpec
     when(schemeConnector.registerScheme(any(), any())(any(), any())).
       thenReturn(Future.successful(Right(schemeRegistrationResponseJson)))
 
-    pensionSchemeService.registerRacDac(psaId, racDACPensionsSchemeJson).map {
+    pensionSchemeService.registerRacDac(psaId, racDACPensionsSchemeJson)(implicitly,implicitly,Some(implicitly)).map {
       response =>
         val json = response.right.value
         verify(schemeConnector, times(1)).registerScheme(any(), eqTo(racDacRegisterData))(any(), any())
@@ -84,14 +92,87 @@ class PensionSchemeServiceSpec
     }
   }
 
+  "register scheme" must "send a SchemeMigrationAudit event following a successful submission" in {
+    reset(schemeConnector)
+    when(schemeConnector.registerScheme(any(), any())(any(), any())).
+      thenReturn(Future.successful(Right(schemeRegistrationResponseJson)))
+    pensionSchemeService.registerScheme(psaId, pensionsSchemeJson).map {
+      response =>
+        val json = response.right.value
+        val expected = schemeSubscription.copy(
+          status = Status.OK,
+          request = expectedJsonForAudit,
+          response = Some(json)
+        )
+        auditService.verifySent(expected) mustBe true
+    }
+  }
+
+  it must "send a SchemeMigrationAudit event following an unsuccessful submission" in {
+    reset(schemeConnector)
+    when(schemeConnector.registerScheme(any(), any())(any(), any())).
+      thenReturn(Future.failed(new BadRequestException("bad request")))
+
+    pensionSchemeService.registerScheme(psaId, pensionsSchemeJson)
+      .map(_ => fail("Expected failure"))
+      .recover {
+        case _: BadRequestException =>
+          val expected = schemeSubscription.copy(
+            status = Status.BAD_REQUEST,
+            request = expectedJsonForAudit,
+            response = None
+          )
+          auditService.verifySent(expected) mustBe true
+      }
+  }
+
+  "register RAC DAC scheme" must "send a RacDacMigrationAuditEvent event following a successful submission" in {
+    reset(schemeConnector)
+    when(schemeConnector.registerScheme(any(), any())(any(), any())).
+      thenReturn(Future.successful(Right(schemeRegistrationResponseJson)))
+    pensionSchemeService.registerRacDac(psaId, racDACPensionsSchemeJson,true).map {
+      response =>
+        val json = response.right.value
+        val expected = RacDacMigrationAuditEvent(
+          psaId = psaId,
+          pstr=pstr,
+          status = Status.OK,
+          request = racDacRegisterData,
+          response = Some(json)
+        )
+        auditService.verifyExplicitSent(expected) mustBe true
+    }
+  }
+
+  it must "send a RacDacMigrationAuditEvent event following an unsuccessful submission" in {
+    reset(schemeConnector)
+    when(schemeConnector.registerScheme(any(), any())(any(), any())).
+      thenReturn(Future.failed(new BadRequestException("bad request")))
+
+    pensionSchemeService.registerRacDac(psaId, racDACPensionsSchemeJson,true)
+      .map(_ => fail("Expected failure"))
+      .recover {
+        case _: BadRequestException =>
+          val expected = RacDacMigrationAuditEvent(
+            psaId = psaId,
+            pstr=pstr,
+            status = Status.BAD_REQUEST,
+            request = racDacRegisterData,
+            response = None
+          )
+          auditService.verifyExplicitSent(expected) mustBe true
+      }
+  }
+
 }
 
 object PensionSchemeServiceSpec extends SpecBase {
 
   private val schemeConnector: SchemeConnector = mock[SchemeConnector]
+  private val auditService: StubSuccessfulAuditService = new StubSuccessfulAuditService()
 
   private val pensionSchemeService: PensionSchemeService = new PensionSchemeService(
-    schemeConnector
+    schemeConnector,auditService, new SchemeAuditService
   )
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
@@ -271,13 +352,83 @@ object PensionSchemeServiceSpec extends SpecBase {
         |""".stripMargin)
 
 
+  val expectedJsonForAudit: JsValue = Json.parse(
+    """{
+     "schemeMigrationDetails": {
+      "pstrOrTpssId": "test-pstr",
+      "registrationStartDate": "2012-02-20",
+      "psaRelationshipStartDate": "2020-01-01"
+    },
+   "customerAndSchemeDetails":{
+      "schemeName":"test-scheme-name",
+      "isSchemeMasterTrust":false,
+      "schemeStructure":"A single trust under which all of the assets are held for the benefit of all members of the scheme",
+      "currentSchemeMembers":"0",
+      "futureSchemeMembers":"0",
+      "isRegulatedSchemeInvestment":false,
+      "isOccupationalPensionScheme":false,
+      "areBenefitsSecuredContractInsuranceCompany":false,
+      "doesSchemeProvideBenefits":"Money Purchase benefits only (defined contribution)",
+      "tcmpBenefitType":"05",
+      "schemeEstablishedCountry":"test-scheme-established-country",
+      "haveInvalidBank":false,
+      "insuranceCompanyName":"Test insurance company name",
+      "policyNumber":"Test insurance policy number"
+   },
+   "pensionSchemeDeclaration":{
+      "box6":true,
+      "box7":true,
+      "box8":true,
+      "box10":true
+   },
+   "establisherDetails":{
+      "individual":[
+         {
+            "personalDetails":{
+               "firstName":"test-first-name",
+               "lastName":"test-last-name",
+               "dateOfBirth":"1969-07-20"
+            },
+            "correspondenceAddressDetails":{
+               "addressDetails":{
+                  "line1":"test-address-line-1",
+                  "countryCode":"test-country",
+                  "addressType":"NON-UK"
+               }
+            },
+            "correspondenceContactDetails":{
+               "contactDetails":{
+                  "telephone":"test-phone-number",
+                  "email":"test-email-address"
+               }
+            }
+         }
+      ],
+      "companyOrOrganization":[
+
+      ],
+      "partnership":[
+
+      ]
+   },
+   "trusteeDetails":{
+      "individualTrusteeDetail":[
+
+      ],
+      "companyTrusteeDetail":[
+
+      ],
+      "partnershipTrusteeDetail":[
+
+      ]
+   }
+  }""")
 
   val schemeRegistrationResponse: SchemeRegistrationResponse = SchemeRegistrationResponse(
     "test-processing-date",
     "test-scheme-reference-number")
   val schemeRegistrationResponseJson: JsValue =
     Json.toJson(schemeRegistrationResponse)
-
 }
 
 case class SchemeRegistrationResponse(processingDate: String, schemeReferenceNumber: String)

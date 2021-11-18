@@ -67,7 +67,7 @@ class SchemeController @Inject()(
         case (Some(psa),Some(jsValue)) =>
           val registerSchemeCall = {
             if (checkRacDac)
-              pensionSchemeService.registerRacDac(psa, jsValue)
+              pensionSchemeService.registerRacDac(psa, jsValue)(implicitly,implicitly,Some(implicitly))
             else
               pensionSchemeService.registerScheme(psa, jsValue)
           }

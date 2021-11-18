@@ -134,7 +134,7 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
     "return OK when the scheme is registered successfully" in {
       val validData = readJsonFromFile("/data/validSchemeRegistrationRequest.json")
       val successResponse: JsObject = Json.obj("processingDate" -> LocalDate.now, "schemeReferenceNumber" -> "S0123456789")
-      when(mockPensionSchemeService.registerScheme(any(), meq(validData))(any(), any())).thenReturn(
+      when(mockPensionSchemeService.registerScheme(any(), meq(validData))(any(), any(),any())).thenReturn(
         Future.successful(Right(successResponse)))
 
       val result = schemeController.registerScheme(Scheme)(fakeRequest(validData))
@@ -152,7 +152,7 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
         e mustBe a[BadRequestException]
         e.getMessage mustBe "Bad Request without PSAId or request body"
         verify(mockPensionSchemeService, never).registerScheme(any(),
-          any())(any(), any())
+          any())(any(), any(),any())
       }
     }
 
@@ -162,7 +162,7 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
         "code" -> "INVALID_PAYLOAD",
         "reason" -> "Submission has not passed validation. Invalid PAYLOAD"
       )
-      when(mockPensionSchemeService.registerScheme(any(), any())(any(), any())).thenReturn(
+      when(mockPensionSchemeService.registerScheme(any(), any())(any(), any(),any())).thenReturn(
         Future.failed(new BadRequestException(invalidPayload.toString())))
 
       val result = schemeController.registerScheme(Scheme)(fakeRequest(validData))
@@ -178,7 +178,7 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
         "code" -> "INVALID_SUBMISSION",
         "reason" -> "Duplicate submission acknowledgement reference from remote endpoint returned."
       )
-      when(mockPensionSchemeService.registerScheme(any(), any())(any(), any())).thenReturn(
+      when(mockPensionSchemeService.registerScheme(any(), any())(any(), any(),any())).thenReturn(
         Future.failed(UpstreamErrorResponse(invalidSubmission.toString(), CONFLICT, CONFLICT)))
 
       val result = schemeController.registerScheme(Scheme)(fakeRequest(validData))
@@ -194,7 +194,7 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
         "code" -> "SERVICE_UNAVAILABLE",
         "reason" -> "Dependent systems are currently not responding."
       )
-      when(mockPensionSchemeService.registerScheme(any(), any())(any(), any())).thenReturn(
+      when(mockPensionSchemeService.registerScheme(any(), any())(any(), any(),any())).thenReturn(
         Future.failed(UpstreamErrorResponse(serviceUnavailable.toString(), SERVICE_UNAVAILABLE, SERVICE_UNAVAILABLE)))
 
       val result = schemeController.registerScheme(Scheme)(fakeRequest(validData))
@@ -206,7 +206,7 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
 
     "throw generic exception when any other exception returned from If" in {
       val validData = readJsonFromFile("/data/validSchemeRegistrationRequest.json")
-      when(mockPensionSchemeService.registerScheme(any(), any())(any(), any())).thenReturn(
+      when(mockPensionSchemeService.registerScheme(any(), any())(any(), any(),any())).thenReturn(
         Future.failed(new Exception("Generic Exception")))
 
       val result = schemeController.registerScheme(Scheme)(fakeRequest(validData))

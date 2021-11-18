@@ -120,13 +120,13 @@ class RacDacBulkSubmissionServiceSpec() extends AnyWordSpec with Matchers with M
 
     "the submission poller pulls the work item" must {
       "submit the request to ETMP successfully" in {
-        when(mockPensionSchemeService.registerRacDac(any, any)(any, any)).thenReturn(Future(Right(Json.obj())))
+        when(mockPensionSchemeService.registerRacDac(any, any,any)(any, any,any)).thenReturn(Future(Right(Json.obj())))
         await(racDacBulkSubmissionService.submitToETMP(racDacRequest)) mustBe Right(Json.obj())
       }
 
       "failed submission to ETMP" in {
         val iException = new InternalServerException("Error")
-        when(mockPensionSchemeService.registerRacDac(any, any)(any, any)).thenReturn(Future(Left(iException)))
+        when(mockPensionSchemeService.registerRacDac(any, any,any)(any, any,any)).thenReturn(Future(Left(iException)))
         await(racDacBulkSubmissionService.submitToETMP(racDacRequest)) mustBe Left(iException)
       }
     }
