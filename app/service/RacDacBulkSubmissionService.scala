@@ -28,7 +28,7 @@ import scala.concurrent.Future
 @Singleton
 class RacDacBulkSubmissionService @Inject()(
                                              racDacSubmissionRepo: RacDacRequestsQueueRepository,
-                                             pensionSchemeService: PensionSchemeService,
+                                             pensionSchemeService: PensionSchemeService
                                            )(implicit ec: RacDacBulkSubmissionPollerExecutionContext) {
 
   def submitToETMP(racDacRequest: WorkItemRequest): Future[Either[Exception, JsValue]] = {
