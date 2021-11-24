@@ -146,7 +146,7 @@ class LegacySchemeDetailsConnectorSpec
         )
     )
     connector.getSchemeDetails(psaId, pstr).map { _ =>
-      val expectedAuditEvent = LegacySchemeDetailsAuditEvent(psaId, pstr, OK, Some(userAnswersResponse))
+      val expectedAuditEvent = LegacySchemeDetailsAuditEvent(psaId, pstr, OK, userAnswersResponse.toString())
       captor.getValue shouldBe expectedAuditEvent
     }
   }
@@ -166,7 +166,7 @@ class LegacySchemeDetailsConnectorSpec
 
       connector.getSchemeDetails(psaId, pstr).map { response =>
         response.left.value.responseCode shouldBe UNPROCESSABLE_ENTITY
-        val expectedAuditEvent = LegacySchemeDetailsAuditEvent(psaId, pstr, UNPROCESSABLE_ENTITY, None)
+        val expectedAuditEvent = LegacySchemeDetailsAuditEvent(psaId, pstr, UNPROCESSABLE_ENTITY, errorResponse("UNPROCESSABLE_ENTITY").toString)
         captor.getValue shouldBe expectedAuditEvent
     }
   }

@@ -16,13 +16,11 @@
 
 package audit
 
-import play.api.libs.json.{JsValue, Json}
-
 case class LegacySchemeDetailsAuditEvent(
                                     psaId: String,
                                     pstr: String,
                                     status: Int,
-                                    payload: Option[JsValue]
+                                    response: String
                                   ) extends AuditEvent {
 
   override def auditType: String = "LegacySchemeDetailsAudit"
@@ -31,6 +29,6 @@ case class LegacySchemeDetailsAuditEvent(
     "psaId"     ->    psaId,
     "pstr"      ->    pstr,
     "status"    ->    status.toString,
-    "payload"   ->    payload.fold("")(Json.stringify)
+    "response"   ->    response,
   )
 }

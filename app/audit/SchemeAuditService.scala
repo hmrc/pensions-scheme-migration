@@ -17,8 +17,7 @@
 package audit
 
 import play.api.http.Status
-import play.api.libs.json.JsValue
-import play.api.mvc.RequestHeader
+import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.http.{HttpException, UpstreamErrorResponse}
 
 import scala.concurrent.ExecutionContext
@@ -37,7 +36,7 @@ class SchemeAuditService {
           psaId = psaId,
           pstr = pstr,
           status = Status.OK,
-          payload = Some(schemeDetails)
+          response = Json.stringify(schemeDetails)
         )
       )
     case Success(Left(e)) =>
@@ -46,7 +45,7 @@ class SchemeAuditService {
           psaId = psaId,
           pstr = pstr,
           status = e.responseCode,
-          payload = None
+          response = e.message
         )
       )
     case Failure(e: UpstreamErrorResponse) =>
@@ -55,7 +54,7 @@ class SchemeAuditService {
           psaId = psaId,
           pstr = pstr,
           status = e.statusCode,
-          payload = None
+          response = e.message
         )
       )
     case Failure(e: HttpException) =>
@@ -64,7 +63,7 @@ class SchemeAuditService {
           psaId = psaId,
           pstr = pstr,
           status = e.responseCode,
-          payload = None
+          response = e.message
         )
       )
 
