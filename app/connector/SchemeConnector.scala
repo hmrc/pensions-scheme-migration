@@ -72,10 +72,6 @@ class SchemeConnector @Inject()(
         logger.warn(s"Call to migration list of schemes API on IF failed with GatewayTimeoutException ${e.getMessage}")
         auditService.sendEvent(ListOfLegacySchemesAuditEvent(psaId, 504, 0, e.getMessage))
         throw UpstreamErrorResponse(e.getMessage, 504)
-      case e: Exception =>
-        logger.warn(s"Call to migration list of schemes API on IF failed with unknown exception ${e.getMessage}")
-        auditService.sendEvent(ListOfLegacySchemesAuditEvent(psaId, 0, 0, e.getMessage))
-        throw UpstreamErrorResponse(s"Unknown exception caught with message ${e.getMessage}", 500)
     }
   }
 
