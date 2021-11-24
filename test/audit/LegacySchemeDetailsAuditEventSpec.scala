@@ -42,7 +42,7 @@ class LegacySchemeDetailsAuditEventSpec extends AnyWordSpec with Matchers {
 
     "returns correct event object" in {
 
-      event.auditType mustBe "GetLegacySchemeDetails"
+      event.auditType mustBe "LegacySchemeDetailsAudit"
 
       event.details mustBe expectedDetails
     }

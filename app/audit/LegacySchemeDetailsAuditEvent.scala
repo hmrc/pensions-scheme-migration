@@ -25,7 +25,7 @@ case class LegacySchemeDetailsAuditEvent(
                                     payload: Option[JsValue]
                                   ) extends AuditEvent {
 
-  override def auditType: String = "GetLegacySchemeDetails"
+  override def auditType: String = "LegacySchemeDetailsAudit"
 
   override def details: Map[String, String] = Map(
     "psaId"     ->    psaId,
