@@ -17,16 +17,21 @@
 package controllers
 
 import base.SpecBase
+import connector.LegacySchemeDetailsConnectorSpec.readJsonFromFile
 import connector.SchemeConnector
+import models.Scheme
 import org.mockito.ArgumentMatchers.{any, eq => meq}
+import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfter
 import org.scalatest.concurrent.{PatienceConfiguration, ScalaFutures}
-import org.mockito.MockitoSugar
 import play.api.libs.json.{JsObject, JsResultException, JsValue, Json}
+import play.api.mvc.AnyContentAsJson
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import service.PensionSchemeService
 import uk.gov.hmrc.http._
 
+import java.time.LocalDate
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
@@ -35,10 +40,12 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
   import SchemeControllerSpec._
 
   val mockSchemeConnector: SchemeConnector = mock[SchemeConnector]
-  val schemeController = new SchemeController(mockSchemeConnector, stubControllerComponents())
+  val mockPensionSchemeService: PensionSchemeService = mock[PensionSchemeService]
+  val schemeController = new SchemeController(mockSchemeConnector,mockPensionSchemeService, stubControllerComponents())
 
   before {
     reset(mockSchemeConnector)
+    reset(mockPensionSchemeService)
   }
 
   "list of legacy schemes" must {
@@ -116,6 +123,96 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
         e mustBe a[Exception]
         e.getMessage mustBe "Generic Exception"
         verify(mockSchemeConnector, times(1)).listOfLegacySchemes(meq("A2000001"))(any(), any(), any())
+      }
+    }
+  }
+
+  "registerScheme" must {
+
+    def fakeRequest(data: JsValue): FakeRequest[AnyContentAsJson] = FakeRequest("POST", "/").withJsonBody(data).withHeaders(("psaId", "A2000001"))
+
+    "return OK when the scheme is registered successfully" in {
+      val validData = readJsonFromFile("/data/validSchemeRegistrationRequest.json")
+      val successResponse: JsObject = Json.obj("processingDate" -> LocalDate.now, "schemeReferenceNumber" -> "S0123456789")
+      when(mockPensionSchemeService.registerScheme(any(), meq(validData))(any(), any(),any())).thenReturn(
+        Future.successful(Right(successResponse)))
+
+      val result = schemeController.registerScheme(Scheme)(fakeRequest(validData))
+      ScalaFutures.whenReady(result) { _ =>
+        status(result) mustBe OK
+        contentAsJson(result) mustBe successResponse
+      }
+    }
+
+    "throw BadRequestException when PSAId is not present in the header" in {
+      val validData = readJsonFromFile("/data/validSchemeRegistrationRequest.json")
+
+      val result = schemeController.registerScheme(Scheme)(FakeRequest("POST", "/").withJsonBody(validData))
+      ScalaFutures.whenReady(result.failed) { e =>
+        e mustBe a[BadRequestException]
+        e.getMessage mustBe "Bad Request without PSAId or request body"
+        verify(mockPensionSchemeService, never).registerScheme(any(),
+          any())(any(), any(),any())
+      }
+    }
+
+    "throw BadRequestException when bad request returned from If" in {
+      val validData = readJsonFromFile("/data/validSchemeRegistrationRequest.json")
+      val invalidPayload: JsObject = Json.obj(
+        "code" -> "INVALID_PAYLOAD",
+        "reason" -> "Submission has not passed validation. Invalid PAYLOAD"
+      )
+      when(mockPensionSchemeService.registerScheme(any(), any())(any(), any(),any())).thenReturn(
+        Future.failed(new BadRequestException(invalidPayload.toString())))
+
+      val result = schemeController.registerScheme(Scheme)(fakeRequest(validData))
+      ScalaFutures.whenReady(result.failed) { e =>
+        e mustBe a[BadRequestException]
+        e.getMessage mustBe invalidPayload.toString()
+      }
+    }
+
+    "throw Upstream4xxResponse when UpStream4XXResponse returned from If" in {
+      val validData = readJsonFromFile("/data/validSchemeRegistrationRequest.json")
+      val invalidSubmission: JsObject = Json.obj(
+        "code" -> "INVALID_SUBMISSION",
+        "reason" -> "Duplicate submission acknowledgement reference from remote endpoint returned."
+      )
+      when(mockPensionSchemeService.registerScheme(any(), any())(any(), any(),any())).thenReturn(
+        Future.failed(UpstreamErrorResponse(invalidSubmission.toString(), CONFLICT, CONFLICT)))
+
+      val result = schemeController.registerScheme(Scheme)(fakeRequest(validData))
+      ScalaFutures.whenReady(result.failed) { e =>
+        e mustBe a[UpstreamErrorResponse]
+        e.getMessage mustBe invalidSubmission.toString()
+      }
+    }
+
+    "throw Upstream5xxResponse when UpStream5XXResponse returned from If" in {
+      val validData = readJsonFromFile("/data/validSchemeRegistrationRequest.json")
+      val serviceUnavailable: JsObject = Json.obj(
+        "code" -> "SERVICE_UNAVAILABLE",
+        "reason" -> "Dependent systems are currently not responding."
+      )
+      when(mockPensionSchemeService.registerScheme(any(), any())(any(), any(),any())).thenReturn(
+        Future.failed(UpstreamErrorResponse(serviceUnavailable.toString(), SERVICE_UNAVAILABLE, SERVICE_UNAVAILABLE)))
+
+      val result = schemeController.registerScheme(Scheme)(fakeRequest(validData))
+      ScalaFutures.whenReady(result.failed) { e =>
+        e mustBe a[UpstreamErrorResponse]
+        e.getMessage mustBe serviceUnavailable.toString()
+      }
+    }
+
+    "throw generic exception when any other exception returned from If" in {
+      val validData = readJsonFromFile("/data/validSchemeRegistrationRequest.json")
+      when(mockPensionSchemeService.registerScheme(any(), any())(any(), any(),any())).thenReturn(
+        Future.failed(new Exception("Generic Exception")))
+
+      val result = schemeController.registerScheme(Scheme)(fakeRequest(validData))
+      ScalaFutures.whenReady(result.failed) { e =>
+        e mustBe a[Exception]
+        e.getMessage mustBe "Generic Exception"
       }
     }
   }

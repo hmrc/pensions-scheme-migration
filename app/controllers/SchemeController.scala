@@ -19,9 +19,12 @@ package controllers
 import com.google.inject.Inject
 import connector.SchemeConnector
 import connector.utils.HttpResponseHelper
-import models.ListOfLegacySchemes
+import models.MigrationType.isRacDac
+import models.{ListOfLegacySchemes, MigrationType}
+import play.api.Logger
 import play.api.libs.json.Json
 import play.api.mvc._
+import service.PensionSchemeService
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import utils.ValidationUtils.genResponse
@@ -30,11 +33,14 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class SchemeController @Inject()(
                                   schemeConnector: SchemeConnector,
+                                  pensionSchemeService: PensionSchemeService,
                                   cc: ControllerComponents
                                 )(
                                   implicit ec: ExecutionContext
                                 )
   extends BackendController(cc) with HttpResponseHelper {
+
+  private val logger = Logger(classOf[SchemeController])
 
   def listOfLegacySchemes: Action[AnyContent] = Action.async {
     implicit request => {
@@ -50,4 +56,28 @@ class SchemeController @Inject()(
       }
     }
   }
+
+  def registerScheme(migrationType:MigrationType): Action[AnyContent] = Action.async {
+    implicit request => {
+      val psaId = request.headers.get("psaId")
+      val feJson = request.body.asJson
+      val checkRacDac: Boolean=isRacDac(migrationType)
+      logger.debug(s"[PSA-Scheme-Migration-Incoming-Payload] $feJson for Migration Type: $checkRacDac")
+      (psaId,feJson) match {
+        case (Some(psa),Some(jsValue)) =>
+          val registerSchemeCall = {
+            if (checkRacDac)
+              pensionSchemeService.registerRacDac(psa, jsValue)(implicitly,implicitly,Some(implicitly))
+            else
+              pensionSchemeService.registerScheme(psa, jsValue)
+          }
+          registerSchemeCall.map {
+            case Right(json) => Ok(json)
+            case Left(e) => result(e)
+          }
+        case _ => Future.failed(new BadRequestException("Bad Request without PSAId or request body"))
+      }
+    }recoverWith recoverFromError
+  }
+
 }

@@ -17,6 +17,7 @@
 package audit
 
 import play.api.mvc.RequestHeader
+import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
@@ -24,22 +25,33 @@ import scala.concurrent.ExecutionContext
 class StubSuccessfulAuditService extends AuditService {
 
   private val events: mutable.ListBuffer[AuditEvent] = mutable.ListBuffer()
+  private val explicitEvents: mutable.ListBuffer[AuditEvent] = mutable.ListBuffer()
 
   override def sendEvent[T <: AuditEvent](event: T)
-                                         (implicit rh: RequestHeader, ec: ExecutionContext): Unit = {
+                                         (implicit rh: RequestHeader, ec: ExecutionContext): Unit =
     events += event
-  }
 
-  def verifySent[T <: AuditEvent](event: T): Boolean = events.contains(event)
+  override def sendExplicitAudit[T <: AuditEvent](event: T)
+                                                 (implicit hc: HeaderCarrier, ec: ExecutionContext): Unit =
+    explicitEvents += event
 
-  def verifyNothingSent(): Boolean = events.isEmpty
+  def verifySent[T <: AuditEvent](event: T): Boolean =
+    events.contains(event)
+
+  def verifyExplicitSent[T <: AuditEvent](event: T): Boolean =
+    explicitEvents.contains(event)
+
+  def verifyNothingSent(): Boolean =
+    events.isEmpty && explicitEvents.isEmpty
 
   def reset(): Unit = {
     events.clear()
+    explicitEvents.clear()
   }
 
-  def lastEvent: Option[AuditEvent] = {
+  def lastEvent: Option[AuditEvent] =
     events.lastOption
-  }
 
+  def lastExplicitEvent: Option[AuditEvent] =
+    explicitEvents.lastOption
 }

@@ -18,12 +18,13 @@ package models.enumeration
 
 object SchemeType extends Enumeration {
 
-  sealed case class TypeValue(name: String, value: String) extends Val(name)
+  sealed case class TypeValue(name: String, value: String,etmpValue:String) extends Val(name)
 
-  val single = TypeValue("single", "single")
-  val group = TypeValue("group", "grouplife-deathinservice")
-  val corp = TypeValue("corp", "body-corporate")
-  val other = TypeValue("other", "Other")
+  val single = TypeValue("single", "single"
+    ,"A single trust under which all of the assets are held for the benefit of all members of the scheme")
+  val group = TypeValue("group", "grouplife-deathinservice","A group life/death in service scheme")
+  val corp = TypeValue("corp", "body-corporate","A body corporate")
+  val other = TypeValue("other", "Other","Other")
 
   def valueWithName(name: String): String = {
     super.withName(name).asInstanceOf[TypeValue].value
@@ -31,4 +32,11 @@ object SchemeType extends Enumeration {
 
   def nameWithValue(value: String): String =
     Seq(single, group, corp, other).find(_.value == value).getOrElse(other).name
+
+  def etmpValueWithName(name: String): String = {
+    super.withName(name).asInstanceOf[TypeValue].etmpValue
+  }
+
+  def nameWithEtmpValue(etmpValue: String): String =
+    Seq(single, group, corp, other).find(_.etmpValue == etmpValue).getOrElse(other).name
 }

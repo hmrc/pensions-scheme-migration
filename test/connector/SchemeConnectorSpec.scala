@@ -19,19 +19,21 @@ package connector
 import audit.{AuditService, ListOfLegacySchemesAuditEvent}
 import base.WireMockHelper
 import com.github.tomakehurst.wiremock.client.WireMock._
-import org.mockito.ArgumentCaptor
-import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
+import connector.LegacySchemeDetailsConnectorSpec.readJsonFromFile
+import org.mockito.ArgumentMatchers.any
+import org.mockito.{ArgumentCaptor, MockitoSugar}
 import org.scalatest._
-import org.mockito.MockitoSugar
+import org.scalatest.flatspec.AsyncFlatSpec
+import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 import play.api.inject.bind
 import play.api.inject.guice.GuiceableModule
-import play.api.libs.json.Json
+import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.RequestHeader
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.http.{HeaderCarrier, UpstreamErrorResponse}
-import org.mockito.ArgumentMatchers.any
-import org.scalatest.flatspec.AsyncFlatSpec
+import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, UpstreamErrorResponse}
+
+import java.time.LocalDate
 
 class SchemeConnectorSpec
   extends AsyncFlatSpec
@@ -110,12 +112,78 @@ class SchemeConnectorSpec
     }
   }
 
+  "SchemeConnector registerScheme " should "handle OK (200)" in {
+    val successResponse: JsObject = Json.obj("processingDate" -> LocalDate.now, "schemeReferenceNumber" -> "S0123456789")
+    server.stubFor(
+      post(urlEqualTo(schemeIFUrl))
+        .withHeader("Content-Type", equalTo("application/json"))
+        .withRequestBody(equalToJson(Json.stringify(registerSchemeData)))
+        .willReturn(
+          ok(Json.stringify(successResponse))
+            .withHeader("Content-Type", "application/json")
+        )
+    )
+
+    connector.registerScheme(idValue, registerSchemeData).map { response =>
+      response.right.value shouldBe successResponse
+    }
+  }
+
+  it should "handle FORBIDDEN (403)" in {
+    server.stubFor(
+      post(urlEqualTo(schemeIFUrl))
+        .willReturn(
+          forbidden
+            .withHeader("Content-Type", "application/json")
+            .withBody(forbiddenResponse)
+        )
+    )
+    recoverToExceptionIf[UpstreamErrorResponse] {
+      connector.registerScheme(idValue, registerSchemeData)
+    } map {
+      _.statusCode shouldBe FORBIDDEN
+    }
+  }
+
+  it should "handle CONFLICT (409) - DUPLICATE_SUBMISSION" in {
+    server.stubFor(
+      post(urlEqualTo(schemeIFUrl))
+        .willReturn(
+          aResponse()
+            .withStatus(CONFLICT)
+            .withHeader("Content-Type", "application/json")
+            .withBody(duplicateSubmissionResponse)
+        )
+    )
+
+    connector.registerScheme(idValue, registerSchemeData).map { response =>
+      response.left.value.responseCode shouldBe CONFLICT
+    }
+  }
+
+  it should "handle BAD_REQUEST (400)" in {
+    server.stubFor(
+      post(urlEqualTo(schemeIFUrl))
+        .willReturn(
+          badRequest
+            .withHeader("Content-Type", "application/json")
+            .withBody("Bad Request")
+        )
+    )
+
+    recoverToExceptionIf[BadRequestException] {
+      connector.registerScheme(idValue, registerSchemeData)
+    } map {
+      _.responseCode shouldBe BAD_REQUEST
+    }
+  }
 }
 
 object SchemeConnectorSpec {
   private implicit val hc: HeaderCarrier = HeaderCarrier()
   private implicit val rh: RequestHeader = FakeRequest("", "")
   private val idValue = "test"
+  private val registerSchemeData = readJsonFromFile("/data/validSchemeRegistrationRequest.json")
   private val validListOfSchemeIFResponse = Json.parse(
     """
       |{
@@ -143,5 +211,31 @@ object SchemeConnectorSpec {
 
   private val listOfSchemesIFUrl: String =
     s"/pension-schemes/schemes/$idValue"
+
+  private val schemeIFUrl: String =
+    s"/pension-online/scheme-subscription/pods/$idValue"
+
+  private val forbiddenResponse =
+    Json.stringify(
+      Json.obj(
+        "code" -> "REQUEST_NOT_PROCESSED",
+        "reason" -> "The remote endpoint has indicated that request could not be processed."
+      )
+    )
+
+  private val duplicateSubmissionResponse =
+    Json.stringify(
+      Json.obj(
+        "code" -> "DUPLICATE_SUBMISSION",
+        "reason" -> "The remote endpoint has indicated that duplicate submission."
+      )
+    )
+  private val unprocessableEntityResponse =
+    Json.stringify(
+      Json.obj(
+        "code" -> "REQUEST_NOT_PROCESSED",
+        "reason" -> "The remote endpoint has indicated that the scheme corresponding to the TPSS ID provided is currently being migrated."
+      )
+    )
 }
 

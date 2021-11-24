@@ -18,7 +18,6 @@ package service
 
 import akka.actor.ActorSystem
 import akka.util.Timeout
-import connector.SchemeConnector
 import models.racDac.{RacDacHeaders, RacDacRequest, WorkItemRequest}
 import org.joda.time.DateTime
 import org.mockito.scalatest.MockitoSugar
@@ -41,14 +40,15 @@ class RacDacBulkSubmissionServiceSpec() extends AnyWordSpec with Matchers with M
   implicit val timeout: Timeout = Timeout(FiniteDuration(5, TimeUnit.SECONDS))
 
   private val mockRacDacSubmissionRepo = mock[RacDacRequestsQueueRepository]
-  private val mockSchemeConnector = mock[SchemeConnector]
+  private val mockPensionSchemeService = mock[PensionSchemeService]
 
   private val actorSystem = ActorSystem()
   implicit val dmsSubmissionPollerExecutionContext = new RacDacBulkSubmissionPollerExecutionContext(actorSystem)
 
-  private val racDacBulkSubmissionService = new RacDacBulkSubmissionService(mockRacDacSubmissionRepo, mockSchemeConnector)
+  private val racDacBulkSubmissionService = new RacDacBulkSubmissionService(mockRacDacSubmissionRepo, mockPensionSchemeService)
 
-  private val racDacRequest = WorkItemRequest("test psa id", RacDacRequest("test rac dac", "123456"), RacDacHeaders(None, None))
+  private val racDacRequest = WorkItemRequest("test psa id",
+    RacDacRequest("test rac dac", "123456","00615269RH","2012-02-20","2020-01-01"), RacDacHeaders(None, None))
 
   "RacDac Bulk Submission Service" when {
 
@@ -120,13 +120,13 @@ class RacDacBulkSubmissionServiceSpec() extends AnyWordSpec with Matchers with M
 
     "the submission poller pulls the work item" must {
       "submit the request to ETMP successfully" in {
-        when(mockSchemeConnector.registerRacDac(any, any)(any, any)).thenReturn(Future(Right(Json.obj())))
+        when(mockPensionSchemeService.registerRacDac(any, any,any)(any, any,any)).thenReturn(Future(Right(Json.obj())))
         await(racDacBulkSubmissionService.submitToETMP(racDacRequest)) mustBe Right(Json.obj())
       }
 
       "failed submission to ETMP" in {
         val iException = new InternalServerException("Error")
-        when(mockSchemeConnector.registerRacDac(any, any)(any, any)).thenReturn(Future(Left(iException)))
+        when(mockPensionSchemeService.registerRacDac(any, any,any)(any, any,any)).thenReturn(Future(Left(iException)))
         await(racDacBulkSubmissionService.submitToETMP(racDacRequest)) mustBe Left(iException)
       }
     }

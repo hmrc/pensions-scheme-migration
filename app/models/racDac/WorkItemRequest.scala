@@ -30,7 +30,7 @@ object RacDacHeaders {
   def apply(hc: HeaderCarrier): RacDacHeaders = new RacDacHeaders(hc.requestId.map(_.value), hc.sessionId.map(_.value))
 }
 
-case class RacDacRequest(schemeName: String, policyNumber: String)
+case class RacDacRequest(schemeName: String, policyNumber: String,pstr: String,declarationDate: String,schemeOpenDate: String)
 
 object RacDacRequest {
   implicit val requestFormat: OFormat[RacDacRequest] = Json.format

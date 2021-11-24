@@ -40,7 +40,9 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
   }
 
   "migrateAllRacDac" must {
-    val jsValue = """[{"schemeName":"paul qqq","policyNumber":"24101975"}]""".stripMargin
+    val jsValue =
+      """[{"schemeName":"paul qqq","policyNumber":"24101975","pstr":"00615269RH"
+        ,"declarationDate":"2012-02-20","schemeOpenDate":"2020-01-01"}]""".stripMargin
     val fakeRequest = FakeRequest("POST", "/").withHeaders(("psaId", "A2000001")).withJsonBody(Json.parse(jsValue))
 
     "return ACCEPTED if all the rac dac requests are successfully pushed to the queue" in {

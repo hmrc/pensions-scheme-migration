@@ -19,7 +19,7 @@ package connector
 import audit.{AuditService, ListOfLegacySchemesAuditEvent}
 import com.google.inject.Inject
 import config.AppConfig
-import connector.utils.{HttpResponseHelper, UnrecognisedHttpResponseException}
+import connector.utils.{HttpResponseHelper, UnrecognisedHttpResponseException, InvalidPayloadHandler}
 import play.api.Logger
 import play.api.http.Status._
 import play.api.libs.json._
@@ -32,8 +32,10 @@ import scala.concurrent.{ExecutionContext, Future}
 class SchemeConnector @Inject()(
                               http: HttpClient,
                               config: AppConfig,
+                              invalidPayloadHandler: InvalidPayloadHandler,
                               headerUtils: HeaderUtils,
                               auditService:AuditService
+
                             )
   extends HttpErrorFunctions
     with HttpResponseHelper {
@@ -75,40 +77,36 @@ class SchemeConnector @Inject()(
     }
   }
 
-  //Todo: This is a placeholder for the new subscription api
-  def registerRacDac(
+  def registerScheme(
                       psaId: String,
                       registerData: JsValue
                     )(
                       implicit
                       headerCarrier: HeaderCarrier,
                       ec: ExecutionContext
-                    ): Future[Either[Exception, JsValue]] = {
+                    ): Future[Either[HttpException, JsValue]] = {
 
-    val url = config.racDacStubUrl.format(psaId)
+    val (url, hc, schemaPath) =
+      (config.schemeRegistrationIFUrl.format(psaId),
+        HeaderCarrier(extraHeaders = headerUtils.integrationFrameworkHeader(implicitly[HeaderCarrier](headerCarrier))),
+        "/resources/schemas/schemeSubscriptionIF.json")
+    logger.debug(s"[Register-Migration-Scheme--Outgoing-Payload] - ${registerData.toString()}")
 
-    logger.debug(s"[Register-Rac Dac-Outgoing-Payload] - ${registerData.toString()}")
-
-    http.POST[JsValue, HttpResponse](url, registerData) map { response =>
+    http.POST[JsValue, HttpResponse](url, registerData)(
+    implicitly[Writes[JsValue]],
+    implicitly[HttpReads[HttpResponse]],
+    implicitly[HeaderCarrier](hc),
+    implicitly[ExecutionContext])
+    .map { response =>
       response.status match {
         case OK =>
           Right(response.json)
-        case _ => {
-            val failureResponse = response.status match {
-              case status if is4xx(status) =>
-                UpstreamErrorResponse(
-                  upstreamResponseMessage("Register rac dac", url, status, response.body), status, status, response.headers
-                )
-              case status if is5xx(status) =>
-                UpstreamErrorResponse(
-                  upstreamResponseMessage("Register rac dac", url, status, response.body), status, BAD_GATEWAY
-                )
-              case _ =>
-                new UnrecognisedHttpResponseException("Register rac dac", url, response)
-            }
-
-          Left(failureResponse)
-        }
+        case BAD_REQUEST if response.body.contains("INVALID_PAYLOAD") =>
+          invalidPayloadHandler.logFailures(schemaPath, registerData, url)
+          throw new BadRequestException(
+            badRequestMessage("Register scheme", url, response.body)
+          )
+        case _ => Left(handleErrorResponse("POST", url, response))
       }
     }
   }

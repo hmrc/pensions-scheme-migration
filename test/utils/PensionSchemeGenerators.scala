@@ -30,7 +30,14 @@ trait PensionSchemeGenerators {
   val crnGenerator: Gen[String] = Gen.const("11111111")
   val vatGenerator: Gen[String] = Gen.const("123456789")
   val payeGenerator: Gen[String] = Gen.const("1111111111111")
-
+  val utrGeneratorFromUser: Gen[String] = {
+    val utrRange: Gen[String] = Gen.listOfN[Char](randomNumberFromRange(10, 13), Gen.numChar).map(_.mkString)
+    randomNumberFromRange(1, 3) match {
+      case 1 => utrRange
+      case 2 => "k" + utrRange
+      case 3 => utrRange + "k"
+    }
+  }
   val optionalPostalCodeGen: Gen[Option[String]] = Gen.option(Gen.listOfN[Char](10, Gen.alphaChar).map(_.mkString))
   val countryName: Gen[String] = Gen.const("Netherlands")
   val countryCode: Gen[String] = Gen.const("NL")
