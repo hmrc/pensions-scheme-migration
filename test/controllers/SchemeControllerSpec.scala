@@ -19,6 +19,8 @@ package controllers
 import base.SpecBase
 import connector.LegacySchemeDetailsConnectorSpec.readJsonFromFile
 import connector.SchemeConnector
+import models.FeatureToggle.{Disabled, Enabled}
+import models.FeatureToggleName.ListOfLegacyScheme
 import models.Scheme
 import org.mockito.ArgumentMatchers.{any, eq => meq}
 import org.mockito.MockitoSugar
@@ -28,7 +30,9 @@ import play.api.libs.json.{JsObject, JsResultException, JsValue, Json}
 import play.api.mvc.AnyContentAsJson
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import repositories.ListOfLegacySchemesCacheRepository
 import service.PensionSchemeService
+import services.FeatureToggleService
 import uk.gov.hmrc.http._
 
 import java.time.LocalDate
@@ -41,17 +45,24 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
 
   val mockSchemeConnector: SchemeConnector = mock[SchemeConnector]
   val mockPensionSchemeService: PensionSchemeService = mock[PensionSchemeService]
-  val schemeController = new SchemeController(mockSchemeConnector,mockPensionSchemeService, stubControllerComponents())
+  val mockListOfLegacySchemesCacheRepository: ListOfLegacySchemesCacheRepository = mock[ListOfLegacySchemesCacheRepository]
+  val mockFeatureToggleService: FeatureToggleService = mock[FeatureToggleService]
+  val schemeController = new SchemeController(mockSchemeConnector, mockPensionSchemeService, mockFeatureToggleService,
+    mockListOfLegacySchemesCacheRepository, stubControllerComponents())
 
   before {
     reset(mockSchemeConnector)
     reset(mockPensionSchemeService)
+    reset(mockFeatureToggleService)
+    reset(mockListOfLegacySchemesCacheRepository)
   }
 
   "list of legacy schemes" must {
     val fakeRequest = FakeRequest("GET", "/").withHeaders(("psaId", "A2000001"))
 
     "return OK with list of schemes for PSA when If/ETMP returns it successfully" in {
+      when(mockFeatureToggleService.get(any()))
+        .thenReturn(Future.successful(Disabled(ListOfLegacyScheme)))
       when(mockSchemeConnector.listOfLegacySchemes(meq("A2000001"))(any(), any(), any()))
         .thenReturn(Future.successful(Right(validResponse)))
       val result = schemeController.listOfLegacySchemes(fakeRequest)
@@ -59,6 +70,39 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
         status(result) mustBe OK
         contentAsJson(result) mustEqual transformedResponse
         verify(mockSchemeConnector, times(1)).listOfLegacySchemes(any())(any(), any(), any())
+      }
+    }
+
+    "return OK with list of schemes for PSA when toggle enabled and cache has not value exists " in {
+      when(mockFeatureToggleService.get(any()))
+        .thenReturn(Future.successful(Enabled(ListOfLegacyScheme)))
+      when(mockListOfLegacySchemesCacheRepository.get(any())(any()))
+        .thenReturn(Future.successful {
+          None
+        })
+      when(mockListOfLegacySchemesCacheRepository.upsert(any(),any())(any()))
+        .thenReturn(Future.successful(true))
+      when(mockSchemeConnector.listOfLegacySchemes(meq("A2000001"))(any(), any(), any()))
+        .thenReturn(Future.successful(Right(validResponse)))
+      val result = schemeController.listOfLegacySchemes(fakeRequest)
+      ScalaFutures.whenReady(result) { _ =>
+        status(result) mustBe OK
+        contentAsJson(result) mustEqual transformedResponse
+        verify(mockSchemeConnector, times(1)).listOfLegacySchemes(any())(any(), any(), any())
+      }
+    }
+    "return OK with list of schemes for PSA when toggle enabled and cache has value exists " in {
+      when(mockFeatureToggleService.get(any()))
+        .thenReturn(Future.successful(Enabled(ListOfLegacyScheme)))
+      when(mockListOfLegacySchemesCacheRepository.get(any())(any()))
+        .thenReturn(Future.successful {
+          Some(validResponse)
+        })
+      val result = schemeController.listOfLegacySchemes(fakeRequest)
+      ScalaFutures.whenReady(result) { _ =>
+        status(result) mustBe OK
+        contentAsJson(result) mustEqual transformedResponse
+        verify(mockListOfLegacySchemesCacheRepository, times(1)).get(any())(any())
       }
     }
 
@@ -73,6 +117,8 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
 
     "throw JsResultException when the invalid data returned from If/ETMP" in {
       val invalidResponse = Json.obj("invalid" -> "data")
+      when(mockFeatureToggleService.get(any()))
+        .thenReturn(Future.successful(Disabled(ListOfLegacyScheme)))
       when(mockSchemeConnector.listOfLegacySchemes(meq("A2000001"))(any(), any(), any()))
         .thenReturn(Future.successful(Right(invalidResponse)))
       val result = schemeController.listOfLegacySchemes(fakeRequest)
@@ -87,6 +133,8 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
         "code" -> "INVALID_PSAID",
         "reason" -> "Submission has not passed validation. Invalid parameter PSAID."
       )
+      when(mockFeatureToggleService.get(any()))
+        .thenReturn(Future.successful(Disabled(ListOfLegacyScheme)))
       when(mockSchemeConnector.listOfLegacySchemes(meq("A2000001"))(any(), any(), any())).thenReturn(
         Future.failed(new BadRequestException(invalidPayload.toString())))
 
@@ -103,6 +151,8 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
         "code" -> "SERVICE_UNAVAILABLE",
         "reason" -> "Dependent systems are currently not responding."
       )
+      when(mockFeatureToggleService.get(any()))
+        .thenReturn(Future.successful(Disabled(ListOfLegacyScheme)))
       when(mockSchemeConnector.listOfLegacySchemes(meq("A2000001"))(any(), any(), any())).thenReturn(
         Future.failed(UpstreamErrorResponse(serviceUnavailable.toString(), SERVICE_UNAVAILABLE, SERVICE_UNAVAILABLE)))
 
@@ -115,6 +165,8 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
     }
 
     "throw generic exception when any other exception returned from If" in {
+      when(mockFeatureToggleService.get(any()))
+        .thenReturn(Future.successful(Disabled(ListOfLegacyScheme)))
       when(mockSchemeConnector.listOfLegacySchemes(meq("A2000001"))(any(), any(), any())).thenReturn(
         Future.failed(new Exception("Generic Exception")))
 
@@ -217,6 +269,27 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
     }
   }
 
+
+  "removeListOfLegacySchemesCache" must {
+
+    "return OK when the scheme is registered successfully" in {
+      when(mockListOfLegacySchemesCacheRepository.remove(any())(any())).thenReturn(
+        Future.successful(true))
+      val fakeRequest = FakeRequest("GET", "/").withHeaders(("psaId", "A2000001"))
+      val result = schemeController.removeListOfLegacySchemesCache(fakeRequest)
+      ScalaFutures.whenReady(result) { _ =>
+        status(result) mustBe OK
+      }
+    }
+    "throw BadRequestException when PSAId is not present in the header" in {
+      val result = schemeController.removeListOfLegacySchemesCache(fakeRequest)
+      ScalaFutures.whenReady(result.failed) { e =>
+        e mustBe a[BadRequestException]
+        e.getMessage mustBe "Bad Request with missing PSAId"
+        verify(mockListOfLegacySchemesCacheRepository, never).remove(any())(any())
+      }
+    }
+  }
 }
 object SchemeControllerSpec {
 

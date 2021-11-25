@@ -18,6 +18,7 @@ POST          /scheme-data                          controllers.cache.SchemeData
 DELETE        /scheme-data                          controllers.cache.SchemeDataCacheController.remove
 
 GET           /list-of-schemes                      controllers.SchemeController.listOfLegacySchemes
+DELETE        /list-of-schemes-remove-cache         controllers.SchemeController.removeListOfLegacySchemesCache
 POST          /register-scheme/:migrationType       controllers.SchemeController.registerScheme(migrationType: MigrationType)
 GET           /getLegacySchemeDetails               controllers.LegacySchemeDetailsController.getLegacySchemeDetails
 
