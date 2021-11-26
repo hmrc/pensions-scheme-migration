@@ -19,7 +19,7 @@ package connector
 import audit.{AuditService, ListOfLegacySchemesAuditEvent}
 import com.google.inject.Inject
 import config.AppConfig
-import connector.utils.{HttpResponseHelper, InvalidPayloadHandler}
+import connector.utils.{HttpResponseHelper, UnrecognisedHttpResponseException, InvalidPayloadHandler}
 import play.api.Logger
 import play.api.http.Status._
 import play.api.libs.json._
@@ -65,9 +65,15 @@ class SchemeConnector @Inject()(
           logger.debug(s"Call to migration list of schemes API on IF was successful with response ${response.json}")
           Right(response.json)
         case _ =>
+          logger.warn(s"Call to migration list of schemes API on IF failed with response ${response.status} and body ${response.body}")
           auditService.sendEvent(ListOfLegacySchemesAuditEvent(psaId, response.status, 0, response.body))
           Left(handleErrorResponse("GET", listOfSchemesUrl, response))
       }
+    } recoverWith {
+      case e: GatewayTimeoutException =>
+        logger.warn(s"Call to migration list of schemes API on IF failed with GatewayTimeoutException ${e.getMessage}")
+        auditService.sendEvent(ListOfLegacySchemesAuditEvent(psaId, 504, 0, e.getMessage))
+        throw UpstreamErrorResponse(e.getMessage, 504)
     }
   }
 
