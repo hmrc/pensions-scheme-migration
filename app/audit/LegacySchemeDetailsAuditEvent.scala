@@ -29,6 +29,6 @@ case class LegacySchemeDetailsAuditEvent(
     "psaId"     ->    psaId,
     "pstr"      ->    pstr,
     "status"    ->    status.toString,
-    "response"   ->    response,
+    "response"   ->    response
   )
 }
