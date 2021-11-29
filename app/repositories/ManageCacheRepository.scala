@@ -1,0 +1,151 @@
+/*
+ * Copyright 2021 HM Revenue & Customs
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package repositories
+
+import org.joda.time.{DateTime, DateTimeZone}
+import org.slf4j.{Logger, LoggerFactory}
+import play.api.Configuration
+import play.api.libs.json._
+import play.modules.reactivemongo.ReactiveMongoComponent
+import reactivemongo.api.indexes.{Index, IndexType}
+import reactivemongo.bson.Subtype.GenericBinarySubtype
+import reactivemongo.bson.{BSONBinary, BSONDocument, BSONObjectID}
+import reactivemongo.play.json.ImplicitBSONHandlers._
+import uk.gov.hmrc.crypto.{Crypted, CryptoWithKeysFromConfig, PlainText}
+import uk.gov.hmrc.mongo.ReactiveRepository
+import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
+
+import java.nio.charset.StandardCharsets
+import scala.concurrent.{ExecutionContext, Future}
+
+abstract class ManageCacheRepository(
+                                      index: String,
+                                      ttl: Option[Int],
+                                      component: ReactiveMongoComponent
+                                    )(implicit ec: ExecutionContext)
+  extends ReactiveRepository[JsValue, BSONObjectID](
+    collectionName = index,
+    mongo = component.mongoConnector.db,
+    domainFormat = implicitly
+  ) {
+
+  override val logger: Logger = LoggerFactory.getLogger("ManageCacheRepository")
+
+  private case class DataEntry(
+                                id: String,
+                                data: BSONBinary,
+                                lastUpdated: DateTime)
+
+  // scalastyle:off magic.number
+  private object DataEntry {
+    def apply(id: String,
+              data: Array[Byte],
+              lastUpdated: DateTime = DateTime.now(DateTimeZone.UTC)): DataEntry =
+      DataEntry(id, BSONBinary(data, GenericBinarySubtype), lastUpdated)
+
+    private implicit val dateFormat: Format[DateTime] =
+      ReactiveMongoFormats.dateTimeFormats
+    implicit val format: Format[DataEntry] = Json.format[DataEntry]
+  }
+
+  // scalastyle:on magic.number
+
+  private case class JsonDataEntry(
+                                    id: String,
+                                    data: JsValue,
+                                    lastUpdated: DateTime
+                                  )
+
+  private object JsonDataEntry {
+    private implicit val dateFormat: Format[DateTime] = ReactiveMongoFormats.dateTimeFormats
+    implicit val format: Format[JsonDataEntry] = Json.format[JsonDataEntry]
+  }
+
+  private val fieldName = "lastUpdated"
+  private val createdIndexName = "dataExpiry"
+  private val expireAfterSeconds = "expireAfterSeconds"
+
+  (for {
+    _ <- CollectionDiagnostics.checkIndexTtl(collection, createdIndexName, ttl)
+    _ <- ensureIndex(fieldName, createdIndexName, ttl)
+  } yield {
+    ()
+  }) recoverWith {
+    case t: Throwable => Future.successful(logger.error(s"Error ensuring indexes on collection ${collection.name}", t))
+  } andThen {
+    case _ => CollectionDiagnostics.logCollectionInfo(collection)
+  }
+
+  private def ensureIndex(field: String, indexName: String, ttl: Option[Int]): Future[Boolean] = {
+
+    val defaultIndex: Index = Index(Seq((field, IndexType.Ascending)), Some(indexName))
+
+    val index: Index = ttl.fold(defaultIndex) { ttl =>
+      Index(
+        Seq((field, IndexType.Ascending)),
+        Some(indexName),
+        background = true,
+        options = BSONDocument(expireAfterSeconds -> ttl)
+      )
+    }
+
+    collection.indexesManager.ensure(index) map {
+      result => {
+        logger.warn(s"Created index $indexName on collection ${collection.name} with TTL value $ttl -> result: $result")
+        result
+      }
+    } recover {
+      case e => logger.error("Failed to set TTL index", e)
+        false
+    }
+  }
+
+  def upsert(id: String, data: JsValue)(implicit ec: ExecutionContext): Future[Boolean] = {
+    val document: JsValue = {
+        Json.toJson(JsonDataEntry(id, data, DateTime.now(DateTimeZone.UTC)))
+    }
+    val selector = BSONDocument("id" -> id)
+    val modifier = BSONDocument("$set" -> document)
+    collection.update(ordered = false).one(selector, modifier, upsert = true)
+      .map(_.ok)
+  }
+
+  def get(id: String)(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
+      collection.find(BSONDocument("id" -> id), projection = Option.empty[JsObject]).one[JsonDataEntry].map {
+        _.map {
+          dataEntry =>
+            dataEntry.data
+        }
+      }
+  }
+
+  def getLastUpdated(id: String)(implicit ec: ExecutionContext): Future[Option[DateTime]] = {
+      collection.find(BSONDocument("id" -> id), projection = Option.empty[JsObject]).one[JsonDataEntry].map {
+        _.map {
+          dataEntry =>
+            dataEntry.lastUpdated
+        }
+      }
+  }
+
+  def remove(id: String)(implicit ec: ExecutionContext): Future[Boolean] = {
+    logger.warn(s"Removing row from collection ${collection.name} externalId:$id")
+    val selector = BSONDocument("id" -> id)
+    collection.delete().one(selector).map(_.ok)
+  }
+
+}

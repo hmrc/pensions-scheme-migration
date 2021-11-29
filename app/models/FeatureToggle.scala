@@ -38,10 +38,15 @@ object FeatureToggleName {
     val asString = "migration-transfer"
   }
 
-  val toggles = Seq(MigrationTransfer)
+  case object ListOfLegacyScheme extends FeatureToggleName {
+    val asString = "list-of-legacy-schemes-cache"
+  }
+
+  val toggles = Seq(MigrationTransfer,ListOfLegacyScheme)
 
   implicit val reads: Reads[FeatureToggleName] = Reads {
     case JsString(MigrationTransfer.asString) => JsSuccess(MigrationTransfer)
+    case JsString(ListOfLegacyScheme.asString) => JsSuccess(ListOfLegacyScheme)
     case _ => JsError("Unrecognised feature toggle name")
   }
 

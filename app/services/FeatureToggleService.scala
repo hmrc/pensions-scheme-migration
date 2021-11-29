@@ -17,10 +17,11 @@
 package services
 
 import models.FeatureToggle._
-import models.FeatureToggleName.MigrationTransfer
+import models.FeatureToggleName.{ListOfLegacyScheme, MigrationTransfer}
 import models._
 import repositories.AdminDataRepository
 import play.api.cache.AsyncCacheApi
+
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.{Duration, FiniteDuration, SECONDS => Seconds}
 import scala.concurrent.{ExecutionContext, Future}
@@ -33,7 +34,8 @@ class FeatureToggleService @Inject()(
   private val cacheValidFor: FiniteDuration = Duration(2, Seconds)
 
   private val defaults: Seq[FeatureToggle] = Seq(
-    Disabled(MigrationTransfer)
+    Disabled(MigrationTransfer),
+    Disabled(ListOfLegacyScheme)
   )
 
   private def addDefaults(fromDb: Seq[FeatureToggle]): Seq[FeatureToggle] = {
