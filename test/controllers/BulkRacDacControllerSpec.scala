@@ -16,6 +16,7 @@
 
 package controllers
 
+import audit.AuditService
 import base.SpecBase
 import org.mockito.ArgumentMatchers.any
 import org.mockito.MockitoSugar
@@ -32,8 +33,9 @@ import scala.concurrent.Future
 
 class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfter with PatienceConfiguration {
 
+  private val mockAuditService = mock[AuditService]
   private val racDacBulkSubmissionService: RacDacBulkSubmissionService = mock[RacDacBulkSubmissionService]
-  private val bulkRacDacController = new BulkRacDacController(stubControllerComponents(), racDacBulkSubmissionService)
+  private val bulkRacDacController = new BulkRacDacController(stubControllerComponents(), racDacBulkSubmissionService, mockAuditService)
 
   before {
     reset(racDacBulkSubmissionService)

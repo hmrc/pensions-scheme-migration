@@ -16,6 +16,7 @@
 
 package controllers
 
+import audit.{AuditService, RacDacBulkMigrationTriggerAuditEvent}
 import com.google.inject.Inject
 import models.racDac.{RacDacHeaders, RacDacRequest, WorkItemRequest}
 import play.api.libs.json.{JsBoolean, JsError, JsSuccess}
@@ -29,7 +30,8 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class BulkRacDacController @Inject()(
                                       cc: ControllerComponents,
-                                      service: RacDacBulkSubmissionService
+                                      service: RacDacBulkSubmissionService,
+                                      auditService: AuditService
                                     )(
                                       implicit ec: ExecutionContext
                                     )
@@ -46,15 +48,23 @@ class BulkRacDacController @Inject()(
         case (Some(id), Some(jsValue)) =>
           jsValue.validate[Seq[RacDacRequest]] match {
             case JsSuccess(seqRacDacRequest, _) =>
+              val totalResults = seqRacDacRequest.size
+              auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(id, totalResults))
               val racDacRequests = seqRacDacRequest.map(racDacReq => WorkItemRequest(id, racDacReq, RacDacHeaders(hc(request))))
-              service.enqueue(racDacRequests).map {
+              val queueRequest = service.enqueue(racDacRequests).map {
                 case true => Accepted
                 case false => ServiceUnavailable
               }
+              queueRequest.map{ result =>
+                auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(id, totalResults))
+                result
+              }
             case JsError(_) =>
+              auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(id, 0))
               Future.failed(new BadRequestException(s"Invalid request received from frontend for rac dac migration"))
           }
         case _ =>
+          auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(psaId.getOrElse(""), 0))
           Future.failed(new BadRequestException("Missing Body or missing psaId in the header"))
       }
     }
