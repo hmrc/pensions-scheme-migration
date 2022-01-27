@@ -16,10 +16,10 @@
 
 package controllers
 
-import audit.AuditService
+import audit.{AuditService, RacDacBulkMigrationTriggerAuditEvent}
 import base.SpecBase
 import org.mockito.ArgumentMatchers.any
-import org.mockito.MockitoSugar
+import org.mockito.{ArgumentCaptor, MockitoSugar}
 import org.scalatest.BeforeAndAfter
 import org.scalatest.concurrent.{PatienceConfiguration, ScalaFutures}
 import play.api.libs.json.{JsBoolean, Json}
@@ -47,34 +47,49 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
         ,"declarationDate":"2012-02-20","schemeOpenDate":"2020-01-01"}]""".stripMargin
     val fakeRequest = FakeRequest("POST", "/").withHeaders(("psaId", "A2000001")).withJsonBody(Json.parse(jsValue))
 
-    "return ACCEPTED if all the rac dac requests are successfully pushed to the queue" in {
+    "return ACCEPTED if all the rac dac requests are successfully pushed to the queue and check the audit event" in {
+      val captor = ArgumentCaptor.forClass(classOf[RacDacBulkMigrationTriggerAuditEvent])
+      doNothing.when(mockAuditService).sendEvent(captor.capture())(any(), any())
       when(racDacBulkSubmissionService.enqueue(any())).thenReturn(Future.successful(true))
       val result = bulkRacDacController.migrateAllRacDac(fakeRequest)
       ScalaFutures.whenReady(result) { _ =>
         status(result) mustBe ACCEPTED
         verify(racDacBulkSubmissionService, times(1)).enqueue(any())
       }
+      verify(mockAuditService, times(1)).sendEvent(any())(any(),any())
+      val expectedAuditEvent = RacDacBulkMigrationTriggerAuditEvent("A2000001", 1)
+      captor.getValue mustBe expectedAuditEvent
     }
 
-    "return SERVICE UNAVAILABLE if all the rac dac requests are failed to push to the queue" in {
+    "return SERVICE UNAVAILABLE if all the rac dac requests are failed to push to the queue and check the audit event" in {
+      val captor = ArgumentCaptor.forClass(classOf[RacDacBulkMigrationTriggerAuditEvent])
+      doNothing.when(mockAuditService).sendEvent(captor.capture())(any(), any())
       when(racDacBulkSubmissionService.enqueue(any())).thenReturn(Future.successful(false))
       val result = bulkRacDacController.migrateAllRacDac(fakeRequest)
       ScalaFutures.whenReady(result) { _ =>
         status(result) mustBe SERVICE_UNAVAILABLE
         verify(racDacBulkSubmissionService, times(1)).enqueue(any())
       }
+      val expectedAuditEvent = RacDacBulkMigrationTriggerAuditEvent("A2000001", 1)
+      captor.getValue mustBe expectedAuditEvent
     }
 
-    "throw BadRequestException when PSAId is not present in the header" in {
+    "throw BadRequestException when PSAId is not present in the header and check the audit event" in {
+      val captor = ArgumentCaptor.forClass(classOf[RacDacBulkMigrationTriggerAuditEvent])
+      doNothing.when(mockAuditService).sendEvent(captor.capture())(any(), any())
       val result = bulkRacDacController.migrateAllRacDac(FakeRequest("GET", "/"))
       ScalaFutures.whenReady(result.failed) { e =>
         e mustBe a[BadRequestException]
         e.getMessage mustBe "Missing Body or missing psaId in the header"
         verify(racDacBulkSubmissionService, never).enqueue(any())
       }
+      val expectedAuditEvent = RacDacBulkMigrationTriggerAuditEvent("", 0)
+      captor.getValue mustBe expectedAuditEvent
     }
 
-    "throw BadRequestException when request is not valid" in {
+    "throw BadRequestException when request is not valid and check the audit event" in {
+      val captor = ArgumentCaptor.forClass(classOf[RacDacBulkMigrationTriggerAuditEvent])
+      doNothing.when(mockAuditService).sendEvent(captor.capture())(any(), any())
       val result = bulkRacDacController.migrateAllRacDac(FakeRequest("POST", "/").withHeaders(("psaId", "A2000001")).
         withJsonBody(Json.obj("invalid" -> "request")))
       ScalaFutures.whenReady(result.failed) { e =>
@@ -82,6 +97,8 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
         e.getMessage mustBe "Invalid request received from frontend for rac dac migration"
         verify(racDacBulkSubmissionService, never).enqueue(any())
       }
+      val expectedAuditEvent = RacDacBulkMigrationTriggerAuditEvent("A2000001", 0)
+      captor.getValue mustBe expectedAuditEvent
     }
   }
 
