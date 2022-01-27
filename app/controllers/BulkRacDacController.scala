@@ -49,7 +49,6 @@ class BulkRacDacController @Inject()(
           jsValue.validate[Seq[RacDacRequest]] match {
             case JsSuccess(seqRacDacRequest, _) =>
               val totalResults = seqRacDacRequest.size
-              auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(id, totalResults))
               val racDacRequests = seqRacDacRequest.map(racDacReq => WorkItemRequest(id, racDacReq, RacDacHeaders(hc(request))))
               val queueRequest = service.enqueue(racDacRequests).map {
                 case true => Accepted
