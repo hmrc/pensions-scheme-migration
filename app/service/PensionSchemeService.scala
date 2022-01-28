@@ -21,7 +21,7 @@ import com.google.inject.{Inject, Singleton}
 import connector.SchemeConnector
 import models.userAnswersToEtmp.{PensionsScheme, RACDACPensionsScheme}
 import play.api.Logger
-import play.api.libs.json.{JsObject, JsResultException, JsValue, Json}
+import play.api.libs.json._
 import play.api.mvc.RequestHeader
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpException}
 
@@ -50,8 +50,25 @@ class PensionSchemeService @Inject()(schemeConnector: SchemeConnector,
         validPensionsScheme =>
           val registerData = Json.toJson(validPensionsScheme).as[JsObject]
           schemeConnector.registerScheme(psaId, registerData) andThen {
+
+            val auditRegisterData = {
+              val pathToBoxFields = Seq(
+                (__ \ 'pensionSchemeDeclaration \ 'box6).json.prune,
+                (__ \ 'pensionSchemeDeclaration \ 'box7).json.prune,
+                (__ \ 'pensionSchemeDeclaration \ 'box8).json.prune,
+                (__ \ 'pensionSchemeDeclaration \ 'box10).json.prune,
+                (__ \ 'pensionSchemeDeclaration \ 'box11).json.prune)
+
+              def pruneAll(jspaths: Seq[Reads[JsObject]], jsObject: JsObject): JsObject = {
+                jspaths.foldLeft(jsObject) {(act, path) => act.transform(path).asOpt.get}
+              }
+
+              pruneAll(pathToBoxFields, registerData)
+            }
+
             val pstr=validPensionsScheme.schemeMigrationDetails.pstrOrTpssId
-            schemeAuditService.sendSchemeSubscriptionEvent(psaId,pstr, registerData)(auditService.sendEvent)
+
+            schemeAuditService.sendSchemeSubscriptionEvent(psaId,pstr, auditRegisterData)(auditService.sendEvent)
           }
       }
     )
@@ -70,13 +87,15 @@ class PensionSchemeService @Inject()(schemeConnector: SchemeConnector,
       valid = {
         validRacDacPensionsScheme =>
           val registerData = Json.toJson(validRacDacPensionsScheme).as[JsObject]
+          val auditRegisterData = registerData.transform((__ \ 'racdacSchemeDeclaration).json.prune).asOpt.get
+
           schemeConnector.registerScheme(psaId, registerData) andThen {
             val pstr=validRacDacPensionsScheme.schemeMigrationDetails.pstrOrTpssId
             if(isBulk) {
-              schemeAuditService.sendRACDACSchemeSubscriptionEvent(psaId, pstr, registerData)(auditService.sendExplicitAudit)
+              schemeAuditService.sendRACDACSchemeSubscriptionEvent(psaId, pstr, auditRegisterData)(auditService.sendExplicitAudit)
             }else{
               implicit val requestHeader=request.get
-              schemeAuditService.sendRACDACSchemeSubscriptionEvent(psaId, pstr, registerData)(auditService.sendEvent)
+              schemeAuditService.sendRACDACSchemeSubscriptionEvent(psaId, pstr, auditRegisterData)(auditService.sendEvent)
             }
           }
       }
