@@ -57,7 +57,7 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
         verify(racDacBulkSubmissionService, times(1)).enqueue(any())
       }
       verify(mockAuditService, times(1)).sendEvent(any())(any(),any())
-      val expectedAuditEvent = RacDacBulkMigrationTriggerAuditEvent("A2000001", 1)
+      val expectedAuditEvent = RacDacBulkMigrationTriggerAuditEvent("A2000001", 1, "")
       captor.getValue mustBe expectedAuditEvent
     }
 
@@ -70,7 +70,7 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
         status(result) mustBe SERVICE_UNAVAILABLE
         verify(racDacBulkSubmissionService, times(1)).enqueue(any())
       }
-      val expectedAuditEvent = RacDacBulkMigrationTriggerAuditEvent("A2000001", 1)
+      val expectedAuditEvent = RacDacBulkMigrationTriggerAuditEvent("A2000001", 0, "Queue Service Unavailable")
       captor.getValue mustBe expectedAuditEvent
     }
 
@@ -83,7 +83,7 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
         e.getMessage mustBe "Missing Body or missing psaId in the header"
         verify(racDacBulkSubmissionService, never).enqueue(any())
       }
-      val expectedAuditEvent = RacDacBulkMigrationTriggerAuditEvent("", 0)
+      val expectedAuditEvent = RacDacBulkMigrationTriggerAuditEvent("", 0, "Missing Body or missing psaId in the header")
       captor.getValue mustBe expectedAuditEvent
     }
 
@@ -97,7 +97,7 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
         e.getMessage mustBe "Invalid request received from frontend for rac dac migration"
         verify(racDacBulkSubmissionService, never).enqueue(any())
       }
-      val expectedAuditEvent = RacDacBulkMigrationTriggerAuditEvent("A2000001", 0)
+      val expectedAuditEvent = RacDacBulkMigrationTriggerAuditEvent("A2000001", 0, "Invalid request received from frontend for rac dac migration")
       captor.getValue mustBe expectedAuditEvent
     }
   }

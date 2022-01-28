@@ -23,12 +23,14 @@ class RacDacBulkMigrationTriggerAuditEventSpec extends AnyWordSpec with Matchers
 
   private val psaId = "A2500001"
   private val numberOfRacDacs = 5
+  private val failureResponse = ""
 
-  private val event = RacDacBulkMigrationTriggerAuditEvent(psaId, numberOfRacDacs)
+  private val event = RacDacBulkMigrationTriggerAuditEvent(psaId, numberOfRacDacs, failureResponse)
 
   private val expectedDetails = Map(
-    "psaId" -> psaId,
+    "psaId"           -> psaId,
     "numberOfRacDacs" -> numberOfRacDacs.toString,
+    "failureResponse" -> ""
   )
 
   "calling RacDacBulkMigrationTriggerAuditEvent" must {

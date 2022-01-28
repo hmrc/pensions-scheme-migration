@@ -18,13 +18,15 @@ package audit
 
 case class RacDacBulkMigrationTriggerAuditEvent(
                                     psaId: String,
-                                    numberOfRacDacs: Int
+                                    numberOfRacDacs: Int,
+                                    failureResponse: String
                                   ) extends AuditEvent {
 
   override def auditType: String = "RetirementOrDeferredAnnuityContractBulkMigrationTriggerAudit"
 
   override def details: Map[String, String] = Map(
     "psaId"           ->    psaId,
-    "numberOfRacDacs" -> numberOfRacDacs.toString
+    "numberOfRacDacs" ->    numberOfRacDacs.toString,
+    "failureResponse" ->    failureResponse
   )
 }
