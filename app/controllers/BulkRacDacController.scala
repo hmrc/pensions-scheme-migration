@@ -16,6 +16,7 @@
 
 package controllers
 
+import audit.{AuditService, RacDacBulkMigrationTriggerAuditEvent}
 import com.google.inject.Inject
 import models.racDac.{RacDacHeaders, RacDacRequest, WorkItemRequest}
 import play.api.libs.json.{JsBoolean, JsError, JsSuccess}
@@ -29,11 +30,14 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class BulkRacDacController @Inject()(
                                       cc: ControllerComponents,
-                                      service: RacDacBulkSubmissionService
+                                      service: RacDacBulkSubmissionService,
+                                      auditService: AuditService
                                     )(
                                       implicit ec: ExecutionContext
                                     )
   extends BackendController(cc) {
+
+  private val serviceUnavailable = "Queue Service Unavailable"
 
   def migrateAllRacDac: Action[AnyContent] = Action.async {
     implicit request => {
@@ -46,16 +50,30 @@ class BulkRacDacController @Inject()(
         case (Some(id), Some(jsValue)) =>
           jsValue.validate[Seq[RacDacRequest]] match {
             case JsSuccess(seqRacDacRequest, _) =>
+              val totalResults = seqRacDacRequest.size
               val racDacRequests = seqRacDacRequest.map(racDacReq => WorkItemRequest(id, racDacReq, RacDacHeaders(hc(request))))
-              service.enqueue(racDacRequests).map {
+              val queueRequest = service.enqueue(racDacRequests).map {
                 case true => Accepted
                 case false => ServiceUnavailable
               }
+              queueRequest.map{ result =>
+                result match {
+                  case Accepted =>
+                    auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(id, totalResults, ""))
+                  case ServiceUnavailable =>
+                    auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(id, 0, serviceUnavailable))
+                }
+                result
+              }
             case JsError(_) =>
-              Future.failed(new BadRequestException(s"Invalid request received from frontend for rac dac migration"))
+              val error = new BadRequestException(s"Invalid request received from frontend for rac dac migration")
+              auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(id, 0, error.message))
+              Future.failed(error)
           }
         case _ =>
-          Future.failed(new BadRequestException("Missing Body or missing psaId in the header"))
+          val error = new BadRequestException("Missing Body or missing psaId in the header")
+          auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(psaId.getOrElse(""), 0, error.message))
+          Future.failed(error)
       }
     }
   }
