@@ -20,10 +20,10 @@ import models.Event
 import models.enumeration.JourneyType
 import uk.gov.hmrc.domain.PsaId
 
-case class EmailAuditEvent(psaId: PsaId, journeyType: JourneyType.Name, event: Event) extends AuditEvent {
+case class EmailAuditEvent(psaId: PsaId, pstrId: String, journeyType: JourneyType.Name, event: Event) extends AuditEvent {
 
   override def auditType: String = s"${journeyType.toString}EmailStatusEvent"
 
-  override def details: Map[String, String] = Map("psaId" -> psaId.id, "event" -> event.toString)
+  override def details: Map[String, String] = Map("psaId" -> psaId.id, "event" -> event.toString, "pstr" -> pstrId)
 
 }
