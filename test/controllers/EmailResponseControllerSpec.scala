@@ -18,6 +18,7 @@ package controllers
 
 import audit.{AuditService, EmailAuditEvent, StubSuccessfulAuditService}
 import base.SpecBase
+import controllers.EmailResponseControllerSpec.psa
 import models._
 import models.enumeration.JourneyType
 import org.joda.time.DateTime
@@ -88,8 +89,8 @@ class EmailResponseControllerSpec extends SpecBase {
 
         fakeAuditService.reset()
 
-        val psa = app.injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText(psa)).value
-        val pstr = app.injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText(pstr)).value
+        val psa = app.injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText("psa")).value
+        val pstr = app.injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText("pstr")).value
 
         val controller = app.injector.instanceOf[EmailResponseController]
 

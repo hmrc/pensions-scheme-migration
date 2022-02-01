@@ -59,7 +59,7 @@ class EmailResponseController @Inject()(
                   }
                   Ok
                 })
-            case Failure(ex) => Forbidden("Malformed PSAID")
+            case Failure(wrongFromatPsa) => Forbidden("Malformed PSAID")
           }
 
       }
