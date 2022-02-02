@@ -62,7 +62,7 @@ class SchemeController @Inject()(
       }
     }
   }
-
+ 
   def registerScheme(migrationType:MigrationType): Action[AnyContent] = Action.async {
     implicit request => {
       val psaId = request.headers.get("psaId")
