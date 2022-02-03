@@ -137,7 +137,7 @@ class PensionSchemeServiceSpec
           psaId = psaId,
           pstr=pstr,
           status = Status.OK,
-          request = racDacRegisterData,
+          request = racDacRegisterAuditData,
           response = Some(json)
         )
         auditService.verifyExplicitSent(expected) mustBe true
@@ -157,7 +157,7 @@ class PensionSchemeServiceSpec
             psaId = psaId,
             pstr=pstr,
             status = Status.BAD_REQUEST,
-            request = racDacRegisterData,
+            request = racDacRegisterAuditData,
             response = None
           )
           auditService.verifyExplicitSent(expected) mustBe true
@@ -207,6 +207,20 @@ object PensionSchemeServiceSpec extends SpecBase {
       "box12" -> true,
       "box13" -> true,
       "box14" -> true
+    )
+  )
+
+  val racDacRegisterAuditData = Json.obj(
+    "schemeMigrationDetails" -> Json.obj(
+      "pstrOrTpssId" -> pstr,
+      "registrationStartDate" -> "2012-02-20",
+      "psaRelationshipStartDate" -> "2020-01-01" ,
+    ),
+    "racdacScheme" -> true,
+    "racdacSchemeDetails" -> Json.obj(
+      "racdacName" -> "test-scheme-name",
+      "contractOrPolicyNumber" -> "121212",
+      "registrationStartDate" -> "2012-02-20",
     )
   )
 
@@ -375,12 +389,7 @@ object PensionSchemeServiceSpec extends SpecBase {
       "insuranceCompanyName":"Test insurance company name",
       "policyNumber":"Test insurance policy number"
    },
-   "pensionSchemeDeclaration":{
-      "box6":true,
-      "box7":true,
-      "box8":true,
-      "box10":true
-   },
+   "pensionSchemeDeclaration":{},
    "establisherDetails":{
       "individual":[
          {
