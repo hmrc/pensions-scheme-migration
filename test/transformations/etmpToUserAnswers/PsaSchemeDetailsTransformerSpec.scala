@@ -17,7 +17,7 @@
 package transformations.etmpToUserAnswers
 
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks.forAll
-import play.api.libs.json.JsValue
+import play.api.libs.json.{JsSuccess, JsValue}
 
 class PsaSchemeDetailsTransformerSpec extends TransformationSpec {
 
@@ -55,8 +55,8 @@ class PsaSchemeDetailsTransformerSpec extends TransformationSpec {
       }
 
       s"uses request/response json" in {
-        val result = ifResponse.transform(transformer.transformToUserAnswers).getOrElse()
-        result mustBe userAnswersResponse
+        val result = ifResponse.transform(transformer.transformToUserAnswers)
+        result mustBe JsSuccess(userAnswersResponse)
       }
     }
   }

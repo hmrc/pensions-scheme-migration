@@ -25,7 +25,7 @@ import utils.CountryOptions
 class TrusteeDetailsTransformer @Inject()(addressTransformer: AddressTransformer, countryOptions: CountryOptions) extends JsonTransformer {
 
   val userAnswersTrusteesReads: Reads[JsObject] = {
-    (__ \ 'items \ 'schemeTrustees).readNullable(__.read(
+    val trusteesReads = (__ \ 'schemeTrustees).readNullable(__.read(
       (__ \ 'individualDetails).readNullable(
         __.read(Reads.seq(userAnswersTrusteeIndividualReads)).map(JsArray(_))).flatMap { individual =>
         (__ \ 'companyOrOrgDetails).readNullable(
@@ -35,6 +35,8 @@ class TrusteeDetailsTransformer @Inject()(addressTransformer: AddressTransformer
       })).map {
       _.getOrElse(Json.obj())
     }
+    (__ \ 'items).readNullable(Reads.seq(trusteesReads).map {_.head})
+      .map{_.getOrElse(Json.obj())}
   }
 
   def userAnswersTrusteeIndividualReads: Reads[JsObject] =
