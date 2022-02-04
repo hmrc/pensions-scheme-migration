@@ -27,3 +27,11 @@ case class EmailAuditEvent(psaId: PsaId, pstrId: String, journeyType: JourneyTyp
   override def details: Map[String, String] = Map("psaId" -> psaId.id, "event" -> event.toString, "pstr" -> pstrId)
 
 }
+
+case class EmailAuditEventPsa(psaId: PsaId, journeyType: JourneyType.Name, event: Event) extends AuditEvent {
+
+  override def auditType: String = s"${journeyType.toString}EmailStatusEvent"
+
+  override def details: Map[String, String] = Map("psaId" -> psaId.id, "event" -> event.toString)
+
+}
