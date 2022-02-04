@@ -24,21 +24,6 @@ import utils.CountryOptions
 
 class EstablisherDetailsTransformer @Inject()(addressTransformer: AddressTransformer, countryOptions: CountryOptions) extends JsonTransformer {
 
-  /*
-      val trusteesReads = (__ \ 'schemeTrustees).readNullable(__.read(
-      (__ \ 'individualDetails).readNullable(
-        __.read(Reads.seq(userAnswersTrusteeIndividualReads)).map(JsArray(_))).flatMap { individual =>
-        (__ \ 'companyOrOrgDetails).readNullable(
-          __.read(Reads.seq(userAnswersTrusteeCompanyReads)).map(JsArray(_))).flatMap { company =>
-          (__ \ 'trustees).json.put(individual.getOrElse(JsArray()) ++ company.getOrElse(JsArray()) ) orElse doNothing
-        }
-      })).map {
-      _.getOrElse(Json.obj())
-    }
-    (__ \ 'items).readNullable(Reads.seq(trusteesReads).map {_.head})
-      .map{_.getOrElse(Json.obj())}
-   */
-
   val userAnswersEstablishersReads: Reads[JsObject] = {
     val establisherReads = (__ \ 'schemeEstablishers).readNullable(__.read(
       (__ \ 'individualDetails).readNullable(
