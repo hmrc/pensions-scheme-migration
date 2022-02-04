@@ -1,5 +1,6 @@
 {
-  "items": {
+  "items": [
+    {
     "schemeName": "QROPS Rejected",
     "pensionSchemeStructure": "body-corporate",
     "policyNumber": "",
@@ -122,4 +123,5 @@
       ]
     }
   }
+ ]
 }
