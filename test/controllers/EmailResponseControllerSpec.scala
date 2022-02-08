@@ -18,6 +18,7 @@ package controllers
 
 import audit.{AuditService, EmailAuditEvent, StubSuccessfulAuditService}
 import base.SpecBase
+import controllers.EmailResponseControllerSpec.psa
 import models._
 import models.enumeration.JourneyType
 import org.joda.time.DateTime
@@ -42,16 +43,16 @@ class EmailResponseControllerSpec extends SpecBase {
             bind[AuditService].to(fakeAuditService)
           )) { app =>
 
-            val encrypted = app.injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText(psa.id)).value
-
+            val encryptedPsa = app.injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText(psa.id)).value
+            val encryptedPstr = app.injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText(pstr)).value
             val controller = app.injector.instanceOf[EmailResponseController]
 
-            val result = controller.retrieveStatus(eventType,encrypted)(fakeRequest.withBody(Json.toJson(emailEvents)))
+            val result = controller.retrieveStatus(eventType,encryptedPsa,encryptedPstr)(fakeRequest.withBody(Json.toJson(emailEvents)))
 
             status(result) mustBe OK
-            fakeAuditService.verifySent(EmailAuditEvent(psa, eventType, Sent)) mustBe true
-            fakeAuditService.verifySent(EmailAuditEvent(psa, eventType, Delivered)) mustBe true
-            fakeAuditService.verifySent(EmailAuditEvent(psa, eventType, Opened)) mustBe false
+            fakeAuditService.verifySent(EmailAuditEvent(psa, pstr,eventType, Sent)) mustBe true
+            fakeAuditService.verifySent(EmailAuditEvent(psa, pstr,eventType, Delivered)) mustBe true
+            fakeAuditService.verifySent(EmailAuditEvent(psa,pstr, eventType, Opened)) mustBe false
           }
         }
       }
@@ -66,11 +67,11 @@ class EmailResponseControllerSpec extends SpecBase {
 
       fakeAuditService.reset()
 
-      val encrypted = app.injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText(psa.id)).value
-
+      val encryptedPsa = app.injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText(psa.id)).value
+      val encryptedPstr = app.injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText(pstr)).value
       val controller = app.injector.instanceOf[EmailResponseController]
 
-      val result = controller.retrieveStatus(JourneyType.SCHEME_MIG, encrypted)(fakeRequest.withBody(validJson))
+      val result = controller.retrieveStatus(JourneyType.SCHEME_MIG, encryptedPsa, encryptedPstr)(fakeRequest.withBody(validJson))
 
       status(result) mustBe BAD_REQUEST
       fakeAuditService.verifyNothingSent mustBe true
@@ -89,10 +90,11 @@ class EmailResponseControllerSpec extends SpecBase {
         fakeAuditService.reset()
 
         val psa = app.injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText("psa")).value
+        val pstr = app.injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText("pstr")).value
 
         val controller = app.injector.instanceOf[EmailResponseController]
 
-        val result = controller.retrieveStatus(JourneyType.RACDAC_IND_MIG,psa)(fakeRequest.withBody(Json.toJson(emailEvents)))
+        val result = controller.retrieveStatus(JourneyType.RACDAC_IND_MIG,psa, pstr)(fakeRequest.withBody(Json.toJson(emailEvents)))
 
         status(result) mustBe FORBIDDEN
         contentAsString(result) mustBe "Malformed PSAID"
@@ -107,7 +109,7 @@ class EmailResponseControllerSpec extends SpecBase {
 object EmailResponseControllerSpec {
 
   val psa = PsaId("A7654321")
-
+  val pstr = "A0000030"
   val emailEvents = EmailEvents(Seq(EmailEvent(Sent, DateTime.now()), EmailEvent(Delivered, DateTime.now()), EmailEvent(Opened, DateTime.now())))
 
   val fakeAuditService = new StubSuccessfulAuditService()

@@ -16,7 +16,8 @@
 
 package controllers
 
-import audit.{AuditService, EmailAuditEvent}
+
+import audit.{AuditService, EmailAuditEvent, EmailAuditEventPsa}
 import com.google.inject.Inject
 import models.enumeration.JourneyType
 import models.{EmailEvents, Opened}
@@ -28,6 +29,7 @@ import uk.gov.hmrc.domain.PsaId
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.ExecutionContext
+import scala.util.{Failure, Success, Try}
 
 class EmailResponseController @Inject()(
                                          auditService: AuditService,
@@ -36,13 +38,38 @@ class EmailResponseController @Inject()(
                                          parsers: PlayBodyParsers
                                        )(implicit ec: ExecutionContext)
   extends BackendController(cc) {
-
   private val logger = Logger(classOf[EmailResponseController])
 
-  def retrieveStatus( journeyType: JourneyType.Name, id: String): Action[JsValue] = Action(parsers.tolerantJson) {
+
+  def retrieveStatus(journeyType: JourneyType.Name, encryptedPsaId: String, encryptedPstrId: String): Action[JsValue] = Action(parsers.tolerantJson) {
     implicit request =>
-      validatePsaId(id) match {
-        case Right(psaId) =>
+      getIDs(encryptedPsaId, encryptedPstrId) match {
+        case Tuple2(psaId, pstrId) =>
+
+          Try(PsaId(psaId)) match {
+            case Success(_) =>
+              request.body.validate[EmailEvents].fold(
+                _ => BadRequest("Bad request received for email call back event"),
+                valid => {
+                  valid.events.filterNot(
+                    _.event == Opened
+                  ).foreach { event =>
+                    logger.debug(s"Email Audit event coming from $journeyType is $event")
+                    auditService.sendEvent(EmailAuditEvent(PsaId(psaId), pstrId, journeyType, event.event))
+                  }
+                  Ok
+                })
+            case Failure(_) => Forbidden("Malformed PSAID")
+          }
+
+      }
+  }
+
+  def retrieveStatusPsa(journeyType: JourneyType.Name, encryptedPsaId: String): Action[JsValue] = Action(parsers.tolerantJson) {
+    implicit request =>
+      val psaId = getPSAID(encryptedPsaId)
+      Try(PsaId(psaId)) match {
+        case Success(_) =>
           request.body.validate[EmailEvents].fold(
             _ => BadRequest("Bad request received for email call back event"),
             valid => {
@@ -50,23 +77,24 @@ class EmailResponseController @Inject()(
                 _.event == Opened
               ).foreach { event =>
                 logger.debug(s"Email Audit event coming from $journeyType is $event")
-                auditService.sendEvent(EmailAuditEvent(psaId, journeyType, event.event))
+                auditService.sendEvent(EmailAuditEventPsa(PsaId(psaId), journeyType, event.event))
               }
               Ok
-            }
-          )
-
-        case Left(result) => result
+            })
+        case Failure(_) => Forbidden("Malformed PSAID")
       }
   }
 
 
-  private def validatePsaId(id: String): Either[Result, PsaId] =
-    try {
-      Right(PsaId {
-        crypto.QueryParameterCrypto.decrypt(Crypted(id)).value
-      })
-    } catch {
-      case _: IllegalArgumentException => Left(Forbidden("Malformed PSAID"))
-    }
+  private def getIDs(encryptedPsaId: String, encryptedPstrId: String): (String, String) = {
+    val psaId = crypto.QueryParameterCrypto.decrypt(Crypted(encryptedPsaId)).value
+    val pstrID = crypto.QueryParameterCrypto.decrypt(Crypted(encryptedPstrId)).value
+    Tuple2(psaId, pstrID)
+  }
+
+  private def getPSAID(encryptedPsaId: String): String = {
+    val psaId = crypto.QueryParameterCrypto.decrypt(Crypted(encryptedPsaId)).value
+    psaId
+  }
+
 }
