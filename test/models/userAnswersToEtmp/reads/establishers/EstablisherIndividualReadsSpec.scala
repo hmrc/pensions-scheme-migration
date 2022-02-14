@@ -83,9 +83,9 @@ class EstablisherIndividualReadsSpec extends AnyFreeSpec with Matchers with Scal
     "must read nino when it is present" in {
       forAll(establisherIndividualGenerator(), arbitrary[String]){
         (json, nino) =>
-          val newJson  = json + ("establisherNino" -> Json.obj("value" -> nino))
+          val newJson  = json + ("nino" -> Json.obj("value" -> nino))
           val model = newJson.as[Individual](Individual.readsEstablisherIndividual)
-          model.referenceOrNino.value mustBe (newJson \ "establisherNino" \ "value").as[String]
+          model.referenceOrNino.value mustBe (newJson \ "nino" \ "value").as[String]
       }
     }
 

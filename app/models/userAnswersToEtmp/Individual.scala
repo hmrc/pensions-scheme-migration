@@ -85,7 +85,7 @@ object Individual {
     PersonalDetails.readsPersonDetails("establisherDetails") and
       (JsPath \ "address").read[Address] and
        ContactDetails.readsContactDetails and
-      (JsPath \ "establisherNino").readNullable[String]((__ \ "value").read[String]) and
+      (JsPath \ "nino").readNullable[String]((__ \ "value").read[String]) and
       (JsPath \ "noNinoReason").readNullable[String] and
       (JsPath \ "utr").readNullable[String]((__ \ "value").read[String]) and
       (JsPath \ "noUtrReason").readNullable[String] and
