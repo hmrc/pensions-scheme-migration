@@ -47,7 +47,12 @@ class PensionSchemeService @Inject()(schemeConnector: SchemeConnector,
           Future.failed(new BadRequestException("Invalid pension scheme"))
       },
       valid = {
+
         validPensionsScheme =>
+
+          println("\n>>>>HJERE1:" + json)
+          println("\n>>>>HJERE2:" + validPensionsScheme)
+
           val registerData = Json.toJson(validPensionsScheme).as[JsObject]
           schemeConnector.registerScheme(psaId, registerData) andThen {
 
