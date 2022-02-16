@@ -83,12 +83,12 @@ class LegacySchemeDetailsConnectorImpl @Inject()(
   }
 
   private def handleSchemeDetailsResponse(response: HttpResponse, url: String): Either[HttpException, JsObject] = {
-    logger.debug(s"Get-Scheme-details-response from IF API - ${response.json}")
+    logger.warn(s"Get-Scheme-details-response from IF API - ${response.json}")
     response.status match {
       case OK =>
         response.json.transform(schemeSubscriptionDetailsTransformer.transformToUserAnswers) match {
           case JsSuccess(value, _) =>
-            logger.debug(s"Get-Scheme-details-UserAnswersJson - $value")
+            logger.warn(s"Get-Scheme-details-UserAnswersJson - $value")
             Right(value)
           case JsError(e) =>
             throw JsResultException(e)
