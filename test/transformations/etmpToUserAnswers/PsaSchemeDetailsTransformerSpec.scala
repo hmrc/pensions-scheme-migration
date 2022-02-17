@@ -48,9 +48,11 @@ class PsaSchemeDetailsTransformerSpec extends TransformationSpec {
       s"uses generators" in {
         forAll(getSchemeDetailsGen) {
           case (ifScheme, uaScheme) =>
-
-            val result = ifScheme.transform(transformer.transformToUserAnswers).get
-            result mustBe uaScheme
+println( "\n>>IF:-\n" + ifScheme)
+println( "\n>>UA:-\n" + uaScheme)
+            val result = ifScheme.transform(transformer.transformToUserAnswers)
+            println( "\n>>trans:-\n" + result)
+            result.get mustBe uaScheme
         }
       }
 
