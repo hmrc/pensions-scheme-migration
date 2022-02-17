@@ -45,9 +45,9 @@ class TrusteeDetailsTransformer @Inject()(addressTransformer: AddressTransformer
 
     (__ \ 'items).readNullable(Reads.seq(trusteeReads)).flatMap {
       case None => (__ \ 'trustees).json.put(Json.arr())
-      case Some(ee) =>
-        val dd = Json.toJson(ee.head)
-        (__ \ 'trustees).json.put(dd)
+      case Some(items) =>
+        val firstItem = Json.toJson(items.head)
+        (__ \ 'trustees).json.put(firstItem)
     }
   }
 
