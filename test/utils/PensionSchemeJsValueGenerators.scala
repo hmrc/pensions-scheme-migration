@@ -158,7 +158,7 @@ trait PensionSchemeJsValueGenerators extends PensionSchemeGenerators {
         )
       ),
       Json.obj(
-        (if (isEstablisher) "establishers" else "trustees") -> (individual._2 ++ company._2)
+        (if (isEstablisher) "establishers" else "trustees") -> Json.arr(individual._2, company._2)
       )
     )
   }
