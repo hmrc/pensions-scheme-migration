@@ -161,7 +161,7 @@ class TrusteeDetailsTransformerSpec extends TransformationSpec {
 
     "if no trustees are present" in {
       val result = Json.obj().transform(transformer.userAnswersTrusteesReads).get
-      result mustBe Json.obj()
+      result mustBe Json.obj("trustees" -> Json.arr())
     }
   }
 }

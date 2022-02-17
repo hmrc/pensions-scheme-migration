@@ -25,132 +25,132 @@ class EstablisherDetailsTransformerSpec extends TransformationSpec {
   private val transformer = new EstablisherDetailsTransformer(addressTransformer, countryOptions)
 
   "An if payload containing establisher details" must {
-//    "have the individual details transformed correctly to valid user answers format" that {
-//
-//      s"has person details in establishers array" in {
-//        forAll(individualJsValueGen(isEstablisher = true)) {
-//          individualDetails => {
-//            val details = individualDetails._1
-//            val result = details.transform(transformer.userAnswersIndividualDetailsReads("establisherDetails")).get
-//
-//            (result \ "establisherDetails" \ "firstName").as[String] mustBe (details \ "personDetails" \ "firstName").as[String]
-//            (result \ "establisherDetails" \ "lastName").as[String] mustBe (details \ "personDetails" \ "lastName").as[String]
-//            (result \ "dateOfBirth").as[String] mustBe (details \ "personDetails" \ "dateOfBirth").as[String]
-//          }
-//        }
-//      }
-//
-//      s"has nino details in establishers array" in {
-//        forAll(individualJsValueGen(isEstablisher = true)) {
-//          individualDetails => {
-//            val details = individualDetails._1
-//            val result = details.transform(transformer.userAnswersNinoReads).get
-//
-//            (result \ "nino" \ "value").asOpt[String] mustBe (details \ "nino").asOpt[String]
-//            (result \ "noNinoReason").asOpt[String] mustBe (details \ "noNinoReason").asOpt[String]
-//          }
-//        }
-//      }
-//
-//      s"has contact details in establishers array" in {
-//        forAll(individualJsValueGen(isEstablisher = true)) {
-//          individualDetails => {
-//            val details = individualDetails._1
-//            val result = details.transform(transformer.userAnswersContactDetailsReads).get
-//
-//            (result \ "email").as[String] mustBe (details \ "correspContDetails" \ "email").as[String]
-//            (result  \ "phone").as[String] mustBe
-//              (details \ "correspContDetails" \ "telephone").as[String]
-//          }
-//        }
-//      }
-//
-//      "has complete individual details" in {
-//        forAll(individualJsValueGen(isEstablisher = true)) {
-//          individualDetails => {
-//            val (ifIndividualDetails, userAnswersIndividualDetails) = individualDetails
-//            val details = ifIndividualDetails
-//
-//            val result = details.transform(transformer.userAnswersEstablisherIndividualReads).get
-//            result mustBe userAnswersIndividualDetails
-//          }
-//        }
-//      }
-//    }
-//
-//    "have the companyOrOrganisationDetails details for company transformed correctly to valid user answers format for first json file" that {
-//
-//      s"has establisher details in establishers array" in {
-//        forAll(companyJsValueGen(isEstablisher = true)) {
-//          companyDetails => {
-//            val details = companyDetails._1
-//            val result = details.transform(transformer.userAnswersCompanyDetailsReads).get
-//
-//            (result \ "companyDetails" \ "companyName").as[String] mustBe (details \ "comOrOrganisationName").as[String]
-//          }
-//        }
-//      }
-//
-//      s"has vat details for company in establishers array" in {
-//        forAll(companyJsValueGen(isEstablisher = true)) {
-//          companyDetails => {
-//            val details = companyDetails._1
-//            val result = details.transform(transformer.userAnswersVatReads).get
-//
-//            (result \ "vat" \ "value").asOpt[String] mustBe (details \ "vatRegistrationNumber").asOpt[String]
-//          }
-//        }
-//      }
-//
-//      s"has paye details for company in establishers array" in {
-//        forAll(companyJsValueGen(isEstablisher = true)) {
-//          companyDetails => {
-//            val details = companyDetails._1
-//            val result = details.transform(transformer.userAnswersPayeReads).get
-//
-//            (result \ "paye" \ "value").asOpt[String] mustBe (details \ "payeReference").asOpt[String]
-//          }
-//        }
-//      }
-//
-//      s"has crn details in establishers array" in {
-//        forAll(companyJsValueGen(isEstablisher = true)) {
-//          companyDetails => {
-//            val details = companyDetails._1
-//            val result = details.transform(transformer.userAnswersCrnReads).get
-//
-//            (result \ "noCompanyNumberReason").asOpt[String] mustBe (details \ "noCrnReason").asOpt[String]
-//            (result \ "companyNumber" \ "value").asOpt[String] mustBe (details \ "crnNumber").asOpt[String]
-//          }
-//        }
-//      }
-//
-//      s"has contact details in establishers array" in {
-//        forAll(companyJsValueGen(isEstablisher = true)) {
-//          companyDetails => {
-//            val details = companyDetails._1
-//            val result = details.transform(transformer.userAnswersContactDetailsReads).get
-//
-//            (result \ "email").as[String] mustBe
-//              (details \ "correspContDetails" \ "email").as[String]
-//            (result \ "phone").as[String] mustBe
-//              (details \ "correspContDetails" \ "telephone").as[String]
-//          }
-//        }
-//      }
-//
-//      s"has complete company details in establishers array" in {
-//        forAll(companyJsValueGen(isEstablisher = true)) {
-//          companyDetails => {
-//            val (ifCompanyDetails, userAnswersCompanyDetails) = companyDetails
-//            val details = ifCompanyDetails
-//            val result = details.transform(transformer.userAnswersEstablisherCompanyReads).get
-//
-//            result mustBe userAnswersCompanyDetails
-//          }
-//        }
-//      }
-//    }
+    "have the individual details transformed correctly to valid user answers format" that {
+
+      s"has person details in establishers array" in {
+        forAll(individualJsValueGen(isEstablisher = true)) {
+          individualDetails => {
+            val details = individualDetails._1
+            val result = details.transform(transformer.userAnswersIndividualDetailsReads("establisherDetails")).get
+
+            (result \ "establisherDetails" \ "firstName").as[String] mustBe (details \ "personDetails" \ "firstName").as[String]
+            (result \ "establisherDetails" \ "lastName").as[String] mustBe (details \ "personDetails" \ "lastName").as[String]
+            (result \ "dateOfBirth").as[String] mustBe (details \ "personDetails" \ "dateOfBirth").as[String]
+          }
+        }
+      }
+
+      s"has nino details in establishers array" in {
+        forAll(individualJsValueGen(isEstablisher = true)) {
+          individualDetails => {
+            val details = individualDetails._1
+            val result = details.transform(transformer.userAnswersNinoReads).get
+
+            (result \ "nino" \ "value").asOpt[String] mustBe (details \ "nino").asOpt[String]
+            (result \ "noNinoReason").asOpt[String] mustBe (details \ "noNinoReason").asOpt[String]
+          }
+        }
+      }
+
+      s"has contact details in establishers array" in {
+        forAll(individualJsValueGen(isEstablisher = true)) {
+          individualDetails => {
+            val details = individualDetails._1
+            val result = details.transform(transformer.userAnswersContactDetailsReads).get
+
+            (result \ "email").as[String] mustBe (details \ "correspContDetails" \ "email").as[String]
+            (result  \ "phone").as[String] mustBe
+              (details \ "correspContDetails" \ "telephone").as[String]
+          }
+        }
+      }
+
+      "has complete individual details" in {
+        forAll(individualJsValueGen(isEstablisher = true)) {
+          individualDetails => {
+            val (ifIndividualDetails, userAnswersIndividualDetails) = individualDetails
+            val details = ifIndividualDetails
+
+            val result = details.transform(transformer.userAnswersEstablisherIndividualReads).get
+            result mustBe userAnswersIndividualDetails
+          }
+        }
+      }
+    }
+
+    "have the companyOrOrganisationDetails details for company transformed correctly to valid user answers format for first json file" that {
+
+      s"has establisher details in establishers array" in {
+        forAll(companyJsValueGen(isEstablisher = true)) {
+          companyDetails => {
+            val details = companyDetails._1
+            val result = details.transform(transformer.userAnswersCompanyDetailsReads).get
+
+            (result \ "companyDetails" \ "companyName").as[String] mustBe (details \ "comOrOrganisationName").as[String]
+          }
+        }
+      }
+
+      s"has vat details for company in establishers array" in {
+        forAll(companyJsValueGen(isEstablisher = true)) {
+          companyDetails => {
+            val details = companyDetails._1
+            val result = details.transform(transformer.userAnswersVatReads).get
+
+            (result \ "vat" \ "value").asOpt[String] mustBe (details \ "vatRegistrationNumber").asOpt[String]
+          }
+        }
+      }
+
+      s"has paye details for company in establishers array" in {
+        forAll(companyJsValueGen(isEstablisher = true)) {
+          companyDetails => {
+            val details = companyDetails._1
+            val result = details.transform(transformer.userAnswersPayeReads).get
+
+            (result \ "paye" \ "value").asOpt[String] mustBe (details \ "payeReference").asOpt[String]
+          }
+        }
+      }
+
+      s"has crn details in establishers array" in {
+        forAll(companyJsValueGen(isEstablisher = true)) {
+          companyDetails => {
+            val details = companyDetails._1
+            val result = details.transform(transformer.userAnswersCrnReads).get
+
+            (result \ "noCompanyNumberReason").asOpt[String] mustBe (details \ "noCrnReason").asOpt[String]
+            (result \ "companyNumber" \ "value").asOpt[String] mustBe (details \ "crnNumber").asOpt[String]
+          }
+        }
+      }
+
+      s"has contact details in establishers array" in {
+        forAll(companyJsValueGen(isEstablisher = true)) {
+          companyDetails => {
+            val details = companyDetails._1
+            val result = details.transform(transformer.userAnswersContactDetailsReads).get
+
+            (result \ "email").as[String] mustBe
+              (details \ "correspContDetails" \ "email").as[String]
+            (result \ "phone").as[String] mustBe
+              (details \ "correspContDetails" \ "telephone").as[String]
+          }
+        }
+      }
+
+      s"has complete company details in establishers array" in {
+        forAll(companyJsValueGen(isEstablisher = true)) {
+          companyDetails => {
+            val (ifCompanyDetails, userAnswersCompanyDetails) = companyDetails
+            val details = ifCompanyDetails
+            val result = details.transform(transformer.userAnswersEstablisherCompanyReads).get
+
+            result mustBe userAnswersCompanyDetails
+          }
+        }
+      }
+    }
 
     "have all establishers transformed" in {
       forAll(establisherOrTrusteeJsValueGen(isEstablisher = true)) {
@@ -161,11 +161,11 @@ class EstablisherDetailsTransformerSpec extends TransformationSpec {
       }
     }
 
-//    "if no establishers are present" in {
-//      val result = Json.obj().transform(transformer.userAnswersEstablishersReads).get
-//
-//      result mustBe Json.obj()
-//   }
+    "if no establishers are present" in {
+      val result = Json.obj().transform(transformer.userAnswersEstablishersReads).get
+
+      result mustBe Json.obj("establishers" -> Json.arr())
+    }
   }
 }
 
