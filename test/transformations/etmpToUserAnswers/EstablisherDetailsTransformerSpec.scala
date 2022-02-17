@@ -164,8 +164,8 @@ class EstablisherDetailsTransformerSpec extends TransformationSpec {
     "if no establishers are present" in {
       val result = Json.obj().transform(transformer.userAnswersEstablishersReads).get
 
-      result mustBe Json.obj()
-   }
+      result mustBe Json.obj("establishers" -> Json.arr())
+    }
   }
 }
 

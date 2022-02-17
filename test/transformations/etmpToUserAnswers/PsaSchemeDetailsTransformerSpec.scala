@@ -44,16 +44,6 @@ class PsaSchemeDetailsTransformerSpec extends TransformationSpec {
 
   "A payload with full scheme subscription details " must {
     "have the details transformed correctly to valid user answers format" which {
-
-      s"uses generators" in {
-        forAll(getSchemeDetailsGen) {
-          case (ifScheme, uaScheme) =>
-
-            val result = ifScheme.transform(transformer.transformToUserAnswers).get
-            result mustBe uaScheme
-        }
-      }
-
       s"uses request/response json" in {
         val result = ifResponse.transform(transformer.transformToUserAnswers)
         result mustBe JsSuccess(userAnswersResponse)

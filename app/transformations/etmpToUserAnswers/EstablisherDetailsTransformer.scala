@@ -25,19 +25,29 @@ import utils.CountryOptions
 class EstablisherDetailsTransformer @Inject()(addressTransformer: AddressTransformer, countryOptions: CountryOptions) extends JsonTransformer {
 
   val userAnswersEstablishersReads: Reads[JsObject] = {
-    val establisherReads = (__ \ 'schemeEstablishers).readNullable(__.read(
-      (__ \ 'individualDetails).readNullable(
-        __.read(Reads.seq(userAnswersEstablisherIndividualReads)).map(JsArray(_))).flatMap { individual =>
-        (__ \ 'companyOrOrgDetails).readNullable(
-          __.read(Reads.seq(userAnswersEstablisherCompanyReads)).map(JsArray(_))).flatMap { company =>
-            (__ \ 'establishers).json.put(individual.getOrElse(JsArray()) ++ company.getOrElse(JsArray()) ) orElse doNothing
-        }
-      })).map {
-      _.getOrElse(Json.obj())
+
+    val readsIndividualOrCompanyObject: Reads[JsObject] = {
+      val individualReads = (__ \ 'individualDetails).readNullable(userAnswersEstablisherIndividualReads)
+      individualReads.flatMap {
+        case None =>
+          (__ \ 'companyOrOrgDetails).readNullable(userAnswersEstablisherCompanyReads).map{
+            case None => Json.obj()
+            case Some(jsObject) => jsObject
+          }
+        case Some(_) =>
+          individualReads.map(_.getOrElse(Json.obj()))
+      }
     }
 
-    (__ \ 'items).readNullable(Reads.seq(establisherReads).map(_.head))
-      .map{_.getOrElse(Json.obj())}
+    val establisherReads: Reads[Seq[JsObject]] =
+      (__ \ 'schemeEstablishers).readNullable(Reads.seq(readsIndividualOrCompanyObject)).map(_.getOrElse(Nil))
+
+    (__ \ 'items).readNullable(Reads.seq(establisherReads)).flatMap{
+      case None =>  (__ \ 'establishers).json.put(Json.arr())
+      case Some(items) =>
+        val firstItem = Json.toJson(items.head)
+        (__ \ 'establishers).json.put(firstItem)
+    }
   }
 
   def userAnswersEstablisherIndividualReads: Reads[JsObject] = {

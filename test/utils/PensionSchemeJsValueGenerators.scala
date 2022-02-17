@@ -139,63 +139,26 @@ trait PensionSchemeJsValueGenerators extends PensionSchemeGenerators {
   }
 
   def establisherOrTrusteeJsValueGen(isEstablisher: Boolean): Gen[(JsObject, JsObject)] = for {
-    individual <- Gen.option(Gen.listOfN(randomNumberFromRange(1, 1), individualJsValueGen(isEstablisher)))
-    company <- Gen.option(Gen.listOfN(randomNumberFromRange(1, 1), companyJsValueGen(isEstablisher)))
+    individual <- individualJsValueGen(isEstablisher)
+    company <- companyJsValueGen(isEstablisher)
   } yield {
-    val uaIndividualDetails = individual.map { indv => indv.map(_._2) }.getOrElse(Nil)
-    val uaCompanyDetails = company.map { comp => comp.map(_._2) }.getOrElse(Nil)
-
-    val ifEstablishers = individual.map { indv => Json.obj("individualDetails" -> indv.map(_._1)) }.getOrElse(Json.obj()) ++
-      company.map { comp => Json.obj("companyOrOrgDetails" -> comp.map(_._1)) }.getOrElse(Json.obj())
-
-    val ifTrustees = individual.map { indv => Json.obj("individualDetails" -> indv.map(_._1)) }.getOrElse(Json.obj()) ++
-      company.map { comp => Json.obj("companyOrOrgDetails" -> comp.map(_._1)) }.getOrElse(Json.obj())
-
-    val ifEstablishersJson = Json.obj(
-      "schemeEstablishers" -> ifEstablishers
-    )
-
-    val ifTrusteesJson = Json.obj(
-      "schemeTrustees" -> ifTrustees
-    )
-    val lisOfAllUserAnswersEstablishers = uaIndividualDetails ++ uaCompanyDetails
-    (
-      Json.obj("items" -> {
-        Json.arr(
-          if (isEstablisher) ifEstablishersJson else ifTrusteesJson
+    Tuple2(
+      Json.obj(
+        "items" -> Json.arr(
+          Json.obj(
+            (if (isEstablisher) "schemeEstablishers" else "schemeTrustees") -> Json.arr(
+              Json.obj(
+                "individualDetails" -> individual._1
+              ),
+              Json.obj(
+                "companyOrOrgDetails" -> company._1
+              )
+            )
+          )
         )
-      }),
+      ),
       Json.obj(
-        (if (isEstablisher) "establishers" else "trustees") -> lisOfAllUserAnswersEstablishers
-      )
-    )
-  }
-
-  def establisherOrTrusteeJsValueGenForScheme(isEstablisher: Boolean): Gen[(JsObject, JsObject)] = for {
-    individual <- Gen.option(Gen.listOfN(randomNumberFromRange(1, 1), individualJsValueGen(isEstablisher)))
-    company <- Gen.option(Gen.listOfN(randomNumberFromRange(1, 1), companyJsValueGen(isEstablisher)))
-  } yield {
-    val uaIndividualDetails = individual.map { indv => indv.map(_._2) }.getOrElse(Nil)
-    val uaCompanyDetails = company.map { comp => comp.map(_._2) }.getOrElse(Nil)
-
-    val ifEstablishers = individual.map { indv => Json.obj("individualDetails" -> indv.map(_._1)) }.getOrElse(Json.obj()) ++
-      company.map { comp => Json.obj("companyOrOrgDetails" -> comp.map(_._1)) }.getOrElse(Json.obj())
-
-    val ifTrustees = individual.map { indv => Json.obj("individualDetails" -> indv.map(_._1)) }.getOrElse(Json.obj()) ++
-      company.map { comp => Json.obj("companyOrOrgDetails" -> comp.map(_._1)) }.getOrElse(Json.obj())
-
-    val ifEstablishersJson = Json.obj(
-      "schemeEstablishers" -> ifEstablishers
-    )
-
-    val ifTrusteesJson = Json.obj(
-      "schemeTrustees" -> ifTrustees
-    )
-    val lisOfAllUserAnswersEstablishers = uaIndividualDetails ++ uaCompanyDetails
-    (
-      if (isEstablisher) ifEstablishersJson else ifTrusteesJson,
-      Json.obj(
-        (if (isEstablisher) "establishers" else "trustees") -> lisOfAllUserAnswersEstablishers
+        (if (isEstablisher) "establishers" else "trustees") -> Json.arr(individual._2, company._2)
       )
     )
   }
@@ -279,26 +242,4 @@ trait PensionSchemeJsValueGenerators extends PensionSchemeGenerators {
       ))
 
   }
-
-
-  def getSchemeDetailsGen: Gen[(JsObject, JsObject)] = for {
-    schemeDetails <- schemeDetailsGenForScheme
-    establishers <- Gen.option(establisherOrTrusteeJsValueGenForScheme(isEstablisher = true))
-    trustees <- Gen.option(establisherOrTrusteeJsValueGenForScheme(isEstablisher = false))
-  } yield {
-    val (ifSchemeDetails, uaSchemeDetails) = schemeDetails
-    val ifEstablishers = establishers.map(_._1).getOrElse(Json.obj())
-    val ifTrustee = trustees.map(_._1).getOrElse(Json.obj())
-
-    val uaEstablisherDetails = establishers.map(_._2).getOrElse(Json.obj())
-    val uaTrusteeDetails = trustees.map(_._2).getOrElse(Json.obj())
-
-    (
-      Json.obj("items" -> Json.arr(
-        ifSchemeDetails.as[JsObject] ++ ifEstablishers.as[JsObject] ++ ifTrustee.as[JsObject])
-      ),
-      uaSchemeDetails.as[JsObject] ++ uaEstablisherDetails ++ uaTrusteeDetails
-    )
-  }
-
 }
