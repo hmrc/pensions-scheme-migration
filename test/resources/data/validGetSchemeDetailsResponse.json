@@ -59,74 +59,73 @@
               "telephone": "00442335"
             }
           }
-        }
-      ],
-      "companyOrOrgDetails": [
-        {
-          "comOrOrganisationName": "dsfdsf",
-          "correspAddrDetails": {
-            "addressLine1": "sdfdsf",
-            "addressLine2": "sdfdsf",
-            "addressLine3": "",
-            "addressLine4": "",
-            "postalCode": "",
-            "country": "Republic of Ireland"
-          },
-          "correspContDetails": {
-            "email": "sdf@sdf",
-            "telephone": "23234"
-          },
-          "crnNumber": "",
-          "noCrnReason": "fsdfdsf",
-          "vatRegistrationNumber": "",
-          "payeReference": ""
         },
         {
-          "comOrOrganisationName": "sfdsfdsfsdf",
-          "correspAddrDetails": {
-            "addressLine1": "sdfdsfdsf",
-            "addressLine2": "sdfdsfdsf",
-            "addressLine3": "",
-            "addressLine4": "",
-            "postalCode": "",
-            "country": "Liechtenstein"
-          },
-          "correspContDetails": {
-            "email": "sdfds@dfdsf",
-            "telephone": "324324"
-          },
-          "crnNumber": "123458",
-          "noCrnReason": "",
-          "vatRegistrationNumber": "01234567890",
-          "payeReference": "1234567"
-        }
-      ]
-    },
-    "schemeTrustees"
-    :
-    {
-      "companyOrOrgDetails": [
+          "companyOrOrgDetails": {
+            "comOrOrganisationName": "dsfdsf",
+            "correspAddrDetails": {
+              "addressLine1": "sdfdsf",
+              "addressLine2": "sdfdsf",
+              "addressLine3": "",
+              "addressLine4": "",
+              "postalCode": "",
+              "country": "Republic of Ireland"
+            },
+            "correspContDetails": {
+              "email": "sdf@sdf",
+              "telephone": "23234"
+            },
+            "crnNumber": "",
+            "noCrnReason": "fsdfdsf",
+            "vatRegistrationNumber": "",
+            "payeReference": ""
+          }
+        },
         {
-          "comOrOrganisationName": "asdsad",
-          "correspAddrDetails": {
-            "addressLine1": "asdasd",
-            "addressLine2": "asdsada",
-            "addressLine3": "",
-            "addressLine4": "",
-            "postalCode": "",
-            "country": "Norway"
-          },
-          "correspContDetails": {
-            "email": "asdasd@dfdsf",
-            "telephone": "34234"
-          },
-          "crnNumber": "",
-          "noCrnReason": "dsfdsfsdf",
-          "vatRegistrationNumber": "",
-          "payeReference": ""
+          "companyOrOrgDetails": {
+            "comOrOrganisationName": "sfdsfdsfsdf",
+            "correspAddrDetails": {
+              "addressLine1": "sdfdsfdsf",
+              "addressLine2": "sdfdsfdsf",
+              "addressLine3": "",
+              "addressLine4": "",
+              "postalCode": "",
+              "country": "Liechtenstein"
+            },
+            "correspContDetails": {
+              "email": "sdfds@dfdsf",
+              "telephone": "324324"
+            },
+            "crnNumber": "123458",
+            "noCrnReason": "",
+            "vatRegistrationNumber": "01234567890",
+            "payeReference": "1234567"
+          }
+        }
+      ],
+      "schemeTrustees": [
+        {
+          "companyOrOrgDetails": {
+            "comOrOrganisationName": "asdsad",
+            "correspAddrDetails": {
+              "addressLine1": "asdasd",
+              "addressLine2": "asdsada",
+              "addressLine3": "",
+              "addressLine4": "",
+              "postalCode": "",
+              "country": "Norway"
+            },
+            "correspContDetails": {
+              "email": "asdasd@dfdsf",
+              "telephone": "34234"
+            },
+            "crnNumber": "",
+            "noCrnReason": "dsfdsfsdf",
+            "vatRegistrationNumber": "",
+            "payeReference": ""
+          }
         }
       ]
-    }
     }
   ]
 }
