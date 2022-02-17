@@ -43,7 +43,7 @@ class EstablisherDetailsTransformer @Inject()(addressTransformer: AddressTransfo
       (__ \ 'schemeEstablishers).readNullable(Reads.seq(readsIndividualOrCompanyObject)).map(_.getOrElse(Nil))
 
     (__ \ 'items).readNullable(Reads.seq(establisherReads)).flatMap{
-      case None => (__ \ 'establishers).json.put(Json.arr())
+      case None =>  (__ \ 'establishers).json.put(Json.arr())
       case Some(ee) =>
         val dd = Json.toJson(ee.head)
         (__ \ 'establishers).json.put(dd)
