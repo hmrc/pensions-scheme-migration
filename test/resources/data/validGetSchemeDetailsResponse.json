@@ -1,60 +1,63 @@
 {
   "items": [
     {
-    "schemeName": "QROPS Rejected",
-    "pensionSchemeStructure": "body-corporate",
-    "policyNumber": "",
-    "currentSchemeMembers": "1",
-    "isRegulatedSchemeInvestment": true,
-    "isOccupationalPensionScheme": true,
-    "schemeEstablishedCountry": "Slovenia",
-    "isSchemeBenefitsInsuranceCompany": false,
-    "racDac": false,
-    "schemeOpenDate": "2017-04-06",
-    "relationshipStartDate": "2017-04-06",
-    "schemeEstablishers": {
-      "individualDetails": [
+      "schemeName": "QROPS Rejected",
+      "pensionSchemeStructure": "body-corporate",
+      "policyNumber": "",
+      "currentSchemeMembers": "1",
+      "isRegulatedSchemeInvestment": true,
+      "isOccupationalPensionScheme": true,
+      "schemeEstablishedCountry": "Slovenia",
+      "isSchemeBenefitsInsuranceCompany": false,
+      "racDac": false,
+      "schemeOpenDate": "2017-04-06",
+      "relationshipStartDate": "2017-04-06",
+      "schemeEstablishers": [
         {
-          "personDetails": {
-            "firstName": "User",
-            "middleName": "First",
-            "lastName": "One",
-            "dateOfBirth": "1955-03-29"
-          },
-          "nino": "AA999999A",
-          "correspAddrDetails": {
-            "addressLine1": "addressline1",
-            "addressLine2": "addressline2",
-            "addressLine3": "addressline3",
-            "addressLine4": "addressline4",
-            "postalCode": "TF3 5TR",
-            "country": "Norway"
-          },
-          "correspContDetails": {
-            "email": "aaa@gmail.com",
-            "telephone": "0042334"
+          "individualDetails": {
+            "personDetails": {
+              "firstName": "User",
+              "middleName": "First",
+              "lastName": "One",
+              "dateOfBirth": "1955-03-29"
+            },
+            "nino": "AA999999A",
+            "correspAddrDetails": {
+              "addressLine1": "addressline1",
+              "addressLine2": "addressline2",
+              "addressLine3": "addressline3",
+              "addressLine4": "addressline4",
+              "postalCode": "TF3 5TR",
+              "country": "Norway"
+            },
+            "correspContDetails": {
+              "email": "aaa@gmail.com",
+              "telephone": "0042334"
+            }
           }
         },
         {
-          "personDetails": {
-            "firstName": "Second",
-            "middleName": "",
-            "lastName": "User",
-            "dateOfBirth": "1955-03-29"
-          },
-          "nino": "",
-          "noNinoReason": "Test",
-          "correspAddrDetails": {
-            "addressLine1": "addressline1",
-            "addressLine2": "addressline2",
-            "addressLine3": "",
-            "addressLine4": "",
-            "postalCode": "",
-            "country": "Norway"
-          },
-          "correspContDetails": {
-            "email": "bbb@gmail.com",
-            "telephone": "00442335"
+          "individualDetails": {
+            "personDetails": {
+              "firstName": "Second",
+              "middleName": "",
+              "lastName": "User",
+              "dateOfBirth": "1955-03-29"
+            },
+            "nino": "",
+            "noNinoReason": "Test",
+            "correspAddrDetails": {
+              "addressLine1": "addressline1",
+              "addressLine2": "addressline2",
+              "addressLine3": "",
+              "addressLine4": "",
+              "postalCode": "",
+              "country": "Norway"
+            },
+            "correspContDetails": {
+              "email": "bbb@gmail.com",
+              "telephone": "00442335"
+            }
           }
         }
       ],
@@ -99,7 +102,9 @@
         }
       ]
     },
-    "schemeTrustees": {
+    "schemeTrustees"
+    :
+    {
       "companyOrOrgDetails": [
         {
           "comOrOrganisationName": "asdsad",
@@ -122,6 +127,6 @@
         }
       ]
     }
-  }
- ]
+    }
+  ]
 }
