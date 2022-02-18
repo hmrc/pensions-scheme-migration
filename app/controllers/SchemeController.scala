@@ -68,7 +68,7 @@ class SchemeController @Inject()(
       val psaId = request.headers.get("psaId")
       val feJson = request.body.asJson
       val checkRacDac: Boolean=isRacDac(migrationType)
-      logger.debug(s"[PSA-Scheme-Migration-Incoming-Payload] $feJson for Migration Type: $checkRacDac")
+      logger.warn(s"[PSA-Scheme-Migration-Incoming-Payload] $feJson for Migration Type: $checkRacDac")
       (psaId,feJson) match {
         case (Some(psa),Some(jsValue)) =>
           val registerSchemeCall = {
@@ -78,8 +78,12 @@ class SchemeController @Inject()(
               pensionSchemeService.registerScheme(psa, jsValue)
           }
           registerSchemeCall.map {
-            case Right(json) => Ok(json)
-            case Left(e) => result(e)
+            case Right(json) =>
+            logger.warn("register scheme call: OK")
+              Ok(json)
+            case Left(e) =>
+              logger.warn("register scheme call: NOT OK", e)
+              result(e)
           }
         case _ => Future.failed(new BadRequestException("Bad Request without PSAId or request body"))
       }
