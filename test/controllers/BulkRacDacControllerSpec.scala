@@ -26,7 +26,9 @@ import play.api.libs.json.{JsBoolean, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import service.RacDacBulkSubmissionService
+import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http._
+import utils.AuthUtil
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -35,10 +37,14 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
 
   private val mockAuditService = mock[AuditService]
   private val racDacBulkSubmissionService: RacDacBulkSubmissionService = mock[RacDacBulkSubmissionService]
-  private val bulkRacDacController = new BulkRacDacController(stubControllerComponents(), racDacBulkSubmissionService, mockAuditService)
+  private val mockAuthConnector: AuthConnector = mock[AuthConnector]
+  private val authUtil = new AuthUtil(mockAuthConnector, stubControllerComponents())
+  private val bulkRacDacController = new BulkRacDacController(stubControllerComponents(), racDacBulkSubmissionService, mockAuditService, authUtil)
 
   before {
-    reset(racDacBulkSubmissionService)
+    reset(racDacBulkSubmissionService, mockAuthConnector)
+    when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any()))
+      .thenReturn(Future.successful(Some("Ext-137d03b9-d807-4283-a254-fb6c30aceef1")))
   }
 
   "migrateAllRacDac" must {

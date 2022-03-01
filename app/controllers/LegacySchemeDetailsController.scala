@@ -22,30 +22,33 @@ import connector.utils.HttpResponseHelper
 import play.api.mvc._
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import utils.AuthUtil
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class LegacySchemeDetailsController @Inject()(
-                                         legacySchemeDetailsConnector: LegacySchemeDetailsConnector,
-                                         cc: ControllerComponents
-                                       )(implicit ec: ExecutionContext)
+                                               legacySchemeDetailsConnector: LegacySchemeDetailsConnector,
+                                               cc: ControllerComponents,
+                                               authUtil: AuthUtil
+                                             )(implicit ec: ExecutionContext)
   extends BackendController(cc)
     with HttpResponseHelper {
 
   def getLegacySchemeDetails: Action[AnyContent] = Action.async {
-    implicit request => {
-      val psaId = request.headers.get("psaId")
-      val pstr = request.headers.get("pstr")
+    implicit request =>
+      authUtil.doAuth { _ =>
+        val psaId = request.headers.get("psaId")
+        val pstr = request.headers.get("pstr")
 
-      (psaId, pstr) match {
-        case (Some(psaId), Some(pstr)) =>
-          legacySchemeDetailsConnector.getSchemeDetails(psaId, pstr).map {
-            case Right(json) => Ok(json)
-            case Left(e) => result(e)
-          }
-        case _ =>
-          Future.failed(new BadRequestException("Bad Request with missing parameters PSAId or PSTR"))
+        (psaId, pstr) match {
+          case (Some(psaId), Some(pstr)) =>
+            legacySchemeDetailsConnector.getSchemeDetails(psaId, pstr).map {
+              case Right(json) => Ok(json)
+              case Left(e) => result(e)
+            }
+          case _ =>
+            Future.failed(new BadRequestException("Bad Request with missing parameters PSAId or PSTR"))
+        }
       }
-    }
   }
 }

@@ -33,7 +33,9 @@ import play.api.test.Helpers._
 import repositories.ListOfLegacySchemesCacheRepository
 import service.PensionSchemeService
 import services.FeatureToggleService
+import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http._
+import utils.AuthUtil
 
 import java.time.LocalDate
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -43,18 +45,22 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
 
   import SchemeControllerSpec._
 
+  private val mockAuthConnector: AuthConnector = mock[AuthConnector]
+  private val authUtil = new AuthUtil(mockAuthConnector, stubControllerComponents())
   val mockSchemeConnector: SchemeConnector = mock[SchemeConnector]
   val mockPensionSchemeService: PensionSchemeService = mock[PensionSchemeService]
   val mockListOfLegacySchemesCacheRepository: ListOfLegacySchemesCacheRepository = mock[ListOfLegacySchemesCacheRepository]
   val mockFeatureToggleService: FeatureToggleService = mock[FeatureToggleService]
   val schemeController = new SchemeController(mockSchemeConnector, mockPensionSchemeService, mockFeatureToggleService,
-    mockListOfLegacySchemesCacheRepository, stubControllerComponents())
+    mockListOfLegacySchemesCacheRepository, stubControllerComponents(), authUtil)
 
   before {
-    reset(mockSchemeConnector)
+    reset(mockSchemeConnector, mockAuthConnector)
     reset(mockPensionSchemeService)
     reset(mockFeatureToggleService)
     reset(mockListOfLegacySchemesCacheRepository)
+    when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any()))
+      .thenReturn(Future.successful(Some("Ext-137d03b9-d807-4283-a254-fb6c30aceef1")))
   }
 
   "list of legacy schemes" must {
