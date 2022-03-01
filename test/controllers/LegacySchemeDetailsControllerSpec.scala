@@ -27,7 +27,9 @@ import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.AnyContentAsEmpty
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.{BadRequestException, UpstreamErrorResponse}
+import utils.AuthUtil
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -38,16 +40,19 @@ class LegacySchemeDetailsControllerSpec
     with BeforeAndAfter
     with PatienceConfiguration {
 
-
+  private val mockAuthConnector: AuthConnector = mock[AuthConnector]
+  private val authUtil = new AuthUtil(mockAuthConnector, stubControllerComponents())
   private val mockSchemeConnector: LegacySchemeDetailsConnector = mock[LegacySchemeDetailsConnector]
   private val schemeDetailsController =
-    new LegacySchemeDetailsController(mockSchemeConnector, stubControllerComponents())
+    new LegacySchemeDetailsController(mockSchemeConnector, stubControllerComponents(), authUtil)
   private val pstr = "00000000AA"
   private val psaId = "000"
   private val userAnswersResponse: JsValue = readJsonFromFile("/data/validGetSchemeDetailsIFUserAnswers.json")
 
   before {
-    reset(mockSchemeConnector)
+    reset(mockSchemeConnector, mockAuthConnector)
+    when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any()))
+      .thenReturn(Future.successful(Some("Ext-137d03b9-d807-4283-a254-fb6c30aceef1")))
   }
 
   "getLegacySchemeDetails" must {
