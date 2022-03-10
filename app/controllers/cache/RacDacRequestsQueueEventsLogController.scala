@@ -17,6 +17,7 @@
 package controllers.cache
 
 import com.google.inject.Inject
+import models.racDac.SessionIdNotFound
 import play.api.libs.json.Json
 import play.api.mvc._
 import repositories.RacDacRequestsQueueEventsLogRepository
@@ -31,14 +32,6 @@ class RacDacRequestsQueueEventsLogController @Inject()(repository: RacDacRequest
                                                        val authConnector: AuthConnector,
                                                        cc: ControllerComponents
                                    )(implicit ec: ExecutionContext) extends BackendController(cc) with AuthorisedFunctions {
-
-  def putStatus(status: Int): Action[AnyContent] = Action.async {
-    implicit request =>
-      withId { id =>
-        repository.save(id, Json.obj("status" -> status)).map(_ => Ok)
-      }
-  }
-
   def getStatus: Action[AnyContent] = Action.async {
     implicit request =>
       withId { id =>
@@ -67,5 +60,3 @@ class RacDacRequestsQueueEventsLogController @Inject()(repository: RacDacRequest
   }
 }
 
-case class SessionIdNotFound(msg: String = "Session ID not found - Unable to retrieve session ID")
-  extends UnauthorizedException(msg)

@@ -25,6 +25,7 @@ import org.scalatest.concurrent.{PatienceConfiguration, ScalaFutures}
 import play.api.libs.json.{JsBoolean, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import repositories.RacDacRequestsQueueEventsLogRepository
 import service.RacDacBulkSubmissionService
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http._
@@ -35,23 +36,28 @@ import scala.concurrent.Future
 
 class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfter with PatienceConfiguration {
 
+  private val mockRacDacRequestsQueueEventsLogRepository = mock[RacDacRequestsQueueEventsLogRepository]
   private val mockAuditService = mock[AuditService]
   private val racDacBulkSubmissionService: RacDacBulkSubmissionService = mock[RacDacBulkSubmissionService]
   private val mockAuthConnector: AuthConnector = mock[AuthConnector]
   private val authUtil = new AuthUtil(mockAuthConnector, stubControllerComponents())
-  private val bulkRacDacController = new BulkRacDacController(stubControllerComponents(), racDacBulkSubmissionService, mockAuditService, authUtil)
+  private val bulkRacDacController = new BulkRacDacController(stubControllerComponents(),
+    racDacBulkSubmissionService, mockAuditService, authUtil, mockRacDacRequestsQueueEventsLogRepository)
 
   before {
-    reset(racDacBulkSubmissionService, mockAuthConnector)
+    reset(racDacBulkSubmissionService, mockAuthConnector,mockRacDacRequestsQueueEventsLogRepository)
     when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any()))
       .thenReturn(Future.successful(Some("Ext-137d03b9-d807-4283-a254-fb6c30aceef1")))
+    when(mockRacDacRequestsQueueEventsLogRepository.save(any(), any())(any()))
+      .thenReturn(Future.successful(true))
   }
 
   "migrateAllRacDac" must {
     val jsValue =
       """[{"schemeName":"paul qqq","policyNumber":"24101975","pstr":"00615269RH"
         ,"declarationDate":"2012-02-20","schemeOpenDate":"2020-01-01"}]""".stripMargin
-    val fakeRequest = FakeRequest("POST", "/").withHeaders(("psaId", "A2000001")).withJsonBody(Json.parse(jsValue))
+    val fakeRequest = FakeRequest("POST", "/").withHeaders(("psaId", "A2000001"),
+      HeaderNames.xSessionId -> "123").withJsonBody(Json.parse(jsValue))
 
     "return ACCEPTED if all the rac dac requests are successfully pushed to the queue and check the audit event" in {
       val captor = ArgumentCaptor.forClass(classOf[RacDacBulkMigrationTriggerAuditEvent])

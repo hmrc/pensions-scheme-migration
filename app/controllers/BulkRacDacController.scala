@@ -18,9 +18,10 @@ package controllers
 
 import audit.{AuditService, RacDacBulkMigrationTriggerAuditEvent}
 import com.google.inject.Inject
-import models.racDac.{RacDacHeaders, RacDacRequest, WorkItemRequest}
-import play.api.libs.json.{JsBoolean, JsError, JsSuccess}
+import models.racDac.{RacDacHeaders, RacDacRequest, SessionIdNotFound, WorkItemRequest}
+import play.api.libs.json.{JsBoolean, JsError, JsSuccess, Json}
 import play.api.mvc._
+import repositories.RacDacRequestsQueueEventsLogRepository
 import service.RacDacBulkSubmissionService
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
@@ -33,13 +34,23 @@ class BulkRacDacController @Inject()(
                                       cc: ControllerComponents,
                                       service: RacDacBulkSubmissionService,
                                       auditService: AuditService,
-                                      authUtil: AuthUtil
+                                      authUtil: AuthUtil,
+                                      repository: RacDacRequestsQueueEventsLogRepository
                                     )(
                                       implicit ec: ExecutionContext
                                     )
   extends BackendController(cc) {
 
   private val serviceUnavailable = "Queue Service Unavailable"
+
+  private def withId(block: (String) => Future[Result])
+                    (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
+    hc.sessionId match {
+      case Some(sessionId) => block(sessionId.value)
+      case _ => Future.failed(SessionIdNotFound())
+    }
+
+  }
 
   def migrateAllRacDac: Action[AnyContent] = Action.async {
     implicit request =>
@@ -59,14 +70,16 @@ class BulkRacDacController @Inject()(
                   case true => Accepted
                   case false => ServiceUnavailable
                 }
-                queueRequest.map { result =>
+                queueRequest.flatMap { result =>
                   result match {
                     case Accepted =>
                       auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(id, totalResults, ""))
                     case ServiceUnavailable =>
                       auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(id, 0, serviceUnavailable))
                   }
-                  result
+                  withId { sessionId =>
+                    repository.save(sessionId, Json.obj("status" -> result.header.status)).map(_ => result)
+                  }(hc(request), implicitly)
                 }
               case JsError(_) =>
                 val error = new BadRequestException(s"Invalid request received from frontend for rac dac migration")

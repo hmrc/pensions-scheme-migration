@@ -17,7 +17,7 @@
 package repositories
 
 import com.google.inject.Inject
-import models.cache.DataJson
+import models.cache.RacDacEventsLogJson
 import org.joda.time.{DateTime, DateTimeZone}
 import org.slf4j.{Logger, LoggerFactory}
 import play.api.Configuration
@@ -62,7 +62,7 @@ class RacDacRequestsQueueEventsLogRepository @Inject()(mongoComponent: ReactiveM
   def save(id: String, userData: JsValue)(implicit ec: ExecutionContext): Future[Boolean] = {
     logger.debug("Calling Save in RacDacRequestsQueueEventsLogRepository")
 
-    val document: JsValue = Json.toJson(DataJson(id, userData, DateTime.now(DateTimeZone.UTC), expireInSeconds))
+    val document: JsValue = Json.toJson(RacDacEventsLogJson(userData, DateTime.now(DateTimeZone.UTC), expireInSeconds))
     val modifier = BSONDocument("$set" -> document)
 
     collection.update.one(BSONDocument("id" -> id), modifier, upsert = true).map(_.ok)
@@ -70,7 +70,7 @@ class RacDacRequestsQueueEventsLogRepository @Inject()(mongoComponent: ReactiveM
 
   def get(id: String)(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
     logger.debug("Calling get in RacDacRequestsQueueEventsLogRepository")
-    collection.find(BSONDocument("id" -> id), projection = Option.empty[JsObject]).one[DataJson].map(_.map(_.data))
+    collection.find(BSONDocument("id" -> id), projection = Option.empty[JsObject]).one[RacDacEventsLogJson].map(_.map(_.data))
   }
 
   def remove(id: String)(implicit ec: ExecutionContext): Future[Boolean] = {

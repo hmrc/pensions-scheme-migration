@@ -13,8 +13,7 @@ GET           /migration-data                               controllers.cache.Da
 POST          /migration-data                               controllers.cache.DataCacheController.save
 DELETE        /migration-data                               controllers.cache.DataCacheController.remove
 
-GET           /bulk-migration-events-log-status             controllers.cache.RacDacRequestsQueueEventsLogController.get
-PUT           /bulk-migration-events-log-status/:status     controllers.cache.RacDacRequestsQueueEventsLogController.putStatus(status: Int)
+GET           /bulk-migration-events-log-status             controllers.cache.RacDacRequestsQueueEventsLogController.getStatus
 
 GET           /scheme-data                                  controllers.cache.SchemeDataCacheController.get
 POST          /scheme-data                                  controllers.cache.SchemeDataCacheController.save
