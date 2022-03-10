@@ -22,7 +22,7 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.{ArgumentCaptor, MockitoSugar}
 import org.scalatest.BeforeAndAfter
 import org.scalatest.concurrent.{PatienceConfiguration, ScalaFutures}
-import play.api.libs.json.{JsBoolean, Json}
+import play.api.libs.json.{JsBoolean, JsValue, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import repositories.RacDacRequestsQueueEventsLogRepository
@@ -71,6 +71,11 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
       verify(mockAuditService, times(1)).sendEvent(any())(any(),any())
       val expectedAuditEvent = RacDacBulkMigrationTriggerAuditEvent("A2000001", 1, "")
       captor.getValue mustBe expectedAuditEvent
+
+      val jsonCaptor: ArgumentCaptor[JsValue] = ArgumentCaptor.forClass(classOf[JsValue])
+
+      verify(mockRacDacRequestsQueueEventsLogRepository, times(1)).save(any(), jsonCaptor.capture())(any())
+      jsonCaptor.getValue mustBe Json.obj("status" -> ACCEPTED)
     }
 
     "return SERVICE UNAVAILABLE if all the rac dac requests are failed to push to the queue and check the audit event" in {
