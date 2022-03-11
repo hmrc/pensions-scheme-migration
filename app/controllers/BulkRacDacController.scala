@@ -16,6 +16,7 @@
 
 package controllers
 
+import akka.actor.ActorSystem
 import audit.{AuditService, RacDacBulkMigrationTriggerAuditEvent}
 import com.google.inject.Inject
 import models.racDac.{RacDacHeaders, RacDacRequest, SessionIdNotFound, WorkItemRequest}
@@ -35,7 +36,8 @@ class BulkRacDacController @Inject()(
                                       service: RacDacBulkSubmissionService,
                                       auditService: AuditService,
                                       authUtil: AuthUtil,
-                                      repository: RacDacRequestsQueueEventsLogRepository
+                                      repository: RacDacRequestsQueueEventsLogRepository,
+                                      system: ActorSystem
                                     )(
                                       implicit ec: ExecutionContext
                                     )
@@ -49,7 +51,25 @@ class BulkRacDacController @Inject()(
       case Some(sessionId) => block(sessionId.value)
       case _ => Future.failed(SessionIdNotFound())
     }
+  }
 
+  private def putAllItemsOnQueue(sessionId: String, psaId: String, seqRacDacRequest: Seq[RacDacRequest])(
+    implicit request: RequestHeader, executionContext: ExecutionContext): Future[Status] = {
+    val totalResults = seqRacDacRequest.size
+    val racDacRequests = seqRacDacRequest.map(racDacReq => WorkItemRequest(psaId, racDacReq, RacDacHeaders(hc(request))))
+    val queueRequest = service.enqueue(racDacRequests).map {
+      case true => Accepted
+      case false => ServiceUnavailable
+    }(executionContext)
+    queueRequest.flatMap { result =>
+      result match {
+        case Accepted =>
+          auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(psaId, totalResults, ""))(implicitly, executionContext)
+        case ServiceUnavailable =>
+          auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(psaId, 0, serviceUnavailable))(implicitly, executionContext)
+      }
+      repository.save(sessionId, Json.obj("status" -> result.header.status))(executionContext).map(_ => result)(executionContext)
+    }(executionContext)
   }
 
   def migrateAllRacDac: Action[AnyContent] = Action.async {
@@ -57,40 +77,33 @@ class BulkRacDacController @Inject()(
       authUtil.doAuth { _ =>
         def hc(implicit request: RequestHeader): HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
 
-        val psaId = request.headers.get("psaId")
+        val optionPsaId = request.headers.get("psaId")
         val feJson = request.body.asJson
 
-        (psaId, feJson) match {
-          case (Some(id), Some(jsValue)) =>
-            jsValue.validate[Seq[RacDacRequest]] match {
-              case JsSuccess(seqRacDacRequest, _) =>
-                val totalResults = seqRacDacRequest.size
-                val racDacRequests = seqRacDacRequest.map(racDacReq => WorkItemRequest(id, racDacReq, RacDacHeaders(hc(request))))
-                val queueRequest = service.enqueue(racDacRequests).map {
-                  case true => Accepted
-                  case false => ServiceUnavailable
-                }
-                queueRequest.flatMap { result =>
-                  result match {
-                    case Accepted =>
-                      auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(id, totalResults, ""))
-                    case ServiceUnavailable =>
-                      auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(id, 0, serviceUnavailable))
-                  }
+        val bulkRacDacExecutionContext: ExecutionContext = system.dispatchers.lookup(id = "racDacWorkItem")
+        Future {
+          (optionPsaId, feJson) match {
+            case (Some(psaId), Some(jsValue)) =>
+              jsValue.validate[Seq[RacDacRequest]] match {
+                case JsSuccess(seqRacDacRequest, _) =>
                   withId { sessionId =>
-                    repository.save(sessionId, Json.obj("status" -> result.header.status)).map(_ => result)
+                    repository.remove(sessionId)(bulkRacDacExecutionContext).flatMap { _ =>
+                      putAllItemsOnQueue(sessionId, psaId, seqRacDacRequest)(implicitly, bulkRacDacExecutionContext)
+                    }(bulkRacDacExecutionContext)
                   }(hc(request), implicitly)
-                }
-              case JsError(_) =>
-                val error = new BadRequestException(s"Invalid request received from frontend for rac dac migration")
-                auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(id, 0, error.message))
-                Future.failed(error)
-            }
-          case _ =>
-            val error = new BadRequestException("Missing Body or missing psaId in the header")
-            auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(psaId.getOrElse(""), 0, error.message))
-            Future.failed(error)
-        }
+                case JsError(_) =>
+                  val error = new BadRequestException(s"Invalid request received from frontend for rac dac migration")
+                  auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(psaId, 0, error.message))(implicitly, bulkRacDacExecutionContext)
+                  Future.failed(error)
+              }
+            case _ =>
+              val error = new BadRequestException("Missing Body or missing psaId in the header")
+              auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(optionPsaId.getOrElse(""), 0, error.message))(implicitly, bulkRacDacExecutionContext)
+              Future.failed(error)
+          }
+        }(bulkRacDacExecutionContext).flatten
+
+        Future.successful(Ok)
       }
   }
 

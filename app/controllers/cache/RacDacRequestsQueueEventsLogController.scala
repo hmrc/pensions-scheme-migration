@@ -18,12 +18,11 @@ package controllers.cache
 
 import com.google.inject.Inject
 import models.racDac.SessionIdNotFound
-import play.api.libs.json.Json
 import play.api.mvc._
 import repositories.RacDacRequestsQueueEventsLogRepository
 import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
-import uk.gov.hmrc.http.{HeaderCarrier, UnauthorizedException}
+import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -39,7 +38,9 @@ class RacDacRequestsQueueEventsLogController @Inject()(repository: RacDacRequest
           .map {
             case Some(jsValue) =>
               (jsValue \ "status").asOpt[Int] match {
-                case Some(status) => Results.Status(status)
+                case Some(status) =>
+
+                  Results.Status(status)
                 case _ => NotFound
               }
             case None => NotFound
