@@ -42,7 +42,7 @@
               "firstName": "Second",
               "middleName": "",
               "lastName": "User",
-              "dateOfBirth": "1955-03-29"
+              "dateOfBirth": "9999-12-31"
             },
             "nino": "",
             "noNinoReason": "Test",

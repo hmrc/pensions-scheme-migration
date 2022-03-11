@@ -33,8 +33,15 @@ trait JsonTransformer {
       _ =>
         (__ \ userAnswersPath \ 'firstName).json.copyFrom((__ \ 'personDetails \ 'firstName).json.pick) and
           (__ \ userAnswersPath \ 'lastName).json.copyFrom((__ \ 'personDetails \  'lastName).json.pick) and
-            (__ \ 'dateOfBirth).json.copyFrom((__ \ 'personDetails \ 'dateOfBirth).json.pick) reduce
+          dateOfBirthReads reduce
     } orElse doNothing
+
+  val dateOfBirthReads: Reads[JsObject] = (__ \ 'personDetails \ 'dateOfBirth).readNullable[String].flatMap {
+    _.map {
+      case "9999-12-31" => doNothing
+      case dateOfBirth => (__ \ 'dateOfBirth).json.put(JsString(dateOfBirth))
+    } getOrElse doNothing
+  } orElse doNothing
 
   def userAnswersNinoReads: Reads[JsObject] =
     (__ \ 'nino).readNullable[String].flatMap {
