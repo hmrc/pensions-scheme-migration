@@ -24,7 +24,7 @@ import play.api.libs.json.{JsBoolean, JsError, JsSuccess, Json}
 import play.api.mvc._
 import repositories.RacDacRequestsQueueEventsLogRepository
 import service.RacDacBulkSubmissionService
-import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier}
+import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, SessionId}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
 import utils.AuthUtil
@@ -75,35 +75,40 @@ class BulkRacDacController @Inject()(
   def migrateAllRacDac: Action[AnyContent] = Action.async {
     implicit request =>
       authUtil.doAuth { _ =>
-        def hc(implicit request: RequestHeader): HeaderCarrier = HeaderCarrierConverter.fromRequest(request)
+        HeaderCarrierConverter.fromRequest(request).sessionId match {
+          case Some(SessionId(sessionId)) =>
+            val optionPsaId = request.headers.get("psaId")
+            val feJson = request.body.asJson
 
-        val optionPsaId = request.headers.get("psaId")
-        val feJson = request.body.asJson
+            val bulkRacDacExecutionContext: ExecutionContext = system.dispatchers.lookup(id = "racDacWorkItem")
 
-        val bulkRacDacExecutionContext: ExecutionContext = system.dispatchers.lookup(id = "racDacWorkItem")
-        Future {
-          (optionPsaId, feJson) match {
-            case (Some(psaId), Some(jsValue)) =>
-              jsValue.validate[Seq[RacDacRequest]] match {
-                case JsSuccess(seqRacDacRequest, _) =>
-                  withId { sessionId =>
-                    repository.remove(sessionId)(bulkRacDacExecutionContext).flatMap { _ =>
-                      putAllItemsOnQueue(sessionId, psaId, seqRacDacRequest)(implicitly, bulkRacDacExecutionContext)
-                    }(bulkRacDacExecutionContext)
-                  }(hc(request), implicitly)
-                case JsError(_) =>
-                  val error = new BadRequestException(s"Invalid request received from frontend for rac dac migration")
-                  auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(psaId, 0, error.message))(implicitly, bulkRacDacExecutionContext)
+            def processItems: Future[Status] = Future {
+              (optionPsaId, feJson) match {
+                case (Some(psaId), Some(jsValue)) =>
+                  jsValue.validate[Seq[RacDacRequest]] match {
+                    case JsSuccess(seqRacDacRequest, _) =>
+                      repository.remove(sessionId)(bulkRacDacExecutionContext).flatMap { _ =>
+                        putAllItemsOnQueue(sessionId, psaId, seqRacDacRequest)(implicitly, bulkRacDacExecutionContext)
+                      }(bulkRacDacExecutionContext)
+                    case JsError(_) =>
+                      val error = new BadRequestException(s"Invalid request received from frontend for rac dac migration")
+                      auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(psaId, 0, error.message))(implicitly, bulkRacDacExecutionContext)
+                      Future.failed(error)
+                  }
+                case _ =>
+                  val error = new BadRequestException("Missing Body or missing psaId in the header")
+                  auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(optionPsaId.getOrElse(""), 0, error.message
+                  ))(implicitly, bulkRacDacExecutionContext)
                   Future.failed(error)
               }
-            case _ =>
-              val error = new BadRequestException("Missing Body or missing psaId in the header")
-              auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(optionPsaId.getOrElse(""), 0, error.message))(implicitly, bulkRacDacExecutionContext)
-              Future.failed(error)
-          }
-        }(bulkRacDacExecutionContext).flatten
+            }(bulkRacDacExecutionContext).flatten
 
-        Future.successful(Ok)
+            repository.remove(sessionId)(bulkRacDacExecutionContext).map { _ =>
+              processItems
+              Ok
+            }
+          case _ => Future.failed(SessionIdNotFound())
+        }
       }
   }
 
