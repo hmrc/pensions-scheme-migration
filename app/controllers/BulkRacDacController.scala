@@ -17,46 +17,48 @@
 package controllers
 
 import akka.actor.ActorSystem
-import audit.{AuditService, RacDacBulkMigrationTriggerAuditEvent}
+import audit.{AuditService, EmailRequestAuditEvent, RacDacBulkMigrationTriggerAuditEvent}
 import com.google.inject.Inject
+import config.AppConfig
+import connector.{EmailConnector, EmailNotSent, EmailStatus, MinimalDetailsConnector}
+import models.enumeration.JourneyType.RACDAC_BULK_MIG
 import models.racDac.{RacDacHeaders, RacDacRequest, SessionIdNotFound, WorkItemRequest}
+import play.api.Logger
 import play.api.libs.json.{JsBoolean, JsError, JsSuccess, Json}
 import play.api.mvc._
 import repositories.RacDacRequestsQueueEventsLogRepository
 import service.RacDacBulkSubmissionService
+import uk.gov.hmrc.crypto.{ApplicationCrypto, PlainText}
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, SessionId}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
 import utils.AuthUtil
 
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import scala.concurrent.{ExecutionContext, Future}
 
-class BulkRacDacController @Inject()(
+class BulkRacDacController @Inject()( appConfig: AppConfig,
                                       cc: ControllerComponents,
                                       service: RacDacBulkSubmissionService,
                                       auditService: AuditService,
                                       authUtil: AuthUtil,
                                       repository: RacDacRequestsQueueEventsLogRepository,
-                                      system: ActorSystem
+                                      system: ActorSystem,
+                                      emailConnector: EmailConnector,
+                                      minimalDetailsConnector: MinimalDetailsConnector,
+                                      crypto: ApplicationCrypto
                                     )(
                                       implicit ec: ExecutionContext
                                     )
   extends BackendController(cc) {
-
+  private val logger = Logger(classOf[BulkRacDacController])
   private val serviceUnavailable = "Queue Service Unavailable"
 
-  private def withId(block: (String) => Future[Result])
-                    (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
-    hc.sessionId match {
-      case Some(sessionId) => block(sessionId.value)
-      case _ => Future.failed(SessionIdNotFound())
-    }
-  }
-
   private def putAllItemsOnQueue(sessionId: String, psaId: String, seqRacDacRequest: Seq[RacDacRequest])(
-    implicit request: RequestHeader, executionContext: ExecutionContext): Future[Status] = {
+    implicit request: RequestHeader, hc: HeaderCarrier, executionContext: ExecutionContext): Future[Status] = {
     val totalResults = seqRacDacRequest.size
-    val racDacRequests = seqRacDacRequest.map(racDacReq => WorkItemRequest(psaId, racDacReq, RacDacHeaders(hc(request))))
+    val racDacRequests = seqRacDacRequest.map(racDacReq => WorkItemRequest(psaId, racDacReq, RacDacHeaders(hc)))
     Thread.sleep(20000)
     val queueRequest = service.enqueue(racDacRequests).map {
       case true => Accepted
@@ -69,14 +71,20 @@ class BulkRacDacController @Inject()(
         case ServiceUnavailable =>
           auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(psaId, 0, serviceUnavailable))(implicitly, executionContext)
       }
-      repository.save(sessionId, Json.obj("status" -> result.header.status))(executionContext).map(_ => result)(executionContext)
+      repository.save(sessionId, Json.obj("status" -> result.header.status))(executionContext)
+        .map(_ => result)(executionContext)
+        .map{ status =>
+          sendEmail(psaId)(request, hc, executionContext)
+          status
+        }(executionContext)
     }(executionContext)
   }
 
   def migrateAllRacDac: Action[AnyContent] = Action.async {
     implicit request =>
       authUtil.doAuth { _ =>
-        HeaderCarrierConverter.fromRequest(request).sessionId match {
+        val hc = HeaderCarrierConverter.fromRequest(request)
+        hc.sessionId match {
           case Some(SessionId(sessionId)) =>
             val optionPsaId = request.headers.get("psaId")
             val feJson = request.body.asJson
@@ -89,7 +97,7 @@ class BulkRacDacController @Inject()(
                   jsValue.validate[Seq[RacDacRequest]] match {
                     case JsSuccess(seqRacDacRequest, _) =>
                       repository.remove(sessionId)(bulkRacDacExecutionContext).flatMap { _ =>
-                        putAllItemsOnQueue(sessionId, psaId, seqRacDacRequest)(implicitly, bulkRacDacExecutionContext)
+                        putAllItemsOnQueue(sessionId, psaId, seqRacDacRequest)(implicitly, implicitly, bulkRacDacExecutionContext)
                       }(bulkRacDacExecutionContext)
                     case JsError(_) =>
                       val error = new BadRequestException(s"Invalid request received from frontend for rac dac migration")
@@ -112,6 +120,35 @@ class BulkRacDacController @Inject()(
         }
       }
   }
+
+    private def sendEmail(psaId: String)(implicit requestHeader: RequestHeader,
+                                         headerCarrier: HeaderCarrier, executionContext: ExecutionContext): Future[EmailStatus] = {
+      logger.debug(s"Sending bulk migration email for $psaId")
+      val transformExceptionss: PartialFunction[Throwable, Future[EmailStatus]] = {
+        case _: Throwable => Future.successful(EmailNotSent)
+      }
+      minimalDetailsConnector.getPSADetails(psaId)(headerCarrier, executionContext).flatMap{ minPsa =>
+        val x = emailConnector.sendEmail(
+          emailAddress = minPsa.email,
+          templateName = appConfig.bulkMigrationConfirmationEmailTemplateId,
+          params = Map("psaName" -> minPsa.name),
+          callbackUrl(psaId)
+        )(headerCarrier, executionContext) recoverWith(transformExceptionss)
+
+          x.map{ status =>
+          auditService.sendEvent(
+            EmailRequestAuditEvent(psaId, RACDAC_BULK_MIG, minPsa.email, pstrId="")
+          )(requestHeader, executionContext)
+          status
+        }(executionContext)
+      }(executionContext)
+    }
+
+    private def callbackUrl(psaId: String):String = {
+//      val encryptedPsa = URLEncoder.encode(crypto.QueryParameterCrypto.encrypt(PlainText(psaId)).value, StandardCharsets.UTF_8.toString)
+//      s"${appConfig.migrationUrl}/pensions-scheme-migration/email-response/${RACDAC_BULK_MIG}/$encryptedPsa"
+      ""
+    }
 
   def isRequestSubmitted: Action[AnyContent] = Action.async {
     implicit request => {
