@@ -32,8 +32,16 @@ import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http._
 import utils.AuthUtil
 
+import akka.actor.ActorSystem
+/* import akka.testkit.{ ImplicitSender, TestActors, TestKit } */
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.{ExecutionContext, Future}
+
+/*with TestKit(ActorSystem("MySpec"))*/
 
 class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfter with PatienceConfiguration {
   private val actorSystem = ActorSystem.create("testActorSystem")

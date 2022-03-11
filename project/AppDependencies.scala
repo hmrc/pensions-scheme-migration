@@ -16,6 +16,8 @@ object AppDependencies {
     ehcache
   )
 
+  val AkkaVersion = "2.6.10"
+
   val test = Seq(
     "uk.gov.hmrc"             %% "bootstrap-test-play-28"   % "5.20.0"   % Test,
     "com.typesafe.play"       %% "play-test"                % current   % Test,
@@ -27,8 +29,7 @@ object AppDependencies {
     "org.scalacheck"          %% "scalacheck"               % "1.14.0"  % "test",
     "org.pegdown"             %  "pegdown"                  % "1.6.0"   % "test, it",
     "com.github.tomakehurst"  %  "wiremock-jre8"            % "2.26.0"  % "test",
-    "uk.gov.hmrc"            %% "reactivemongo-test"         % "5.0.0-play-28" % "test"
-
-
+    "uk.gov.hmrc"            %% "reactivemongo-test"         % "5.0.0-play-28" % "test",
+    "com.typesafe.akka"      %% "akka-testkit"              % AkkaVersion % Test
   )
 }
