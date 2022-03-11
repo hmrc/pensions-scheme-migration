@@ -69,6 +69,20 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
       HeaderNames.xSessionId -> "123").withJsonBody(Json.parse(jsValue))
 
     "return ACCEPTED if all the rac dac requests are successfully pushed to the queue and check the audit event" in {
+      /*
+        CountDownLatch startSignal = new CountDownLatch(1);
+     CountDownLatch doneSignal = new CountDownLatch(N);
+
+     for (int i = 0; i < N; ++i) // create and start threads
+       new Thread(new Worker(startSignal, doneSignal)).start();
+
+     doSomethingElse();            // don't let run yet
+     startSignal.countDown();      // let all threads proceed
+     doSomethingElse();
+     doneSignal.await();           // wait for all to finish
+       */
+
+
       val captor = ArgumentCaptor.forClass(classOf[RacDacBulkMigrationTriggerAuditEvent])
       doNothing.when(mockAuditService).sendEvent(captor.capture())(any(), any())
       when(racDacBulkSubmissionService.enqueue(any())).thenReturn(Future.successful(true))
@@ -76,7 +90,7 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
       ScalaFutures.whenReady(result) { _ =>
         status(result) mustBe OK
         val actorEC: ExecutionContext = actorSystem.dispatchers.lookup(id = "racDacWorkItem")
-
+        actorEC
 
         verify(racDacBulkSubmissionService, times(1)).enqueue(any())
       }

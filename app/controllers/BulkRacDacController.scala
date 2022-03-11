@@ -57,6 +57,7 @@ class BulkRacDacController @Inject()(
     implicit request: RequestHeader, executionContext: ExecutionContext): Future[Status] = {
     val totalResults = seqRacDacRequest.size
     val racDacRequests = seqRacDacRequest.map(racDacReq => WorkItemRequest(psaId, racDacReq, RacDacHeaders(hc(request))))
+    Thread.sleep(20000)
     val queueRequest = service.enqueue(racDacRequests).map {
       case true => Accepted
       case false => ServiceUnavailable
