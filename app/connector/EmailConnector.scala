@@ -46,7 +46,7 @@ class EmailConnectorImpl @Inject()(
                                     config: AppConfig
                                   ) extends EmailConnector {
 
-  private val logger  = Logger(classOf[EmailConnectorImpl])
+  private val logger = Logger(classOf[EmailConnectorImpl])
 
   lazy val postUrl: String = s"${config.emailApiUrl}/hmrc/email"
 
@@ -60,7 +60,6 @@ class EmailConnectorImpl @Inject()(
       eventUrl = callbackUrl
     )
     val jsonData = Json.toJson(sendEmailReq)
-
     logger.debug(s"Data to email: $jsonData for email address $emailAddress")
 
     http.POST[JsValue, HttpResponse](postUrl, jsonData).map { response =>

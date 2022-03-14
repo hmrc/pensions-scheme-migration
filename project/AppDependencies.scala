@@ -16,20 +16,26 @@ object AppDependencies {
     ehcache
   )
 
-  val AkkaVersion = "2.6.10"
+  val AkkaVersion = "2.6.14"
 
   val test = Seq(
-    "uk.gov.hmrc"             %% "bootstrap-test-play-28"   % "5.20.0"   % Test,
-    "com.typesafe.play"       %% "play-test"                % current   % Test,
-    "com.vladsch.flexmark"    %  "flexmark-all"             % "0.36.8"  % "test, it",
-    "org.scalatestplus"       %% "scalatestplus-scalacheck" % "3.1.0.0-RC2"  % "test",
-    "org.mockito"             %  "mockito-core"              % "4.0.0" % "test",
-    "org.mockito"             %% "mockito-scala"            % "1.16.42"  % "test",
-    "org.mockito"             %% "mockito-scala-scalatest"  % "1.16.42"  % "test",
-    "org.scalacheck"          %% "scalacheck"               % "1.14.0"  % "test",
-    "org.pegdown"             %  "pegdown"                  % "1.6.0"   % "test, it",
-    "com.github.tomakehurst"  %  "wiremock-jre8"            % "2.26.0"  % "test",
-    "uk.gov.hmrc"            %% "reactivemongo-test"         % "5.0.0-play-28" % "test",
-    "com.typesafe.akka"      %% "akka-testkit"              % AkkaVersion % Test
+    "uk.gov.hmrc"             %% "bootstrap-test-play-28"       % "5.20.0"   % Test,
+    "com.typesafe.play"       %% "play-test"                    % current   % Test,
+    "com.vladsch.flexmark"    %  "flexmark-all"                 % "0.36.8"  % "test, it",
+    "org.scalatestplus"       %% "scalatestplus-scalacheck"     % "3.1.0.0-RC2"  % "test",
+    "org.mockito"             %  "mockito-core"                 % "4.0.0" % "test",
+    "org.mockito"             %% "mockito-scala"                % "1.16.42"  % "test",
+    "org.mockito"             %% "mockito-scala-scalatest"      % "1.16.42"  % "test",
+    "org.scalacheck"          %% "scalacheck"                   % "1.14.0"  % "test",
+    "org.pegdown"             %  "pegdown"                      % "1.6.0"   % "test, it",
+    "com.github.tomakehurst"  %  "wiremock-jre8"                % "2.26.0"  % "test",
+    "uk.gov.hmrc"             %% "reactivemongo-test"             % "5.0.0-play-28" % "test",
+    "com.typesafe.akka"       %% "akka-testkit"                 % AkkaVersion % Test,
+    "com.typesafe.akka"       %% "akka-actor-typed"             % AkkaVersion % Test,
+    "com.typesafe.akka"       %% "akka-actor"                   % AkkaVersion % Test,
+    "com.typesafe.akka"       %% "akka-protobuf-v3"             % AkkaVersion % Test,
+    "com.typesafe.akka"       %% "akka-serialization-jackson"   % AkkaVersion % Test,
+    "com.typesafe.akka"       %% "akka-slf4j" % AkkaVersion     % Test,
+    "com.typesafe.akka"       %% "akka-stream" % AkkaVersion    % Test
   )
 }

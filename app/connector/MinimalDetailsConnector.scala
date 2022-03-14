@@ -23,15 +23,14 @@ import models.MinPSA
 import play.api.Logger
 import play.api.http.Status._
 import play.api.libs.json.{JsError, JsResultException, JsSuccess, Json}
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
+import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpException, HttpResponse}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Try}
 
 @ImplementedBy(classOf[MinimalDetailsConnectorImpl])
 trait MinimalDetailsConnector {
-  def getPSADetails(psaId: String)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[MinPSA]
+  def getPSADetails(psaId: String)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Either[HttpException, MinPSA]]
 }
 
 @Singleton
@@ -40,27 +39,30 @@ class MinimalDetailsConnectorImpl @Inject()(http: HttpClient, config: AppConfig)
 
   private val logger = Logger(classOf[MinimalDetailsConnectorImpl])
 
-  private def logExceptions: PartialFunction[Try[MinPSA], Unit] = {
-    case Failure(t: Throwable) => logger.error(s"Unable to retrieve details for PSA", t)
-  }
-
-
   private val delimitedErrorMsg: String = "DELIMITED_PSAID"
 
-  def getPSADetails(psaId: String)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[MinPSA] =
-    http.GET[HttpResponse](config.getPSAMinDetails)(implicitly, hc.withExtraHeaders("psaId" -> psaId), implicitly) map { response =>
-      response.status match {
-        case OK =>
-          Json.parse(response.body).validate[MinPSA] match {
-            case JsSuccess(value, _) => value
-            case JsError(errors) => throw JsResultException(errors)
-          }
-        case FORBIDDEN if response.body.contains(delimitedErrorMsg) => throw new DelimitedAdminException
-        case _ => handleErrorResponse("GET", config.getPSAMinDetails, response)
-      }
+  def getPSADetails(psaId: String)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Either[HttpException, MinPSA]] = {
+    val url = config.getPSAMinDetails
+    http.GET[HttpResponse](url)(implicitly, hc.withExtraHeaders("psaId" -> psaId), implicitly).map { response =>
+      handleSchemeDetailsResponse(response, url)
+    }
+  }
 
-    } //andThen logExceptions
+  private def handleSchemeDetailsResponse(response: HttpResponse, url: String): Either[HttpException, MinPSA] = {
+    logger.debug(s"Get-Psa-details-response - ${response.json}")
+    response.status match {
+      case OK =>
+        Json.parse(response.body).validate[MinPSA] match {
+          case JsSuccess(value, _) => Right(value)
+          case JsError(errors) => throw JsResultException(errors)
+        }
+      case FORBIDDEN if response.body.contains(delimitedErrorMsg) => throw new DelimitedAdminException
+      case _ =>
+        Left(handleErrorResponse("GET", url, response))
+    }
+  }
 }
+
 
 class DelimitedAdminException extends
   Exception("The administrator has already de-registered. The minimal details API has returned a DELIMITED PSA response")

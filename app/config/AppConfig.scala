@@ -32,6 +32,8 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig)
   val auditingEnabled: Boolean = config.get[Boolean]("auditing.enabled")
   val graphiteHost: String     = config.get[String]("microservice.metrics.graphite.host")
 
+  lazy val baseUrlPensionsSchemeMigration: String = servicesConfig.baseUrl("pensions-scheme-migration")
+
   lazy val authorization: String = "Bearer " + config.getOptional[String]("microservice.services.des-hod.authorizationToken").getOrElse("local")
 
   lazy val integrationframeworkEnvironment: String = config.getOptional[String](
