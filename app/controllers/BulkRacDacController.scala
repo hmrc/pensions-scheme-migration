@@ -74,7 +74,6 @@ class BulkRacDacController @Inject()(appConfig: AppConfig,
           logger.warn("Unable to add messages to queue: service unavailable")
           Future.successful(r)
       }
-      // TODO: What if queue request successful but email not sent???? Ask Sam
       futureEmailResult.flatMap { _ =>
         repository.save(sessionId, Json.obj("status" -> result.header.status))(executionContext)
           .map { _ => result }(executionContext)
