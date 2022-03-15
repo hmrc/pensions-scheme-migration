@@ -49,7 +49,7 @@ class SchemeDetailsTransformer @Inject()(
   val aboutMembershipReads: Reads[JsObject] = (__ \ 'currentSchemeMembers).readNullable[String].flatMap {
     _.flatMap {
       SchemeMembers.nameWithValue(_).map { member =>
-        (__ \ 'currentMembers).json.put(
+        (__ \ 'futureMembers).json.put(
           JsString(member)
         )
       }

@@ -94,9 +94,9 @@
   },
   "occupationalPensionScheme": true,
   "schemeName": "QROPS Rejected",
+  "futureMembers": "opt2",
   "securedBenefits": false,
   "relationshipStartDate": "2017-04-06",
-  "currentMembers": "opt2",
   "investmentRegulated": true,
   "schemeOpenDate": "2017-04-06",
   "trustees": [
