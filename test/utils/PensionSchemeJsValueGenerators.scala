@@ -232,7 +232,7 @@ trait PensionSchemeJsValueGenerators extends PensionSchemeGenerators {
         "schemeName" -> schemeName,
         "schemeType" -> Json.obj("name" -> SchemeType.nameWithValue(pensionSchemeStructure.getOrElse("other"))),
         "schemeEstablishedCountry" -> schemeEstablishedCode,
-        "futureMembers" -> SchemeMembers.nameWithValue(currentSchemeMembers),
+        "futureMembers" -> SchemeMembers.tppsNameWithValue(currentSchemeMembers),
         "investmentRegulated" -> isRegulatedSchemeInvestment,
         "occupationalPensionScheme" -> isOccupationalPensionScheme,
         "securedBenefits" -> isSchemeBenefitsInsuranceCompany,
