@@ -64,10 +64,10 @@ trait PensionSchemeGenerators {
 
   val memberGen: Gen[String] = Gen.oneOf(Seq("0",
     "1",
-    "2 to 11",
-    "12 to 50",
-    "51 to 10,000",
-    "More than 10,000"))
+    "2-11",
+    "12-50",
+    "51-10000",
+    "10001+"))
 
   val schemeTypeGen: Gen[Option[String]] = Gen.option(Gen.oneOf(Seq("single",
     "grouplife-deathinservice",
