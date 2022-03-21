@@ -19,8 +19,8 @@ package services
 import models.FeatureToggle._
 import models.FeatureToggleName.{ListOfLegacyScheme, MigrationTransfer}
 import models._
-import repositories.AdminDataRepository
 import play.api.cache.AsyncCacheApi
+import repositories.AdminDataRepository
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.duration.{Duration, FiniteDuration, SECONDS => Seconds}
