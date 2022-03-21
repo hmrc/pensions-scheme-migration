@@ -32,6 +32,8 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig)
   val auditingEnabled: Boolean = config.get[Boolean]("auditing.enabled")
   val graphiteHost: String     = config.get[String]("microservice.metrics.graphite.host")
 
+  lazy val baseUrlPensionsSchemeMigration: String = servicesConfig.baseUrl("pensions-scheme-migration")
+
   lazy val authorization: String = "Bearer " + config.getOptional[String]("microservice.services.des-hod.authorizationToken").getOrElse("local")
 
   lazy val integrationframeworkEnvironment: String = config.getOptional[String](
@@ -42,4 +44,9 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig)
   lazy val legacySchemeDetailsUrl: String = s"$ifURL${config.get[String]("serviceUrls.if.legacy.scheme.details")}"
   lazy val schemeRegistrationIFUrl: String = s"$ifURL${config.get[String]("serviceUrls.if.scheme.register")}"
   lazy val locationCanonicalList: String = loadConfig("location.canonical.list.all")
+  lazy val pensionsAdministratorUrl = s"${servicesConfig.baseUrl("pension-administrator")}"
+  lazy val bulkMigrationConfirmationEmailTemplateId: String = loadConfig("email.bulkMigrationConfirmationTemplateId")
+  lazy val emailApiUrl: String = s"${servicesConfig.baseUrl("email")}"
+  lazy val emailSendForce: Boolean = config.getOptional[Boolean]("email.force").getOrElse(false)
+  lazy val getPSAMinDetails: String = s"$pensionsAdministratorUrl${config.get[String]("urls.get-psa-min-details")}"
 }

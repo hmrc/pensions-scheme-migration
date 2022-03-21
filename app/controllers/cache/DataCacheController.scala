@@ -78,3 +78,5 @@ case object MissingHeadersException extends BadRequestException("Missing pstr fr
 
 case class CredIdNotFoundFromAuth(msg: String = "Not Authorised - Unable to retrieve credentials - externalId")
   extends UnauthorizedException(msg)
+
+

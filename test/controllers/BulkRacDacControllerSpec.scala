@@ -16,15 +16,21 @@
 
 package controllers
 
-import audit.{AuditService, RacDacBulkMigrationTriggerAuditEvent}
+import akka.actor.ActorSystem
+import audit.{AuditService, EmailRequestAuditEvent, RacDacBulkMigrationTriggerAuditEvent}
 import base.SpecBase
+import config.AppConfig
+import connector.{EmailConnector, EmailNotSent, EmailSent, MinimalDetailsConnector}
+import models.enumeration.JourneyType.RACDAC_BULK_MIG
+import models.{IndividualDetails, MinPSA}
 import org.mockito.ArgumentMatchers.any
-import org.mockito.{ArgumentCaptor, MockitoSugar}
+import org.mockito.{ArgumentCaptor, ArgumentMatchers, MockitoSugar}
 import org.scalatest.BeforeAndAfter
-import org.scalatest.concurrent.{PatienceConfiguration, ScalaFutures}
-import play.api.libs.json.{JsBoolean, Json}
+import org.scalatest.concurrent.{Eventually, PatienceConfiguration, ScalaFutures}
+import play.api.libs.json.{JsBoolean, JsValue, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import repositories.RacDacRequestsQueueEventsLogRepository
 import service.RacDacBulkSubmissionService
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http._
@@ -33,78 +39,273 @@ import utils.AuthUtil
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfter with PatienceConfiguration {
-
+class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfter with PatienceConfiguration with Eventually {
+  private val actorSystem = ActorSystem.create("testActorSystem")
+  private val mockAppConfig = mock[AppConfig]
+  private val mockRacDacRequestsQueueEventsLogRepository = mock[RacDacRequestsQueueEventsLogRepository]
   private val mockAuditService = mock[AuditService]
-  private val racDacBulkSubmissionService: RacDacBulkSubmissionService = mock[RacDacBulkSubmissionService]
+  private val mockRacDacBulkSubmissionService: RacDacBulkSubmissionService = mock[RacDacBulkSubmissionService]
   private val mockAuthConnector: AuthConnector = mock[AuthConnector]
+  private val mockEmailConnector: EmailConnector = mock[EmailConnector]
+  private val mockMinimalDetailsConnector: MinimalDetailsConnector = mock[MinimalDetailsConnector]
   private val authUtil = new AuthUtil(mockAuthConnector, stubControllerComponents())
-  private val bulkRacDacController = new BulkRacDacController(stubControllerComponents(), racDacBulkSubmissionService, mockAuditService, authUtil)
+  private val baseUrl = "/dummy-base-url"
+  private val sessionId = "12345678"
+  private val emailTemplate = "dummyTemplate"
+  private val psaId = "A2000001"
+  private val minPsa = MinPSA(
+    email = "a@a.c",
+    isPsaSuspended = false,
+    organisationName = None,
+    individualDetails = Some(IndividualDetails("Bill", None, "Bloggs")),
+    rlsFlag = false,
+    deceasedFlag = false)
+
+  private val bulkRacDacController = new BulkRacDacController(
+    mockAppConfig,
+    stubControllerComponents(),
+    mockRacDacBulkSubmissionService,
+    mockAuditService,
+    authUtil,
+    mockRacDacRequestsQueueEventsLogRepository,
+    actorSystem,
+    mockEmailConnector,
+    mockMinimalDetailsConnector,
+    crypto
+  )
 
   before {
-    reset(racDacBulkSubmissionService, mockAuthConnector)
+    reset(
+      mockAppConfig,
+      mockRacDacBulkSubmissionService, mockAuditService, mockAuthConnector,
+      mockRacDacRequestsQueueEventsLogRepository, mockEmailConnector, mockMinimalDetailsConnector
+    )
+    when(mockAppConfig.bulkMigrationConfirmationEmailTemplateId).thenReturn(emailTemplate)
+    when(mockAppConfig.baseUrlPensionsSchemeMigration).thenReturn(baseUrl)
     when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any()))
       .thenReturn(Future.successful(Some("Ext-137d03b9-d807-4283-a254-fb6c30aceef1")))
+    when(mockRacDacRequestsQueueEventsLogRepository.save(any(), any())(any()))
+      .thenReturn(Future.successful(true))
+    when(mockRacDacRequestsQueueEventsLogRepository.remove(any())(any()))
+      .thenReturn(Future.successful(true))
+    when(mockEmailConnector.sendEmail(any(), any(), any(), any())(any(), any())).thenReturn(Future.successful(EmailSent))
+    when(mockMinimalDetailsConnector.getPSADetails(any())(any(), any()))
+      .thenReturn(Future.successful(Right(minPsa)))
   }
 
   "migrateAllRacDac" must {
     val jsValue =
       """[{"schemeName":"paul qqq","policyNumber":"24101975","pstr":"00615269RH"
         ,"declarationDate":"2012-02-20","schemeOpenDate":"2020-01-01"}]""".stripMargin
-    val fakeRequest = FakeRequest("POST", "/").withHeaders(("psaId", "A2000001")).withJsonBody(Json.parse(jsValue))
+    val fakeRequest = FakeRequest("POST", "/").withHeaders(("psaId", psaId),
+      HeaderNames.xSessionId -> sessionId).withJsonBody(Json.parse(jsValue))
 
-    "return ACCEPTED if all the rac dac requests are successfully pushed to the queue and check the audit event" in {
+    "return ACCEPTED, send audit event, email and email audit event if all the rac dac requests are successfully pushed to the queue" in {
       val captor = ArgumentCaptor.forClass(classOf[RacDacBulkMigrationTriggerAuditEvent])
       doNothing.when(mockAuditService).sendEvent(captor.capture())(any(), any())
-      when(racDacBulkSubmissionService.enqueue(any())).thenReturn(Future.successful(true))
-      val result = bulkRacDacController.migrateAllRacDac(fakeRequest)
+      when(mockRacDacBulkSubmissionService.enqueue(any())).thenReturn(Future.successful(true))
+
+      val result = bulkRacDacController.clearEventLogThenInitiateMigration(fakeRequest)
       ScalaFutures.whenReady(result) { _ =>
-        status(result) mustBe ACCEPTED
-        verify(racDacBulkSubmissionService, times(1)).enqueue(any())
+        status(result) mustBe OK
+        verify(mockRacDacRequestsQueueEventsLogRepository, times(1)).remove(any())(any())
+
+        eventually {
+          verify(mockRacDacBulkSubmissionService, times(1)).enqueue(any())
+          verify(mockAuditService, times(1))
+            .sendEvent(ArgumentMatchers.eq(RacDacBulkMigrationTriggerAuditEvent("A2000001", 1, "")))(any(), any())
+          verify(mockMinimalDetailsConnector, times(1)).getPSADetails(ArgumentMatchers.eq(psaId))(any(), any())
+          verify(mockEmailConnector, times(1))
+            .sendEmail(
+              emailAddress = ArgumentMatchers.eq(minPsa.email),
+              templateName = ArgumentMatchers.eq(emailTemplate),
+              params = ArgumentMatchers.eq(Map("psaName" -> minPsa.name)),
+              callbackUrl = ArgumentMatchers.startsWith(
+                s"$baseUrl/pensions-scheme-migration/email-response/RetirementOrDeferredAnnuityContractBulkMigration/"
+              )
+            )(any(), any())
+          verify(mockAuditService, times(1))
+            .sendEvent(ArgumentMatchers.eq(EmailRequestAuditEvent(psaId, RACDAC_BULK_MIG, minPsa.email, pstrId = "")))(any(), any())
+          val jsonCaptor: ArgumentCaptor[JsValue] = ArgumentCaptor.forClass(classOf[JsValue])
+          verify(mockRacDacRequestsQueueEventsLogRepository, times(1)).save(ArgumentMatchers.eq(sessionId), jsonCaptor.capture())(any())
+          jsonCaptor.getValue mustBe Json.obj("status" -> ACCEPTED)
+        }
       }
-      verify(mockAuditService, times(1)).sendEvent(any())(any(),any())
-      val expectedAuditEvent = RacDacBulkMigrationTriggerAuditEvent("A2000001", 1, "")
-      captor.getValue mustBe expectedAuditEvent
     }
 
-    "return SERVICE UNAVAILABLE if all the rac dac requests are failed to push to the queue and check the audit event" in {
+    "return ACCEPTED, send audit event but no email audit event if all the rac dac requests are successfully pushed to the " +
+      "queue but min details call fails" in {
       val captor = ArgumentCaptor.forClass(classOf[RacDacBulkMigrationTriggerAuditEvent])
       doNothing.when(mockAuditService).sendEvent(captor.capture())(any(), any())
-      when(racDacBulkSubmissionService.enqueue(any())).thenReturn(Future.successful(false))
-      val result = bulkRacDacController.migrateAllRacDac(fakeRequest)
+      when(mockRacDacBulkSubmissionService.enqueue(any())).thenReturn(Future.successful(true))
+
+      when(mockMinimalDetailsConnector.getPSADetails(any())(any(), any()))
+        .thenReturn(Future.successful(Left(new HttpException("test", INTERNAL_SERVER_ERROR))))
+
+      val result = bulkRacDacController.clearEventLogThenInitiateMigration(fakeRequest)
       ScalaFutures.whenReady(result) { _ =>
-        status(result) mustBe SERVICE_UNAVAILABLE
-        verify(racDacBulkSubmissionService, times(1)).enqueue(any())
+        status(result) mustBe OK
+        verify(mockRacDacRequestsQueueEventsLogRepository, times(1)).remove(any())(any())
+
+        eventually {
+          verify(mockRacDacBulkSubmissionService, times(1)).enqueue(any())
+          verify(mockAuditService, times(1))
+            .sendEvent(ArgumentMatchers.eq(RacDacBulkMigrationTriggerAuditEvent("A2000001", 1, "")))(any(), any())
+          verify(mockMinimalDetailsConnector, times(1)).getPSADetails(ArgumentMatchers.eq(psaId))(any(), any())
+          verify(mockEmailConnector, times(0))
+            .sendEmail(
+              emailAddress = ArgumentMatchers.eq(minPsa.email),
+              templateName = ArgumentMatchers.eq(emailTemplate),
+              params = ArgumentMatchers.eq(Map("psaName" -> minPsa.name)),
+              callbackUrl = ArgumentMatchers.startsWith(
+                s"$baseUrl/pensions-scheme-migration/email-response/RetirementOrDeferredAnnuityContractBulkMigration/"
+              )
+            )(any(), any())
+          verify(mockAuditService, times(0))
+            .sendEvent(ArgumentMatchers.eq(EmailRequestAuditEvent(psaId, RACDAC_BULK_MIG, minPsa.email, pstrId = "")))(any(), any())
+          val jsonCaptor: ArgumentCaptor[JsValue] = ArgumentCaptor.forClass(classOf[JsValue])
+          verify(mockRacDacRequestsQueueEventsLogRepository, times(1)).save(ArgumentMatchers.eq(sessionId), jsonCaptor.capture())(any())
+          jsonCaptor.getValue mustBe Json.obj("status" -> ACCEPTED)
+        }
       }
-      val expectedAuditEvent = RacDacBulkMigrationTriggerAuditEvent("A2000001", 0, "Queue Service Unavailable")
-      captor.getValue mustBe expectedAuditEvent
     }
 
-    "throw BadRequestException when PSAId is not present in the header and check the audit event" in {
+    "return ACCEPTED, send audit event but no email audit event if all the rac dac requests are successfully pushed to the " +
+      "queue but email not sent" in {
       val captor = ArgumentCaptor.forClass(classOf[RacDacBulkMigrationTriggerAuditEvent])
       doNothing.when(mockAuditService).sendEvent(captor.capture())(any(), any())
-      val result = bulkRacDacController.migrateAllRacDac(FakeRequest("GET", "/"))
+      when(mockRacDacBulkSubmissionService.enqueue(any())).thenReturn(Future.successful(true))
+
+      when(mockEmailConnector.sendEmail(any(), any(), any(), any())(any(), any())).thenReturn(Future.successful(EmailNotSent))
+
+      val result = bulkRacDacController.clearEventLogThenInitiateMigration(fakeRequest)
+      ScalaFutures.whenReady(result) { _ =>
+        status(result) mustBe OK
+        verify(mockRacDacRequestsQueueEventsLogRepository, times(1)).remove(any())(any())
+
+        eventually {
+          verify(mockRacDacBulkSubmissionService, times(1)).enqueue(any())
+          verify(mockAuditService, times(1))
+            .sendEvent(ArgumentMatchers.eq(RacDacBulkMigrationTriggerAuditEvent("A2000001", 1, "")))(any(), any())
+          verify(mockMinimalDetailsConnector, times(1)).getPSADetails(ArgumentMatchers.eq(psaId))(any(), any())
+          verify(mockEmailConnector, times(1))
+            .sendEmail(
+              emailAddress = ArgumentMatchers.eq(minPsa.email),
+              templateName = ArgumentMatchers.eq(emailTemplate),
+              params = ArgumentMatchers.eq(Map("psaName" -> minPsa.name)),
+              callbackUrl = ArgumentMatchers.startsWith(
+                s"$baseUrl/pensions-scheme-migration/email-response/RetirementOrDeferredAnnuityContractBulkMigration/"
+              )
+            )(any(), any())
+          verify(mockAuditService, times(0))
+            .sendEvent(ArgumentMatchers.eq(EmailRequestAuditEvent(psaId, RACDAC_BULK_MIG, minPsa.email, pstrId = "")))(any(), any())
+          val jsonCaptor: ArgumentCaptor[JsValue] = ArgumentCaptor.forClass(classOf[JsValue])
+          verify(mockRacDacRequestsQueueEventsLogRepository, times(1)).save(ArgumentMatchers.eq(sessionId), jsonCaptor.capture())(any())
+          jsonCaptor.getValue mustBe Json.obj("status" -> ACCEPTED)
+        }
+      }
+    }
+
+    "return ServiceUnavailable and send audit event if NOT all the rac dac requests are successfully pushed to the queue" in {
+      val captor = ArgumentCaptor.forClass(classOf[RacDacBulkMigrationTriggerAuditEvent])
+      doNothing.when(mockAuditService).sendEvent(captor.capture())(any(), any())
+      when(mockRacDacBulkSubmissionService.enqueue(any())).thenReturn(Future.successful(false))
+
+      val result = bulkRacDacController.clearEventLogThenInitiateMigration(fakeRequest)
+      ScalaFutures.whenReady(result) { _ =>
+        status(result) mustBe OK
+        verify(mockRacDacRequestsQueueEventsLogRepository, times(1)).remove(any())(any())
+
+        eventually {
+          verify(mockRacDacBulkSubmissionService, times(1)).enqueue(any())
+          verify(mockAuditService, times(1))
+            .sendEvent(ArgumentMatchers.eq(RacDacBulkMigrationTriggerAuditEvent("A2000001", 0, "Queue Service Unavailable")))(any(), any())
+          verify(mockMinimalDetailsConnector, times(0)).getPSADetails(ArgumentMatchers.eq(psaId))(any(), any())
+          verify(mockEmailConnector, times(0))
+            .sendEmail(
+              emailAddress = ArgumentMatchers.eq(minPsa.email),
+              templateName = ArgumentMatchers.eq(emailTemplate),
+              params = ArgumentMatchers.eq(Map("psaName" -> minPsa.name)),
+              callbackUrl = ArgumentMatchers.startsWith(
+                s"$baseUrl/pensions-scheme-migration/email-response/RetirementOrDeferredAnnuityContractBulkMigration/"
+              )
+            )(any(), any())
+          verify(mockAuditService, times(0))
+            .sendEvent(ArgumentMatchers.eq(EmailRequestAuditEvent(psaId, RACDAC_BULK_MIG, minPsa.email, pstrId = "")))(any(), any())
+          val jsonCaptor: ArgumentCaptor[JsValue] = ArgumentCaptor.forClass(classOf[JsValue])
+          verify(mockRacDacRequestsQueueEventsLogRepository, times(1)).save(ArgumentMatchers.eq(sessionId), jsonCaptor.capture())(any())
+          jsonCaptor.getValue mustBe Json.obj("status" -> SERVICE_UNAVAILABLE)
+        }
+      }
+    }
+
+    "throw BadRequestException and send audit event when PSAId is not present in the header" in {
+      val fakeRequest = FakeRequest("POST", "/").withHeaders(
+        HeaderNames.xSessionId -> sessionId).withJsonBody(Json.parse(jsValue)
+      )
+      val captor = ArgumentCaptor.forClass(classOf[RacDacBulkMigrationTriggerAuditEvent])
+      doNothing.when(mockAuditService).sendEvent(captor.capture())(any(), any())
+      when(mockRacDacBulkSubmissionService.enqueue(any())).thenReturn(Future.successful(false))
+
+      val result = bulkRacDacController.clearEventLogThenInitiateMigration(fakeRequest)
       ScalaFutures.whenReady(result.failed) { e =>
         e mustBe a[BadRequestException]
         e.getMessage mustBe "Missing Body or missing psaId in the header"
-        verify(racDacBulkSubmissionService, never).enqueue(any())
+        verify(mockRacDacRequestsQueueEventsLogRepository, times(0)).remove(any())(any())
+
+        verify(mockRacDacBulkSubmissionService, times(0)).enqueue(any())
+        verify(mockAuditService, times(1))
+          .sendEvent(ArgumentMatchers.eq(RacDacBulkMigrationTriggerAuditEvent("", 0, "Missing Body or missing psaId in the header")))(any(), any())
+        verify(mockMinimalDetailsConnector, times(0)).getPSADetails(ArgumentMatchers.eq(psaId))(any(), any())
+        verify(mockEmailConnector, times(0))
+          .sendEmail(
+            emailAddress = ArgumentMatchers.eq(minPsa.email),
+            templateName = ArgumentMatchers.eq(emailTemplate),
+            params = ArgumentMatchers.eq(Map("psaName" -> minPsa.name)),
+            callbackUrl = ArgumentMatchers.startsWith(
+              s"$baseUrl/pensions-scheme-migration/email-response/RetirementOrDeferredAnnuityContractBulkMigration/"
+            )
+          )(any(), any())
+        verify(mockAuditService, times(0))
+          .sendEvent(ArgumentMatchers.eq(EmailRequestAuditEvent(psaId, RACDAC_BULK_MIG, minPsa.email, pstrId = "")))(any(), any())
+        val jsonCaptor: ArgumentCaptor[JsValue] = ArgumentCaptor.forClass(classOf[JsValue])
+        verify(mockRacDacRequestsQueueEventsLogRepository, times(0)).save(ArgumentMatchers.eq(sessionId), jsonCaptor.capture())(any())
       }
-      val expectedAuditEvent = RacDacBulkMigrationTriggerAuditEvent("", 0, "Missing Body or missing psaId in the header")
-      captor.getValue mustBe expectedAuditEvent
     }
 
-    "throw BadRequestException when request is not valid and check the audit event" in {
+    "throw BadRequestException and send audit event when request is not valid" in {
+      val fakeRequest = FakeRequest("POST", "/").withHeaders(
+        "psaId" -> psaId,
+        HeaderNames.xSessionId -> sessionId
+      ).withJsonBody(Json.obj("invalid" -> "request"))
       val captor = ArgumentCaptor.forClass(classOf[RacDacBulkMigrationTriggerAuditEvent])
       doNothing.when(mockAuditService).sendEvent(captor.capture())(any(), any())
-      val result = bulkRacDacController.migrateAllRacDac(FakeRequest("POST", "/").withHeaders(("psaId", "A2000001")).
-        withJsonBody(Json.obj("invalid" -> "request")))
+      when(mockRacDacBulkSubmissionService.enqueue(any())).thenReturn(Future.successful(false))
+
+      val result = bulkRacDacController.clearEventLogThenInitiateMigration(fakeRequest)
       ScalaFutures.whenReady(result.failed) { e =>
         e mustBe a[BadRequestException]
         e.getMessage mustBe "Invalid request received from frontend for rac dac migration"
-        verify(racDacBulkSubmissionService, never).enqueue(any())
+        verify(mockRacDacRequestsQueueEventsLogRepository, times(0)).remove(any())(any())
+
+        verify(mockRacDacBulkSubmissionService, times(0)).enqueue(any())
+        verify(mockAuditService, times(1))
+          .sendEvent(ArgumentMatchers.eq(RacDacBulkMigrationTriggerAuditEvent(psaId, 0, "Invalid request received from frontend for rac dac migration")))(any(), any())
+        verify(mockMinimalDetailsConnector, times(0)).getPSADetails(ArgumentMatchers.eq(psaId))(any(), any())
+        verify(mockEmailConnector, times(0))
+          .sendEmail(
+            emailAddress = ArgumentMatchers.eq(minPsa.email),
+            templateName = ArgumentMatchers.eq(emailTemplate),
+            params = ArgumentMatchers.eq(Map("psaName" -> minPsa.name)),
+            callbackUrl = ArgumentMatchers.startsWith(
+              s"$baseUrl/pensions-scheme-migration/email-response/RetirementOrDeferredAnnuityContractBulkMigration/"
+            )
+          )(any(), any())
+        verify(mockAuditService, times(0))
+          .sendEvent(ArgumentMatchers.eq(EmailRequestAuditEvent(psaId, RACDAC_BULK_MIG, minPsa.email, pstrId = "")))(any(), any())
+        val jsonCaptor: ArgumentCaptor[JsValue] = ArgumentCaptor.forClass(classOf[JsValue])
+        verify(mockRacDacRequestsQueueEventsLogRepository, times(0)).save(ArgumentMatchers.eq(sessionId), jsonCaptor.capture())(any())
       }
-      val expectedAuditEvent = RacDacBulkMigrationTriggerAuditEvent("A2000001", 0, "Invalid request received from frontend for rac dac migration")
-      captor.getValue mustBe expectedAuditEvent
     }
   }
 
@@ -112,22 +313,22 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
     val fakeRequest = FakeRequest("GET", "/").withHeaders(("psaId", "A2000001"))
 
     "return OK with true if some request is in the queue" in {
-      when(racDacBulkSubmissionService.isRequestSubmitted(any())).thenReturn(Future.successful(Right(true)))
+      when(mockRacDacBulkSubmissionService.isRequestSubmitted(any())).thenReturn(Future.successful(Right(true)))
       val result = bulkRacDacController.isRequestSubmitted(fakeRequest)
       ScalaFutures.whenReady(result) { _ =>
         status(result) mustBe OK
         contentAsJson(result) mustEqual JsBoolean(true)
-        verify(racDacBulkSubmissionService, times(1)).isRequestSubmitted(any())
+        verify(mockRacDacBulkSubmissionService, times(1)).isRequestSubmitted(any())
       }
     }
 
     "return OK with false if no request is in the queue" in {
-      when(racDacBulkSubmissionService.isRequestSubmitted(any())).thenReturn(Future.successful(Right(false)))
+      when(mockRacDacBulkSubmissionService.isRequestSubmitted(any())).thenReturn(Future.successful(Right(false)))
       val result = bulkRacDacController.isRequestSubmitted(fakeRequest)
       ScalaFutures.whenReady(result) { _ =>
         status(result) mustBe OK
         contentAsJson(result) mustEqual JsBoolean(false)
-        verify(racDacBulkSubmissionService, times(1)).isRequestSubmitted(any())
+        verify(mockRacDacBulkSubmissionService, times(1)).isRequestSubmitted(any())
       }
     }
 
@@ -136,16 +337,16 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
       ScalaFutures.whenReady(result.failed) { e =>
         e mustBe a[BadRequestException]
         e.getMessage mustBe "Missing psaId in the header"
-        verify(racDacBulkSubmissionService, never).isRequestSubmitted(any())
+        verify(mockRacDacBulkSubmissionService, never).isRequestSubmitted(any())
       }
     }
 
     "return SERVICE UNAVAILABLE if there is an error occurred while querying" in {
-      when(racDacBulkSubmissionService.isRequestSubmitted(any())).thenReturn(Future.successful(Left(new Exception("message"))))
+      when(mockRacDacBulkSubmissionService.isRequestSubmitted(any())).thenReturn(Future.successful(Left(new Exception("message"))))
       val result = bulkRacDacController.isRequestSubmitted(fakeRequest)
       ScalaFutures.whenReady(result) { _ =>
         status(result) mustBe SERVICE_UNAVAILABLE
-        verify(racDacBulkSubmissionService, times(1)).isRequestSubmitted(any())
+        verify(mockRacDacBulkSubmissionService, times(1)).isRequestSubmitted(any())
       }
     }
   }
@@ -154,31 +355,31 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
     val fakeRequest = FakeRequest("GET", "/").withHeaders(("psaId", "A2000001"))
 
     "return No Content if there is no requests in the queue" in {
-      when(racDacBulkSubmissionService.isAllFailed(any())).thenReturn(Future.successful(Right(None)))
+      when(mockRacDacBulkSubmissionService.isAllFailed(any())).thenReturn(Future.successful(Right(None)))
       val result = bulkRacDacController.isAllFailed(fakeRequest)
       ScalaFutures.whenReady(result) { _ =>
         status(result) mustBe NO_CONTENT
-        verify(racDacBulkSubmissionService, times(1)).isAllFailed(any())
+        verify(mockRacDacBulkSubmissionService, times(1)).isAllFailed(any())
       }
     }
 
     "return OK with true if all requests in the queue is failed" in {
-      when(racDacBulkSubmissionService.isAllFailed(any())).thenReturn(Future.successful(Right(Some(true))))
+      when(mockRacDacBulkSubmissionService.isAllFailed(any())).thenReturn(Future.successful(Right(Some(true))))
       val result = bulkRacDacController.isAllFailed(fakeRequest)
       ScalaFutures.whenReady(result) { _ =>
         status(result) mustBe OK
         contentAsJson(result) mustEqual JsBoolean(true)
-        verify(racDacBulkSubmissionService, times(1)).isAllFailed(any())
+        verify(mockRacDacBulkSubmissionService, times(1)).isAllFailed(any())
       }
     }
 
     "return OK with false if some requests in the queue is not failed" in {
-      when(racDacBulkSubmissionService.isAllFailed(any())).thenReturn(Future.successful(Right(Some(false))))
+      when(mockRacDacBulkSubmissionService.isAllFailed(any())).thenReturn(Future.successful(Right(Some(false))))
       val result = bulkRacDacController.isAllFailed(fakeRequest)
       ScalaFutures.whenReady(result) { _ =>
         status(result) mustBe OK
         contentAsJson(result) mustEqual JsBoolean(false)
-        verify(racDacBulkSubmissionService, times(1)).isAllFailed(any())
+        verify(mockRacDacBulkSubmissionService, times(1)).isAllFailed(any())
       }
     }
 
@@ -187,16 +388,16 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
       ScalaFutures.whenReady(result.failed) { e =>
         e mustBe a[BadRequestException]
         e.getMessage mustBe "Missing psaId in the header"
-        verify(racDacBulkSubmissionService, never).isAllFailed(any())
+        verify(mockRacDacBulkSubmissionService, never).isAllFailed(any())
       }
     }
 
     "return SERVICE_UNAVAILABLE if there is an error occurred" in {
-      when(racDacBulkSubmissionService.isAllFailed(any())).thenReturn(Future.successful(Left(new Exception("message"))))
+      when(mockRacDacBulkSubmissionService.isAllFailed(any())).thenReturn(Future.successful(Left(new Exception("message"))))
       val result = bulkRacDacController.isAllFailed(fakeRequest)
       ScalaFutures.whenReady(result) { _ =>
         status(result) mustBe SERVICE_UNAVAILABLE
-        verify(racDacBulkSubmissionService, times(1)).isAllFailed(any())
+        verify(mockRacDacBulkSubmissionService, times(1)).isAllFailed(any())
       }
     }
   }
@@ -205,12 +406,12 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
     val fakeRequest = FakeRequest("DELETE", "/").withHeaders(("psaId", "A2000001"))
 
     "return OK with true if all requests in the queue is deleted" in {
-      when(racDacBulkSubmissionService.deleteAll(any())).thenReturn(Future.successful(Right(true)))
+      when(mockRacDacBulkSubmissionService.deleteAll(any())).thenReturn(Future.successful(Right(true)))
       val result = bulkRacDacController.deleteAll(fakeRequest)
       ScalaFutures.whenReady(result) { _ =>
         status(result) mustBe OK
         contentAsJson(result) mustEqual JsBoolean(true)
-        verify(racDacBulkSubmissionService, times(1)).deleteAll(any())
+        verify(mockRacDacBulkSubmissionService, times(1)).deleteAll(any())
       }
     }
 
@@ -219,16 +420,16 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
       ScalaFutures.whenReady(result.failed) { e =>
         e mustBe a[BadRequestException]
         e.getMessage mustBe "Missing psaId in the header"
-        verify(racDacBulkSubmissionService, never).deleteAll(any())
+        verify(mockRacDacBulkSubmissionService, never).deleteAll(any())
       }
     }
 
     "return SERVICE_UNAVAILABLE if there is an error occurred" in {
-      when(racDacBulkSubmissionService.deleteAll(any())).thenReturn(Future.successful(Left(new Exception("message"))))
+      when(mockRacDacBulkSubmissionService.deleteAll(any())).thenReturn(Future.successful(Left(new Exception("message"))))
       val result = bulkRacDacController.deleteAll(fakeRequest)
       ScalaFutures.whenReady(result) { _ =>
         status(result) mustBe SERVICE_UNAVAILABLE
-        verify(racDacBulkSubmissionService, times(1)).deleteAll(any())
+        verify(mockRacDacBulkSubmissionService, times(1)).deleteAll(any())
       }
     }
   }

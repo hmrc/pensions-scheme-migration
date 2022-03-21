@@ -1,31 +1,33 @@
 # microservice specific routes
 
-GET           /lock                                 controllers.cache.LockCacheController.getLock
-POST          /lock                                 controllers.cache.LockCacheController.lock
-DELETE        /lock                                 controllers.cache.LockCacheController.removeLock()
+GET           /lock                                         controllers.cache.LockCacheController.getLock
+POST          /lock                                         controllers.cache.LockCacheController.lock
+DELETE        /lock                                         controllers.cache.LockCacheController.removeLock()
 
-GET           /lock-by-user                         controllers.cache.LockCacheController.getLockByUser
-DELETE        /lock-by-user                         controllers.cache.LockCacheController.removeLockByUser()
-GET           /lock-on-scheme                       controllers.cache.LockCacheController.getLockOnScheme
-DELETE        /lock-on-scheme                       controllers.cache.LockCacheController.removeLockOnScheme()
+GET           /lock-by-user                                 controllers.cache.LockCacheController.getLockByUser
+DELETE        /lock-by-user                                 controllers.cache.LockCacheController.removeLockByUser()
+GET           /lock-on-scheme                               controllers.cache.LockCacheController.getLockOnScheme
+DELETE        /lock-on-scheme                               controllers.cache.LockCacheController.removeLockOnScheme()
 
-GET           /migration-data                       controllers.cache.DataCacheController.get
-POST          /migration-data                       controllers.cache.DataCacheController.save
-DELETE        /migration-data                       controllers.cache.DataCacheController.remove
+GET           /migration-data                               controllers.cache.DataCacheController.get
+POST          /migration-data                               controllers.cache.DataCacheController.save
+DELETE        /migration-data                               controllers.cache.DataCacheController.remove
 
-GET           /scheme-data                          controllers.cache.SchemeDataCacheController.get
-POST          /scheme-data                          controllers.cache.SchemeDataCacheController.save
-DELETE        /scheme-data                          controllers.cache.SchemeDataCacheController.remove
+GET           /bulk-migration-events-log-status             controllers.cache.RacDacRequestsQueueEventsLogController.getStatus
 
-GET           /list-of-schemes                      controllers.SchemeController.listOfLegacySchemes
-DELETE        /list-of-schemes-remove-cache         controllers.SchemeController.removeListOfLegacySchemesCache
-POST          /register-scheme/:migrationType       controllers.SchemeController.registerScheme(migrationType: MigrationType)
-GET           /getLegacySchemeDetails               controllers.LegacySchemeDetailsController.getLegacySchemeDetails
+GET           /scheme-data                                  controllers.cache.SchemeDataCacheController.get
+POST          /scheme-data                                  controllers.cache.SchemeDataCacheController.save
+DELETE        /scheme-data                                  controllers.cache.SchemeDataCacheController.remove
 
-POST          /bulk-migration                       controllers.BulkRacDacController.migrateAllRacDac
-GET           /bulk-migration/isRequestInProgress    controllers.BulkRacDacController.isRequestSubmitted
-GET           /bulk-migration/isAllFailed           controllers.BulkRacDacController.isAllFailed
-DELETE        /bulk-migration/deleteAll             controllers.BulkRacDacController.deleteAll
+GET           /list-of-schemes                              controllers.SchemeController.listOfLegacySchemes
+DELETE        /list-of-schemes-remove-cache                 controllers.SchemeController.removeListOfLegacySchemesCache
+POST          /register-scheme/:migrationType               controllers.SchemeController.registerScheme(migrationType: MigrationType)
+GET           /getLegacySchemeDetails                       controllers.LegacySchemeDetailsController.getLegacySchemeDetails
+
+POST          /bulk-migration                               controllers.BulkRacDacController.clearEventLogThenInitiateMigration
+GET           /bulk-migration/isRequestInProgress            controllers.BulkRacDacController.isRequestSubmitted
+GET           /bulk-migration/isAllFailed                   controllers.BulkRacDacController.isAllFailed
+DELETE        /bulk-migration/deleteAll                     controllers.BulkRacDacController.deleteAll
 
 POST          /email-response/:journeyType/:encryptedPsaId/:encryptedPstrId     controllers.EmailResponseController.retrieveStatus(journeyType: JourneyType.Name, encryptedPsaId: String, encryptedPstrId: String)
 POST          /email-response/:journeyType/:encryptedPsaId     controllers.EmailResponseController.retrieveStatusPsa(journeyType: JourneyType.Name, encryptedPsaId: String)
