@@ -92,7 +92,7 @@ trait JsonTransformer {
     (__ \ "payeReference").readNullable[String].flatMap {
       case Some(payeReference) if !payeReference.equals("") =>
       (__ \ 'havePaye).json.put(JsBoolean(true)) and
-        (__ \ 'paye\ 'value).json.put(JsString(payeReference)) reduce
+        (__ \ 'paye\ 'value).json.put(JsString(payeReference.replaceAll("/", ""))) reduce
       case _ =>
         (__ \ 'havePaye).json.put(JsBoolean(false))
     } orElse doNothing
