@@ -42,7 +42,7 @@
       "email": "bbb@gmail.com"
     },
     {
-      "havePaye": false,
+      "havePaye": true,
       "haveCompanyNumber": false,
       "address": {
         "postcode": "",
@@ -58,6 +58,9 @@
       "establisherKind": "company",
       "noCompanyNumberReason": "fsdfdsf",
       "haveVat": false,
+      "paye": {
+        "value": "1234567"
+      },
       "email": "sdf@sdf"
     },
     {
