@@ -56,11 +56,11 @@
       },
       "phone": "23234",
       "establisherKind": "company",
-      "noCompanyNumberReason": "fsdfdsf",
-      "haveVat": false,
       "paye": {
         "value": "1234567"
       },
+      "noCompanyNumberReason": "fsdfdsf",
+      "haveVat": false,
       "email": "sdf@sdf"
     },
     {
