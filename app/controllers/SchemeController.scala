@@ -19,8 +19,6 @@ package controllers
 import com.google.inject.Inject
 import connector.SchemeConnector
 import connector.utils.HttpResponseHelper
-import models.FeatureToggle.Enabled
-import models.FeatureToggleName.ListOfLegacyScheme
 import models.MigrationType.isRacDac
 import models.{ListOfLegacySchemes, MigrationType}
 import play.api.Logger
@@ -28,7 +26,6 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc._
 import repositories.ListOfLegacySchemesCacheRepository
 import service.PensionSchemeService
-import services.FeatureToggleService
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import utils.AuthUtil
@@ -39,7 +36,6 @@ import scala.concurrent.{ExecutionContext, Future}
 class SchemeController @Inject()(
                                   schemeConnector: SchemeConnector,
                                   pensionSchemeService: PensionSchemeService,
-                                  featureToggleService: FeatureToggleService,
                                   listOfLegacySchemesCacheRepository: ListOfLegacySchemesCacheRepository,
                                   cc: ControllerComponents,
                                   authUtil: AuthUtil
@@ -103,14 +99,10 @@ class SchemeController @Inject()(
 
   private def getListOfLegacySchemes(psaId: String)(
     implicit hc: HeaderCarrier, request: RequestHeader): Future[Either[HttpException, JsValue]] = {
-    featureToggleService.get(ListOfLegacyScheme).flatMap {
-      case Enabled(_) =>
-        listOfLegacySchemesCacheRepository.get(psaId).flatMap {
-          case Some(response) =>
-            Future.successful(Right(response))
-          case _ => getAndCacheListOfLegacySchemes(psaId)
-        }
-      case _ => schemeConnector.listOfLegacySchemes(psaId)
+    listOfLegacySchemesCacheRepository.get(psaId).flatMap {
+      case Some(response) =>
+        Future.successful(Right(response))
+      case _ => getAndCacheListOfLegacySchemes(psaId)
     }
 
   }

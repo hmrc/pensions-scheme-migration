@@ -17,7 +17,7 @@
 package services
 
 import models.FeatureToggle._
-import models.FeatureToggleName.{ListOfLegacyScheme, MigrationTransfer}
+import models.FeatureToggleName.DummyToggle
 import models._
 import play.api.cache.AsyncCacheApi
 import repositories.AdminDataRepository
@@ -34,8 +34,7 @@ class FeatureToggleService @Inject()(
   private val cacheValidFor: FiniteDuration = Duration(2, Seconds)
 
   private val defaults: Seq[FeatureToggle] = Seq(
-    Disabled(MigrationTransfer),
-    Disabled(ListOfLegacyScheme)
+    Disabled(DummyToggle)
   )
 
   private def addDefaults(fromDb: Seq[FeatureToggle]): Seq[FeatureToggle] = {

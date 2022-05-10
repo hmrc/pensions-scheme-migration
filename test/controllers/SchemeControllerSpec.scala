@@ -19,8 +19,6 @@ package controllers
 import base.SpecBase
 import connector.LegacySchemeDetailsConnectorSpec.readJsonFromFile
 import connector.SchemeConnector
-import models.FeatureToggle.{Disabled, Enabled}
-import models.FeatureToggleName.ListOfLegacyScheme
 import models.Scheme
 import org.mockito.ArgumentMatchers.{any, eq => meq}
 import org.mockito.MockitoSugar
@@ -32,7 +30,6 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import repositories.ListOfLegacySchemesCacheRepository
 import service.PensionSchemeService
-import services.FeatureToggleService
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http._
 import utils.AuthUtil
@@ -50,14 +47,12 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
   val mockSchemeConnector: SchemeConnector = mock[SchemeConnector]
   val mockPensionSchemeService: PensionSchemeService = mock[PensionSchemeService]
   val mockListOfLegacySchemesCacheRepository: ListOfLegacySchemesCacheRepository = mock[ListOfLegacySchemesCacheRepository]
-  val mockFeatureToggleService: FeatureToggleService = mock[FeatureToggleService]
-  val schemeController = new SchemeController(mockSchemeConnector, mockPensionSchemeService, mockFeatureToggleService,
+  val schemeController = new SchemeController(mockSchemeConnector, mockPensionSchemeService,
     mockListOfLegacySchemesCacheRepository, stubControllerComponents(), authUtil)
 
   before {
     reset(mockSchemeConnector, mockAuthConnector)
     reset(mockPensionSchemeService)
-    reset(mockFeatureToggleService)
     reset(mockListOfLegacySchemesCacheRepository)
     when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any()))
       .thenReturn(Future.successful(Some("Ext-137d03b9-d807-4283-a254-fb6c30aceef1")))
@@ -66,27 +61,12 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
   "list of legacy schemes" must {
     val fakeRequest = FakeRequest("GET", "/").withHeaders(("psaId", "A2000001"))
 
-    "return OK with list of schemes for PSA when If/ETMP returns it successfully" in {
-      when(mockFeatureToggleService.get(any()))
-        .thenReturn(Future.successful(Disabled(ListOfLegacyScheme)))
-      when(mockSchemeConnector.listOfLegacySchemes(meq("A2000001"))(any(), any(), any()))
-        .thenReturn(Future.successful(Right(validResponse)))
-      val result = schemeController.listOfLegacySchemes(fakeRequest)
-      ScalaFutures.whenReady(result) { _ =>
-        status(result) mustBe OK
-        contentAsJson(result) mustEqual transformedResponse
-        verify(mockSchemeConnector, times(1)).listOfLegacySchemes(any())(any(), any(), any())
-      }
-    }
-
-    "return OK with list of schemes for PSA when toggle enabled and cache has not value exists " in {
-      when(mockFeatureToggleService.get(any()))
-        .thenReturn(Future.successful(Enabled(ListOfLegacyScheme)))
+    "return OK with list of schemes for PSA and cache has not value exists " in {
       when(mockListOfLegacySchemesCacheRepository.get(any())(any()))
         .thenReturn(Future.successful {
           None
         })
-      when(mockListOfLegacySchemesCacheRepository.upsert(any(),any())(any()))
+      when(mockListOfLegacySchemesCacheRepository.upsert(any(), any())(any()))
         .thenReturn(Future.successful(true))
       when(mockSchemeConnector.listOfLegacySchemes(meq("A2000001"))(any(), any(), any()))
         .thenReturn(Future.successful(Right(validResponse)))
@@ -97,9 +77,7 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
         verify(mockSchemeConnector, times(1)).listOfLegacySchemes(any())(any(), any(), any())
       }
     }
-    "return OK with list of schemes for PSA when toggle enabled and cache has value exists " in {
-      when(mockFeatureToggleService.get(any()))
-        .thenReturn(Future.successful(Enabled(ListOfLegacyScheme)))
+    "return OK with list of schemes for PSA and cache has value exists " in {
       when(mockListOfLegacySchemesCacheRepository.get(any())(any()))
         .thenReturn(Future.successful {
           Some(validResponse)
@@ -123,10 +101,14 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
 
     "throw JsResultException when the invalid data returned from If/ETMP" in {
       val invalidResponse = Json.obj("invalid" -> "data")
-      when(mockFeatureToggleService.get(any()))
-        .thenReturn(Future.successful(Disabled(ListOfLegacyScheme)))
       when(mockSchemeConnector.listOfLegacySchemes(meq("A2000001"))(any(), any(), any()))
         .thenReturn(Future.successful(Right(invalidResponse)))
+      when(mockListOfLegacySchemesCacheRepository.get(any())(any()))
+        .thenReturn(Future.successful {
+          None
+        })
+      when(mockListOfLegacySchemesCacheRepository.upsert(any(), any())(any()))
+        .thenReturn(Future.successful(true))
       val result = schemeController.listOfLegacySchemes(fakeRequest)
       ScalaFutures.whenReady(result.failed) { e =>
         e mustBe a[JsResultException]
@@ -139,11 +121,12 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
         "code" -> "INVALID_PSAID",
         "reason" -> "Submission has not passed validation. Invalid parameter PSAID."
       )
-      when(mockFeatureToggleService.get(any()))
-        .thenReturn(Future.successful(Disabled(ListOfLegacyScheme)))
       when(mockSchemeConnector.listOfLegacySchemes(meq("A2000001"))(any(), any(), any())).thenReturn(
         Future.failed(new BadRequestException(invalidPayload.toString())))
-
+      when(mockListOfLegacySchemesCacheRepository.get(any())(any()))
+        .thenReturn(Future.successful {
+          None
+        })
       val result = schemeController.listOfLegacySchemes(fakeRequest)
       ScalaFutures.whenReady(result.failed) { e =>
         e mustBe a[BadRequestException]
@@ -157,11 +140,12 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
         "code" -> "SERVICE_UNAVAILABLE",
         "reason" -> "Dependent systems are currently not responding."
       )
-      when(mockFeatureToggleService.get(any()))
-        .thenReturn(Future.successful(Disabled(ListOfLegacyScheme)))
       when(mockSchemeConnector.listOfLegacySchemes(meq("A2000001"))(any(), any(), any())).thenReturn(
         Future.failed(UpstreamErrorResponse(serviceUnavailable.toString(), SERVICE_UNAVAILABLE, SERVICE_UNAVAILABLE)))
-
+      when(mockListOfLegacySchemesCacheRepository.get(any())(any()))
+        .thenReturn(Future.successful {
+          None
+        })
       val result = schemeController.listOfLegacySchemes(fakeRequest)
       ScalaFutures.whenReady(result.failed) { e =>
         e mustBe a[UpstreamErrorResponse]
@@ -171,11 +155,14 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
     }
 
     "throw generic exception when any other exception returned from If" in {
-      when(mockFeatureToggleService.get(any()))
-        .thenReturn(Future.successful(Disabled(ListOfLegacyScheme)))
       when(mockSchemeConnector.listOfLegacySchemes(meq("A2000001"))(any(), any(), any())).thenReturn(
         Future.failed(new Exception("Generic Exception")))
-
+      when(mockListOfLegacySchemesCacheRepository.get(any())(any()))
+        .thenReturn(Future.successful {
+          None
+        })
+      when(mockListOfLegacySchemesCacheRepository.upsert(any(), any())(any()))
+        .thenReturn(Future.successful(true))
       val result = schemeController.listOfLegacySchemes(fakeRequest)
       ScalaFutures.whenReady(result.failed) { e =>
         e mustBe a[Exception]
@@ -192,7 +179,7 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
     "return OK when the scheme is registered successfully" in {
       val validData = readJsonFromFile("/data/validSchemeRegistrationRequest.json")
       val successResponse: JsObject = Json.obj("processingDate" -> LocalDate.now, "schemeReferenceNumber" -> "S0123456789")
-      when(mockPensionSchemeService.registerScheme(any(), meq(validData))(any(), any(),any())).thenReturn(
+      when(mockPensionSchemeService.registerScheme(any(), meq(validData))(any(), any(), any())).thenReturn(
         Future.successful(Right(successResponse)))
 
       val result = schemeController.registerScheme(Scheme)(fakeRequest(validData))
@@ -210,7 +197,7 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
         e mustBe a[BadRequestException]
         e.getMessage mustBe "Bad Request without PSAId or request body"
         verify(mockPensionSchemeService, never).registerScheme(any(),
-          any())(any(), any(),any())
+          any())(any(), any(), any())
       }
     }
 
@@ -220,7 +207,7 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
         "code" -> "INVALID_PAYLOAD",
         "reason" -> "Submission has not passed validation. Invalid PAYLOAD"
       )
-      when(mockPensionSchemeService.registerScheme(any(), any())(any(), any(),any())).thenReturn(
+      when(mockPensionSchemeService.registerScheme(any(), any())(any(), any(), any())).thenReturn(
         Future.failed(new BadRequestException(invalidPayload.toString())))
 
       val result = schemeController.registerScheme(Scheme)(fakeRequest(validData))
@@ -236,7 +223,7 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
         "code" -> "INVALID_SUBMISSION",
         "reason" -> "Duplicate submission acknowledgement reference from remote endpoint returned."
       )
-      when(mockPensionSchemeService.registerScheme(any(), any())(any(), any(),any())).thenReturn(
+      when(mockPensionSchemeService.registerScheme(any(), any())(any(), any(), any())).thenReturn(
         Future.failed(UpstreamErrorResponse(invalidSubmission.toString(), CONFLICT, CONFLICT)))
 
       val result = schemeController.registerScheme(Scheme)(fakeRequest(validData))
@@ -252,7 +239,7 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
         "code" -> "SERVICE_UNAVAILABLE",
         "reason" -> "Dependent systems are currently not responding."
       )
-      when(mockPensionSchemeService.registerScheme(any(), any())(any(), any(),any())).thenReturn(
+      when(mockPensionSchemeService.registerScheme(any(), any())(any(), any(), any())).thenReturn(
         Future.failed(UpstreamErrorResponse(serviceUnavailable.toString(), SERVICE_UNAVAILABLE, SERVICE_UNAVAILABLE)))
 
       val result = schemeController.registerScheme(Scheme)(fakeRequest(validData))
@@ -264,7 +251,7 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
 
     "throw generic exception when any other exception returned from If" in {
       val validData = readJsonFromFile("/data/validSchemeRegistrationRequest.json")
-      when(mockPensionSchemeService.registerScheme(any(), any())(any(), any(),any())).thenReturn(
+      when(mockPensionSchemeService.registerScheme(any(), any())(any(), any(), any())).thenReturn(
         Future.failed(new Exception("Generic Exception")))
 
       val result = schemeController.registerScheme(Scheme)(fakeRequest(validData))
@@ -297,49 +284,52 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
     }
   }
 }
+
 object SchemeControllerSpec {
 
-  private val validResponse: JsValue = Json.parse("""{
-                               |  "totalResults": 2,
-                               |  "items": [
-                               |    {
-                               |      "pstr": "00241768RH",
-                               |      "relationshipStartDate": "0001-01-01T00:00:00",
-                               |      "schemeName": "THE AMDAIL PENSION SCHEME",
-                               |      "schemeOpenDate": "2006-04-05T00:00:00",
-                               |      "racDac": false,
-                               |      "policyNumber": ""
-                               |    },
-                               |    {
-                               |      "pstr": "00615269RH",
-                               |      "relationshipStartDate": "2012-02-20T00:00:00",
-                               |      "schemeName": "paul qqq",
-                               |      "schemeOpenDate": "paul qqq",
-                               |      "racDac": true,
-                               |      "policyNumber": "24101975"
-                               |    }
-                               |  ]
-                               |}""".stripMargin)
+  private val validResponse: JsValue = Json.parse(
+    """{
+      |  "totalResults": 2,
+      |  "items": [
+      |    {
+      |      "pstr": "00241768RH",
+      |      "relationshipStartDate": "0001-01-01T00:00:00",
+      |      "schemeName": "THE AMDAIL PENSION SCHEME",
+      |      "schemeOpenDate": "2006-04-05T00:00:00",
+      |      "racDac": false,
+      |      "policyNumber": ""
+      |    },
+      |    {
+      |      "pstr": "00615269RH",
+      |      "relationshipStartDate": "2012-02-20T00:00:00",
+      |      "schemeName": "paul qqq",
+      |      "schemeOpenDate": "paul qqq",
+      |      "racDac": true,
+      |      "policyNumber": "24101975"
+      |    }
+      |  ]
+      |}""".stripMargin)
 
-  private val transformedResponse = Json.parse("""{
-                                                 |  "totalResults": 2,
-                                                 |  "items": [
-                                                 |    {
-                                                 |      "pstr": "00241768RH",
-                                                 |      "declarationDate": "0001-01-01T00:00:00",
-                                                 |      "schemeName": "THE AMDAIL PENSION SCHEME",
-                                                 |      "schemeOpenDate": "2006-04-05T00:00:00",
-                                                 |      "racDac": false
-                                                 |    },
-                                                 |    {
-                                                 |      "pstr": "00615269RH",
-                                                 |      "declarationDate": "2012-02-20T00:00:00",
-                                                 |      "schemeName": "paul qqq",
-                                                 |      "schemeOpenDate": "paul qqq",
-                                                 |      "racDac": true,
-                                                 |      "policyNo": "24101975"
-                                                 |    }
-                                                 |  ]
-                                                 |}""".stripMargin)
+  private val transformedResponse = Json.parse(
+    """{
+      |  "totalResults": 2,
+      |  "items": [
+      |    {
+      |      "pstr": "00241768RH",
+      |      "declarationDate": "0001-01-01T00:00:00",
+      |      "schemeName": "THE AMDAIL PENSION SCHEME",
+      |      "schemeOpenDate": "2006-04-05T00:00:00",
+      |      "racDac": false
+      |    },
+      |    {
+      |      "pstr": "00615269RH",
+      |      "declarationDate": "2012-02-20T00:00:00",
+      |      "schemeName": "paul qqq",
+      |      "schemeOpenDate": "paul qqq",
+      |      "racDac": true,
+      |      "policyNo": "24101975"
+      |    }
+      |  ]
+      |}""".stripMargin)
 
 }
