@@ -1,9 +1,7 @@
 
 # Pensions Scheme  Migration
 
-Back-end microservice to support the get legacy list of schemes and get legacy scheme details from TPSS, and Register scheme to ETMP.
-// TODO: Elaboration on what Legacy list of schemes?
-
+Back-end microservice to support the migration of legacy schemes and legacy scheme details from TPSS, and registration of legacy schemes to ETMP.
 
 API
 ---
