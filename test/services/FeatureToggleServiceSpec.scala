@@ -19,7 +19,7 @@ package services
 import akka.Done
 import base.SpecBase
 import models.FeatureToggle.{Disabled, Enabled}
-import models.FeatureToggleName.{ListOfLegacyScheme, MigrationTransfer}
+import models.FeatureToggleName.DummyToggle
 import models.{FeatureToggle, FeatureToggleName, OperationFailed, OperationSucceeded}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.{ArgumentCaptor, MockitoSugar}
@@ -98,8 +98,7 @@ class FeatureToggleServiceSpec
     when(adminDataRepository.getFeatureToggles).thenReturn(Future.successful(Seq.empty))
 
     OUT.getAll.futureValue mustBe Seq(
-      Disabled(MigrationTransfer),
-      Disabled(ListOfLegacyScheme)
+      Disabled(DummyToggle)
     )
   }
 
@@ -107,13 +106,13 @@ class FeatureToggleServiceSpec
     val adminDataRepository = mock[AdminDataRepository]
     when(adminDataRepository.getFeatureToggles).thenReturn(Future.successful(Seq.empty))
     val OUT = new FeatureToggleService(adminDataRepository, new FakeCache())
-    OUT.get(MigrationTransfer).futureValue mustBe Disabled(MigrationTransfer)
+    OUT.get(DummyToggle).futureValue mustBe Disabled(DummyToggle)
   }
 
   "When a toggle exists in the repo, override default" in {
     val adminDataRepository = mock[AdminDataRepository]
-    when(adminDataRepository.getFeatureToggles).thenReturn(Future.successful(Seq(Enabled(MigrationTransfer))))
+    when(adminDataRepository.getFeatureToggles).thenReturn(Future.successful(Seq(Enabled(DummyToggle))))
     val OUT = new FeatureToggleService(adminDataRepository, new FakeCache())
-    OUT.get(MigrationTransfer).futureValue mustBe Enabled(MigrationTransfer)
+    OUT.get(DummyToggle).futureValue mustBe Enabled(DummyToggle)
   }
 }
