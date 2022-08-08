@@ -49,14 +49,8 @@ class LockCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
         mongoCollectionDrop()
 
         val documentsInDB = for {
-          _ <- repository.collection.insertOne(
-            LockJson(
-              pstr = pstr,
-              credId = credId,
-              data = Json.toJson(MigrationLock(pstr, credId, psaId)),
-              lastUpdated = DateTime.now(DateTimeZone.UTC),
-              expireAt = DateTime.now(DateTimeZone.UTC).plusSeconds(60)
-            )
+          _ <- repository.collection.insertMany(
+            seqExistingData
           ).toFuture
 
           documentsInDB <- repository.getLockByPstr(pstr)
@@ -73,14 +67,8 @@ class LockCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
         mongoCollectionDrop()
 
         val documentsInDB = for {
-          _ <- repository.collection.insertOne(
-            LockJson(
-              pstr = pstr,
-              credId = credId,
-              data = Json.toJson(MigrationLock(pstr, credId, psaId)),
-              lastUpdated = DateTime.now(DateTimeZone.UTC),
-              expireAt = DateTime.now(DateTimeZone.UTC).plusSeconds(60)
-            )
+          _ <- repository.collection.insertMany(
+            seqExistingData
           ).toFuture
 
           documentsInDB <- repository.getLockByCredId(credId)
@@ -88,6 +76,110 @@ class LockCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
 
         documentsInDB.map { documentsInDB =>
           documentsInDB.size mustBe 1
+        }
+      }
+    }
+
+    "getLock" must {
+      "get lock from Mongo collection" in {
+        mongoCollectionDrop()
+
+        val documentsInDB = for {
+          _ <- repository.collection.insertMany(
+            seqExistingData
+          ).toFuture
+
+          documentsInDB <- repository.getLock(MigrationLock(pstr, credId, psaId))
+        } yield documentsInDB
+
+        documentsInDB.map { documentsInDB =>
+          documentsInDB.size mustBe 1
+        }
+      }
+    }
+
+    "setLock" must {
+      "set lock in Mongo collection" in {
+        mongoCollectionDrop()
+
+        val documentsInDB = for {
+          documentsInDB <- repository.getLock(MigrationLock(pstr, credId, psaId))
+        } yield documentsInDB
+
+        documentsInDB.map { documentsInDB =>
+          documentsInDB.size mustBe 1
+        }
+      }
+    }
+
+    "releaseLock" must {
+      "release lock from Mongo collection leaving other lock alone" in {
+        mongoCollectionDrop()
+
+        val endState = for {
+          _ <- repository.collection.insertMany(
+            seqExistingData
+          ).toFuture
+
+          response <- repository.releaseLock(MigrationLock(pstr, credId, psaId))
+          lock <- repository.getLock(MigrationLock(pstr, credId, psaId))
+          anotherLock <- repository.getLock(MigrationLock(anotherPstr, anotherCredId, anotherPsaId))
+        } yield {
+          Tuple3(response, lock, anotherLock)
+        }
+
+        endState.map { case Tuple3(response, migrationLock, anotherLock) =>
+          migrationLock mustBe None
+          anotherLock.isDefined mustBe true
+          response mustBe true
+        }
+      }
+    }
+
+    "releaseLockByPstr" must {
+      "release lock from Mongo collection leaving other lock alone" in {
+        mongoCollectionDrop()
+
+        val endState = for {
+          _ <- repository.collection.insertMany(
+            seqExistingData
+          ).toFuture
+
+          response <- repository.releaseLockByPstr(pstr)
+          lock <- repository.getLock(MigrationLock(pstr, credId, psaId))
+          anotherLock <- repository.getLock(MigrationLock(anotherPstr, anotherCredId, anotherPsaId))
+        } yield {
+          Tuple3(response, lock, anotherLock)
+        }
+
+        endState.map { case Tuple3(response, migrationLock, anotherLock) =>
+          migrationLock mustBe None
+          anotherLock.isDefined mustBe true
+          response mustBe true
+        }
+      }
+    }
+
+    "releaseLockByCredId" must {
+      "release lock from Mongo collection leaving other lock alone" in {
+        mongoCollectionDrop()
+
+        val endState = for {
+          _ <- repository.collection.insertMany(
+            seqExistingData
+          ).toFuture
+
+          response <- repository.releaseLockByCredId(pstr)
+          lock <- repository.getLock(MigrationLock(pstr, credId, psaId))
+          anotherLock <- repository.getLock(MigrationLock(anotherPstr, anotherCredId, anotherPsaId))
+        } yield {
+          Tuple3(response, lock, anotherLock)
+        }
+
+        endState.map { case Tuple3(response, migrationLock, anotherLock) =>
+          migrationLock mustBe None
+          anotherLock.isDefined mustBe true
+          response mustBe true
         }
       }
     }
@@ -113,6 +205,27 @@ object LockCacheRepositorySpec extends AnyWordSpec with MockitoSugar {
   private val pstr = "pstr"
   private val credId = "credId"
   private val psaId = "psaId"
+
+  val anotherPstr = "pstr2"
+  val anotherCredId = "credId2"
+  val anotherPsaId = "psaId2"
+
+  val seqExistingData = Seq(
+    LockJson(
+      pstr = pstr,
+      credId = credId,
+      data = Json.toJson(MigrationLock(pstr, credId, psaId)),
+      lastUpdated = DateTime.now(DateTimeZone.UTC),
+      expireAt = DateTime.now(DateTimeZone.UTC).plusSeconds(60)
+    ),
+    LockJson(
+      pstr = anotherPstr,
+      credId = anotherCredId,
+      data = Json.toJson(MigrationLock(anotherPstr, anotherCredId, anotherPsaId)),
+      lastUpdated = DateTime.now(DateTimeZone.UTC),
+      expireAt = DateTime.now(DateTimeZone.UTC).plusSeconds(60)
+    )
+  )
 
 }
 
