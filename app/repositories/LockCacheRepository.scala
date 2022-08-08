@@ -65,31 +65,6 @@ class LockCacheRepository @Inject()(
   private val credIdKey = "credId"
   private val dataKey = "data"
 
-  /*
-    val data: JsValue = Json.toJson(JsonDataEntry(newLock.psaId, newLock.srn, Json.toJson(newLock), DateTime.now(DateTimeZone.UTC), getExpireAt))
-    val modifier = Updates.combine(
-      Updates.set(psaIdKey, newLock.psaId),
-      Updates.set(srnKey, newLock.srn),
-      Updates.set(dataKey, Codecs.toBson(data))
-    )
-
-    LockJson(lock.pstr, lock.credId, Json.toJson(lock), DateTime.now(DateTimeZone.UTC), expireInSeconds)))
-
-{
-    "_id" : ObjectId("62f0c063d37c84170c08794a"),
-    "credId" : "Ext-c69b11fe-a149-44b1-87c2-2be49ace0a65",
-    "pstr" : "88615269RH",
-    "data" : {
-        "pstr" : "88615269RH",
-        "credId" : "Ext-c69b11fe-a149-44b1-87c2-2be49ace0a65",
-        "psaId" : "A2100005"
-    },
-    "expireAt" : ISODate("2022-08-08T08:06:06.808Z"),
-    "lastUpdated" : ISODate("2022-08-08T07:51:06.808Z")
-}
-
-   */
-
   private val expireAtKey = "expireAt"
   private val lastUpdatedKey = "lastUpdated"
 
