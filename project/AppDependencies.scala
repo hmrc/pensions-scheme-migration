@@ -7,7 +7,7 @@ object AppDependencies {
   val compile = Seq(
     ws,
     "uk.gov.hmrc"             %% "bootstrap-backend-play-28"  % "5.20.0",
-    "uk.gov.hmrc"             %% "simple-reactivemongo"       % "8.0.0-play-28",
+//    "uk.gov.hmrc"             %% "simple-reactivemongo"       % "8.0.0-play-28",
     "uk.gov.hmrc.mongo" %% "hmrc-mongo-play-28"         % "0.68.0",
     "uk.gov.hmrc"             %% "domain"                     % "7.0.0-play-28",
     "com.typesafe.play"       %% "play-json-joda"             % "2.6.10",
@@ -32,7 +32,7 @@ object AppDependencies {
     "org.scalacheck"          %% "scalacheck"                   % "1.14.0"  % "test",
     "org.pegdown"             %  "pegdown"                      % "1.6.0"   % "test, it",
     "com.github.tomakehurst"  %  "wiremock-jre8"                % "2.26.0"  % "test",
-    "uk.gov.hmrc"             %% "reactivemongo-test"             % "5.0.0-play-28" % "test",
+//    "uk.gov.hmrc"             %% "reactivemongo-test"             % "5.0.0-play-28" % "test",
     "com.typesafe.akka"       %% "akka-testkit"                 % AkkaVersion % Test,
     "com.typesafe.akka"       %% "akka-actor-typed"             % AkkaVersion % Test,
     "com.typesafe.akka"       %% "akka-actor"                   % AkkaVersion % Test,

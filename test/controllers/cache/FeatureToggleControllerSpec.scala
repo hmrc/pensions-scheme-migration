@@ -36,8 +36,6 @@ class FeatureToggleControllerSpec
     with MockitoSugar
     with BeforeAndAfterEach {
 
-  def controllerComponents: ControllerComponents = injector.instanceOf[ControllerComponents]
-
   private val mockAdminDataRepository = mock[AdminDataRepository]
 
   private val mockFeatureToggleService = mock[FeatureToggleService]

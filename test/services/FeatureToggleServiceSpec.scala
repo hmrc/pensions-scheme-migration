@@ -27,8 +27,11 @@ import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.{Arbitrary, Gen}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
+import play.api.Configuration
 import play.api.cache.AsyncCacheApi
 import repositories.AdminDataRepository
+import repositories.AdminDataRepositorySpec.{mock, mongoUri}
+import uk.gov.hmrc.mongo.MongoComponent
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -72,7 +75,6 @@ class FeatureToggleServiceSpec
 
     whenReady(OUT.set(toggleName = toggleName, enabled = true)) {
       result =>
-        result mustBe OperationSucceeded
         val captor = ArgumentCaptor.forClass(classOf[Seq[FeatureToggle]])
         verify(adminDataRepository, times(1)).setFeatureToggles(captor.capture())
         captor.getValue must contain(Enabled(toggleName))
@@ -88,7 +90,7 @@ class FeatureToggleServiceSpec
     when(adminDataRepository.getFeatureToggles).thenReturn(Future.successful(Seq.empty))
     when(adminDataRepository.setFeatureToggles(any())).thenReturn(Future.successful(false))
 
-    whenReady(OUT.set(toggleName = toggleName, enabled = true))(_ mustBe OperationFailed)
+    whenReady(OUT.set(toggleName = toggleName, enabled = true))(_ mustBe ())
   }
 
   "When getAll is called returns all of the toggles from the repo" in {

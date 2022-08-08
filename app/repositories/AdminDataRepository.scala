@@ -16,7 +16,7 @@
 
 package repositories
 
-import com.google.inject.Inject
+import com.google.inject.{ImplementedBy, Inject}
 import com.mongodb.client.model.FindOneAndUpdateOptions
 import models.FeatureToggle
 import org.mongodb.scala.model.Updates.set
@@ -38,12 +38,19 @@ object FeatureToggleMongoFormatter {
   val featureToggles = "toggles"
 }
 
-class AdminDataRepository @Inject()(
+@ImplementedBy(classOf[AdminDataRepositoryImpl])
+trait AdminDataRepository {
+  def getFeatureToggles: Future[Seq[FeatureToggle]]
+
+  def setFeatureToggles(toggles: Seq[FeatureToggle]): Future[Unit]
+}
+
+class AdminDataRepositoryImpl @Inject()(
                                      mongoComponent: MongoComponent,
                                      configuration: Configuration
                                    )(implicit val ec: ExecutionContext)
   extends PlayMongoRepository[FeatureToggles](
-    collectionName = configuration.get[String](path = "mongodb.pension-administrator-cache.admin-data.name"),
+    collectionName = configuration.get[String](path = "mongodb.migration-cache.admin-data.name"),
     mongoComponent = mongoComponent,
     domainFormat = FeatureToggleMongoFormatter.featureToggleMongoFormatter,
     indexes = Seq(
@@ -51,7 +58,7 @@ class AdminDataRepository @Inject()(
         Indexes.ascending(featureToggles),
         IndexOptions().name(featureToggles).unique(true).background(true))
     )
-  ) with Logging {
+  ) with AdminDataRepository with Logging {
 
 
   def getFeatureToggles: Future[Seq[FeatureToggle]] = {
