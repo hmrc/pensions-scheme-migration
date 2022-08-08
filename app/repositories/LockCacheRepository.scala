@@ -23,11 +23,8 @@ import org.joda.time.{DateTime, DateTimeZone}
 import org.mongodb.scala.MongoCommandException
 import org.mongodb.scala.model.Updates.set
 import org.mongodb.scala.model._
-import org.slf4j.{Logger, LoggerFactory}
 import play.api.libs.json._
 import play.api.{Configuration, Logging}
-import reactivemongo.bson.BSONDocument
-import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
@@ -61,17 +58,6 @@ class LockCacheRepository @Inject()(
 
   private def expireInSeconds: DateTime = DateTime.now(DateTimeZone.UTC).
     plusSeconds(configuration.get[Int](path = "mongodb.migration-cache.lock-cache.timeToLiveInSeconds"))
-
-  private val lockBson: MigrationLock => BSONDocument = lock =>
-    BSONDocument("pstr" -> lock.pstr, "credId" -> lock.credId)
-
-  private def pstrBson: String => BSONDocument = pstr => BSONDocument("pstr" -> pstr)
-
-  private def credIdBson: String => BSONDocument = credId => BSONDocument("credId" -> credId)
-
-  private val modifier: MigrationLock => BSONDocument = lock =>
-    BSONDocument("$set" -> Json.toJson(
-      LockJson(lock.pstr, lock.credId, Json.toJson(lock), DateTime.now(DateTimeZone.UTC), expireInSeconds)))
 
   private lazy val documentExistsErrorCode = 11000
 

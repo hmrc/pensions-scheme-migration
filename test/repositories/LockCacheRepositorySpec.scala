@@ -20,7 +20,6 @@ import com.github.simplyscala.MongoEmbedDatabase
 import models.cache.{LockJson, MigrationLock}
 import org.joda.time.{DateTime, DateTimeZone}
 import org.mockito.MockitoSugar
-import org.scalatest.concurrent.ScalaFutures.whenReady
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterEach}
@@ -61,6 +60,30 @@ class LockCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
           ).toFuture
 
           documentsInDB <- repository.getLockByPstr(pstr)
+        } yield documentsInDB
+
+        documentsInDB.map { documentsInDB =>
+          documentsInDB.size mustBe 1
+        }
+      }
+    }
+
+    "getLockByCredId" must {
+      "get lock from Mongo collection" in {
+        mongoCollectionDrop()
+
+        val documentsInDB = for {
+          _ <- repository.collection.insertOne(
+            LockJson(
+              pstr = pstr,
+              credId = credId,
+              data = Json.toJson(MigrationLock(pstr, credId, psaId)),
+              lastUpdated = DateTime.now(DateTimeZone.UTC),
+              expireAt = DateTime.now(DateTimeZone.UTC).plusSeconds(60)
+            )
+          ).toFuture
+
+          documentsInDB <- repository.getLockByCredId(credId)
         } yield documentsInDB
 
         documentsInDB.map { documentsInDB =>
