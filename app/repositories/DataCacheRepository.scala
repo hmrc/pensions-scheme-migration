@@ -24,6 +24,7 @@ import org.mongodb.scala.model.Updates.set
 import org.mongodb.scala.model._
 import play.api.libs.json._
 import play.api.{Configuration, Logging}
+import repositories.DataCacheRepository.{AlreadyLockedException, LockCouldNotBeSetException}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
@@ -64,6 +65,7 @@ class DataCacheRepository @Inject()(
 
   def renewLockAndSave(lock: MigrationLock, userData: JsValue)(implicit ec: ExecutionContext): Future[Boolean] = {
     implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
+
     val upsertOptions = new FindOneAndUpdateOptions().upsert(true)
     logger.debug("Calling Save in Migration Data Cache")
 
@@ -74,7 +76,7 @@ class DataCacheRepository @Inject()(
           update = Updates.combine(
             set(pstrKey, lock.pstr),
             set(dataKey, Codecs.toBson(userData)),
-            set(lastUpdatedKey, DateTime.now(DateTimeZone.UTC)),
+            set(lastUpdatedKey, Codecs.toBson(DateTime.now(DateTimeZone.UTC))),
             set(expireAtKey, Codecs.toBson(expireInSeconds))
           ),
           upsertOptions
@@ -83,9 +85,12 @@ class DataCacheRepository @Inject()(
     }
 
     lockCacheRepository.getLockByPstr(lock.pstr).flatMap {
-      case None => lockAndSave
-      case Some(migrationLock) if migrationLock == lock => lockAndSave
-      case _ => Future.failed(AlreadyLockedException)
+      case None =>
+        lockAndSave
+      case Some(migrationLock) if migrationLock == lock =>
+        lockAndSave
+      case _ =>
+        Future.failed(AlreadyLockedException)
     }
   }
 
@@ -113,8 +118,9 @@ class DataCacheRepository @Inject()(
     }
   }
 
+}
+
+object DataCacheRepository {
   case object LockCouldNotBeSetException extends Exception("Lock could not be acquired. Needs further investigation")
-
   case object AlreadyLockedException extends Exception("Lock has been placed by another user before this save")
-
 }

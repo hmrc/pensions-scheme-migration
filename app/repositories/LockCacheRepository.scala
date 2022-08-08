@@ -16,7 +16,7 @@
 
 package repositories
 
-import com.google.inject.Inject
+import com.google.inject.{ImplementedBy, Inject}
 import com.mongodb.client.model.FindOneAndUpdateOptions
 import models.cache.{LockJson, MigrationLock}
 import org.joda.time.{DateTime, DateTimeZone}
@@ -32,7 +32,18 @@ import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
 
-class LockCacheRepository @Inject()(
+@ImplementedBy(classOf[LockCacheRepositoryImpl])
+trait LockCacheRepository {
+  def setLock(lock: MigrationLock): Future[Boolean]
+  def getLockByPstr(pstr: String): Future[Option[MigrationLock]]
+  def getLockByCredId(credId: String): Future[Option[MigrationLock]]
+  def getLock(lock: MigrationLock)(implicit ec: ExecutionContext): Future[Option[MigrationLock]]
+  def releaseLock(lock: MigrationLock): Future[Boolean]
+  def releaseLockByPstr(pstr: String): Future[Boolean]
+  def releaseLockByCredId(credId: String): Future[Boolean]
+}
+
+class LockCacheRepositoryImpl @Inject()(
                                      mongoComponent: MongoComponent,
                                      configuration: Configuration
                                    )(implicit val ec: ExecutionContext)

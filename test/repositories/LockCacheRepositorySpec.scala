@@ -200,7 +200,7 @@ object LockCacheRepositorySpec extends AnyWordSpec with MockitoSugar {
   private def mongoCollectionDrop(): Void = Await
     .result(repository.collection.drop().toFuture(), Duration.Inf)
 
-  private def repository = new LockCacheRepository(mongoComponent, mockConfiguration)
+  private def repository = new LockCacheRepositoryImpl(mongoComponent, mockConfiguration)
 
   private val pstr = "pstr"
   private val credId = "credId"
