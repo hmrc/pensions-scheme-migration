@@ -19,7 +19,7 @@ package connector
 import audit.{AuditService, ListOfLegacySchemesAuditEvent}
 import com.google.inject.Inject
 import config.AppConfig
-import connector.utils.{HttpResponseHelper, UnrecognisedHttpResponseException, InvalidPayloadHandler}
+import connector.utils.{HttpResponseHelper, InvalidPayloadHandler}
 import play.api.Logger
 import play.api.http.Status._
 import play.api.libs.json._

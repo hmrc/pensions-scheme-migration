@@ -17,6 +17,7 @@
 package repositories
 
 import com.google.inject.Inject
+import models.cache.{DataJson, MigrationLock}
 import org.joda.time.{DateTime, DateTimeZone}
 import org.slf4j.{Logger, LoggerFactory}
 import play.api.Configuration
@@ -26,7 +27,6 @@ import reactivemongo.api.indexes.IndexType.Ascending
 import reactivemongo.api.indexes.{Index, IndexType}
 import reactivemongo.bson.{BSONDocument, BSONObjectID}
 import reactivemongo.play.json.ImplicitBSONHandlers._
-import models.cache.{DataJson, MigrationLock}
 import uk.gov.hmrc.mongo.ReactiveRepository
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -57,8 +57,6 @@ class DataCacheRepository @Inject()(    lockCacheRepository: LockCacheRepository
 
   (for { _ <- ensureIndexes } yield { () }) recoverWith {
     case t: Throwable => Future.successful(logger.error(s"Error creating indexes on collection ${collection.name}", t))
-  } andThen {
-    case _ => CollectionDiagnostics.logCollectionInfo(collection)
   }
 
   override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] =

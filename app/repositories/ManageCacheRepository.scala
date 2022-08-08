@@ -77,14 +77,11 @@ abstract class ManageCacheRepository(
   private val expireAfterSeconds = "expireAfterSeconds"
 
   (for {
-    _ <- CollectionDiagnostics.checkIndexTtl(collection, createdIndexName, ttl)
     _ <- ensureIndex(fieldName, createdIndexName, ttl)
   } yield {
     ()
   }) recoverWith {
     case t: Throwable => Future.successful(logger.error(s"Error ensuring indexes on collection ${collection.name}", t))
-  } andThen {
-    case _ => CollectionDiagnostics.logCollectionInfo(collection)
   }
 
   private def ensureIndex(field: String, indexName: String, ttl: Option[Int]): Future[Boolean] = {

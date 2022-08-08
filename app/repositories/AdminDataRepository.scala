@@ -19,8 +19,8 @@ package repositories
 import com.google.inject.Inject
 import models.FeatureToggle
 import org.slf4j.{Logger, LoggerFactory}
-import play.api.libs.json._
 import play.api.Configuration
+import play.api.libs.json._
 import play.modules.reactivemongo.ReactiveMongoComponent
 import reactivemongo.api.commands.WriteResult
 import reactivemongo.api.indexes.{Index, IndexType}
@@ -60,8 +60,6 @@ class AdminDataRepository @Inject()(
   }) recoverWith {
     case t: Throwable =>
       Future.successful(logger.error(s"Error creating indexes on collection ${collection.name}", t))
-  } andThen {
-    case _ => CollectionDiagnostics.logCollectionInfo(collection)
   }
 
   private def createIndex(indexes: Seq[Index]): Future[Seq[Boolean]] = {

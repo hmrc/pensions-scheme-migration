@@ -54,8 +54,6 @@ class SchemeDataCacheRepository @Inject()(mongoComponent: ReactiveMongoComponent
 
   (for { _ <- ensureIndexes } yield { () }) recoverWith {
     case t: Throwable => Future.successful(logger.error(s"Error creating indexes on collection ${collection.name}", t))
-  } andThen {
-    case _ => CollectionDiagnostics.logCollectionInfo(collection)
   }
 
   override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] =
