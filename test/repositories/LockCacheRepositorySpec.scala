@@ -17,16 +17,15 @@
 package repositories
 
 import com.github.simplyscala.MongoEmbedDatabase
-import models.FeatureToggle
-import models.FeatureToggleName.DummyToggle
-import models.cache.MigrationLock
+import models.cache.{LockJson, MigrationLock}
+import org.joda.time.{DateTime, DateTimeZone}
 import org.mockito.MockitoSugar
-import org.mongodb.scala.model.Filters
 import org.scalatest.concurrent.ScalaFutures.whenReady
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterEach}
 import play.api.Configuration
+import play.api.libs.json.Json
 import uk.gov.hmrc.mongo.MongoComponent
 
 import scala.concurrent.Await
@@ -41,7 +40,7 @@ class LockCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
 
   override def beforeEach: Unit = {
     super.beforeEach
-    when(mockConfiguration.get[String](path = "mongodb.pension-administrator-cache.admin-data.name")).thenReturn("admin-data")
+    when(mockConfiguration.get[String](path = "mongodb.migration-cache.lock-cache.name")).thenReturn("migration-lock")
   }
 
   withEmbedMongoFixture(port = 24680) { _ =>
@@ -52,43 +51,24 @@ class LockCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
 
         val documentsInDB = for {
           _ <- repository.collection.insertOne(
-            MigrationLock()
-          )
+            LockJson(
+              pstr = pstr,
+              credId = credId,
+              data = Json.toJson(MigrationLock(pstr, credId, psaId)),
+              lastUpdated = DateTime.now(DateTimeZone.UTC),
+              expireAt = DateTime.now(DateTimeZone.UTC).plusSeconds(60)
+            )
+          ).toFuture
 
-          documentsInDB <- repository.getLockByPstr("")
+          documentsInDB <- repository.getLockByPstr(pstr)
         } yield documentsInDB
 
-        whenReady(documentsInDB) { documentsInDB =>
+        documentsInDB.map { documentsInDB =>
           documentsInDB.size mustBe 1
         }
       }
     }
-//
-//    "setFeatureToggle" must {
-//      "set new FeatureToggles in Mongo collection" in {
-//        mongoCollectionDrop()
-//        val documentsInDB = for {
-//          _ <- adminDataRepository.setFeatureToggles(Seq(FeatureToggle(DummyToggle, enabled = true)))
-//          documentsInDB <- adminDataRepository.collection.find[FeatureToggles](Filters.eq(id, featureToggles)).headOption()
-//        } yield documentsInDB
-//
-//        whenReady(documentsInDB) { documentsInDB =>
-//          documentsInDB.map(_.toggles.size mustBe 1)
-//        }
-//      }
-//
-//      "set empty FeatureToggles in Mongo collection" in {
-//        mongoCollectionDrop()
-//        val documentsInDB = for {
-//          _ <- adminDataRepository.setFeatureToggles(Seq.empty)
-//          documentsInDB <- adminDataRepository.collection.find[FeatureToggles].toFuture()
-//        } yield documentsInDB
-//
-//        whenReady(documentsInDB) { documentsInDB =>
-//          documentsInDB.map(_.toggles.size mustBe 0)
-//        }
-//      }
-//    }
+
   }
 }
 
@@ -98,13 +78,18 @@ object LockCacheRepositorySpec extends AnyWordSpec with MockitoSugar {
   import scala.concurrent.ExecutionContext.Implicits._
 
   private val mockConfiguration = mock[Configuration]
-  private val databaseName = "pension-administrator"
+  private val databaseName = "pensions-scheme-migration"
   private val mongoUri: String = s"mongodb://127.0.0.1:27017/$databaseName?heartbeatFrequencyMS=1000&rm.failover=default"
   private val mongoComponent = MongoComponent(mongoUri)
 
   private def mongoCollectionDrop(): Void = Await
     .result(repository.collection.drop().toFuture(), Duration.Inf)
 
-  def repository = new LockCacheRepository(mongoComponent, mockConfiguration)
+  private def repository = new LockCacheRepository(mongoComponent, mockConfiguration)
+
+  private val pstr = "pstr"
+  private val credId = "credId"
+  private val psaId = "psaId"
+
 }
 

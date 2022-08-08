@@ -29,6 +29,7 @@ import play.api.{Configuration, Logging}
 import reactivemongo.bson.BSONDocument
 import reactivemongo.play.json.ImplicitBSONHandlers._
 import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
 import java.util.concurrent.TimeUnit
@@ -38,7 +39,7 @@ class LockCacheRepository @Inject()(
                                      mongoComponent: MongoComponent,
                                      configuration: Configuration
                                    )(implicit val ec: ExecutionContext)
-  extends PlayMongoRepository[JsValue](
+  extends PlayMongoRepository[LockJson](
     collectionName = configuration.get[String](path = "mongodb.migration-cache.lock-cache.name"),
     mongoComponent = mongoComponent,
     domainFormat = implicitly,
@@ -58,8 +59,6 @@ class LockCacheRepository @Inject()(
     )
   ) with Logging {
 
-  private val logger: Logger = LoggerFactory.getLogger("LockCacheRepository")
-
   private def expireInSeconds: DateTime = DateTime.now(DateTimeZone.UTC).
     plusSeconds(configuration.get[Int](path = "mongodb.migration-cache.lock-cache.timeToLiveInSeconds"))
 
@@ -78,9 +77,41 @@ class LockCacheRepository @Inject()(
 
   private val pstrKey = "pstr"
   private val credIdKey = "credId"
+  private val dataKey = "data"
+
+  /*
+    val data: JsValue = Json.toJson(JsonDataEntry(newLock.psaId, newLock.srn, Json.toJson(newLock), DateTime.now(DateTimeZone.UTC), getExpireAt))
+    val modifier = Updates.combine(
+      Updates.set(psaIdKey, newLock.psaId),
+      Updates.set(srnKey, newLock.srn),
+      Updates.set(dataKey, Codecs.toBson(data))
+    )
+
+    LockJson(lock.pstr, lock.credId, Json.toJson(lock), DateTime.now(DateTimeZone.UTC), expireInSeconds)))
+
+{
+    "_id" : ObjectId("62f0c063d37c84170c08794a"),
+    "credId" : "Ext-c69b11fe-a149-44b1-87c2-2be49ace0a65",
+    "pstr" : "88615269RH",
+    "data" : {
+        "pstr" : "88615269RH",
+        "credId" : "Ext-c69b11fe-a149-44b1-87c2-2be49ace0a65",
+        "psaId" : "A2100005"
+    },
+    "expireAt" : ISODate("2022-08-08T08:06:06.808Z"),
+    "lastUpdated" : ISODate("2022-08-08T07:51:06.808Z")
+}
+
+   */
+
+  private val expireAtKey = "expireAt"
+  private val lastUpdatedKey = "lastUpdated"
 
   def setLock(lock: MigrationLock): Future[Boolean] = {
+    implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
     val upsertOptions = new FindOneAndUpdateOptions().upsert(true)
+
+    val data: JsValue = Json.toJson(MigrationLock(lock.pstr, lock.credId, lock.psaId))
     collection.findOneAndUpdate(
       filter = Filters.and(
         Filters.eq(pstrKey, lock.pstr),
@@ -88,7 +119,10 @@ class LockCacheRepository @Inject()(
       ),
       update = Updates.combine(
         set(pstrKey, Codecs.toBson(lock.pstr)),
-        set(credIdKey, Codecs.toBson(lock.credId))
+        set(credIdKey, Codecs.toBson(lock.credId)),
+        set(dataKey, Codecs.toBson(data)),
+        set(lastUpdatedKey, DateTime.now(DateTimeZone.UTC)),
+        set(expireAtKey, Codecs.toBson(expireInSeconds))
       ),
       upsertOptions
     ).toFuture().map { _ => true }
@@ -103,7 +137,7 @@ class LockCacheRepository @Inject()(
       filter = Filters.eq(pstrKey, pstr)
     ).toFuture()
       .map(_.headOption)
-      .map(_.map(_.as[MigrationLock]))
+      .map(_.map(_.data.as[MigrationLock]))
   }
 
   def getLockByCredId(credId: String): Future[Option[MigrationLock]] = {
@@ -111,7 +145,7 @@ class LockCacheRepository @Inject()(
       filter = Filters.eq(credIdKey, credId)
     ).toFuture()
       .map(_.headOption)
-      .map(_.map(_.as[MigrationLock]))
+      .map(_.map(_.data.as[MigrationLock]))
   }
 
   def getLock(lock: MigrationLock)(implicit ec: ExecutionContext): Future[Option[MigrationLock]] = {
@@ -123,7 +157,7 @@ class LockCacheRepository @Inject()(
       ),
     ).toFuture()
       .map(_.headOption)
-      .map(_.map(_.as[MigrationLock]))
+      .map(_.map(_.data.as[MigrationLock]))
   }
 
   def releaseLock(lock: MigrationLock): Future[Boolean] = {
