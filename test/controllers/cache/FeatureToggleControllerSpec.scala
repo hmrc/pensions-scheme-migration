@@ -19,10 +19,9 @@ package controllers.cache
 import base.SpecBase
 import models.FeatureToggle.Enabled
 import models.FeatureToggleName.DummyToggle
-import models.OperationSucceeded
 import org.mockito.ArgumentMatchers.any
-import org.scalatest.BeforeAndAfterEach
 import org.mockito.MockitoSugar
+import org.scalatest.BeforeAndAfterEach
 import play.api.libs.json.{JsBoolean, Json}
 import play.api.mvc.ControllerComponents
 import play.api.test.Helpers._
@@ -37,8 +36,10 @@ class FeatureToggleControllerSpec
     with MockitoSugar
     with BeforeAndAfterEach {
 
-  private val mockAdminDataRepository = mock[AdminDataRepository]
   def controllerComponents: ControllerComponents = injector.instanceOf[ControllerComponents]
+
+  private val mockAdminDataRepository = mock[AdminDataRepository]
+
   private val mockFeatureToggleService = mock[FeatureToggleService]
 
   override def beforeEach(): Unit = {
@@ -63,7 +64,7 @@ class FeatureToggleControllerSpec
   "FeatureToggleController.get" must {
     "get the feature toggle value and return OK" in {
       when(mockAdminDataRepository.setFeatureToggles(any()))
-        .thenReturn(Future.successful(true))
+        .thenReturn(Future.successful(()))
 
       when(mockFeatureToggleService.get(any()))
         .thenReturn(Future.successful(Enabled(DummyToggle)))
@@ -82,10 +83,10 @@ class FeatureToggleControllerSpec
   "FeatureToggleController.put" must {
     "set the feature toggles and return NO_CONTENT" in {
       when(mockAdminDataRepository.setFeatureToggles(any()))
-        .thenReturn(Future.successful(true))
+        .thenReturn(Future.successful(()))
 
       when(mockFeatureToggleService.set(any(), any()))
-        .thenReturn(Future.successful(OperationSucceeded))
+        .thenReturn(Future.successful(()))
 
       val controller = new FeatureToggleController(controllerComponents, mockFeatureToggleService)
 
