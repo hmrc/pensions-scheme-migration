@@ -17,133 +17,119 @@
 package repositories
 
 import com.google.inject.Inject
+import com.mongodb.client.model.FindOneAndUpdateOptions
 import org.joda.time.{DateTime, DateTimeZone}
-import org.slf4j.{Logger, LoggerFactory}
-import play.api.Configuration
-import play.api.libs.json.{Format, JsObject, JsValue, Json}
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.bson.Subtype.GenericBinarySubtype
-import reactivemongo.bson.{BSONBinary, BSONDocument, BSONObjectID}
-import reactivemongo.play.json.ImplicitBSONHandlers._
-import uk.gov.hmrc.mongo.ReactiveRepository
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
+import org.mongodb.scala.model.Updates.set
+import org.mongodb.scala.model._
+import play.api.libs.json.{Format, JsObject, JsValue}
+import play.api.{Configuration, Logging}
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
+import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
+import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
 
 class ListOfLegacySchemesCacheRepository@Inject()(
-                                        mongoComponent: ReactiveMongoComponent,
+                                        mongoComponent: MongoComponent,
                                         configuration: Configuration
                                       )(implicit ec: ExecutionContext)
-  extends ReactiveRepository[JsValue, BSONObjectID](
+  extends PlayMongoRepository[JsObject](
     collectionName = configuration.get[String](path = "mongodb.migration-cache.list-of-legacy-schemes.name"),
-    mongo = mongoComponent.mongoConnector.db,
-    domainFormat = implicitly
-  ) {
+    mongoComponent = mongoComponent,
+    domainFormat = implicitly,
+    indexes = Seq(
+      IndexModel(
+        keys = Indexes.ascending("lastUpdated"),
+        indexOptions = IndexOptions().name("lastUpdated")
+          .expireAfter(configuration.get[Int](path = "mongodb.migration-cache.list-of-legacy-schemes.timeToLiveInSeconds"),
+            TimeUnit.SECONDS)
+      )
+    )
+  ) with Logging {
 
-  private val ttl = Some(configuration.get[Int](path = "mongodb.migration-cache.list-of-legacy-schemes.timeToLiveInSeconds"))
+  implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
 
-  override val logger: Logger = LoggerFactory.getLogger("ManageCacheRepository")
-
-  private case class DataEntry(
-                                id: String,
-                                data: BSONBinary,
-                                lastUpdated: DateTime)
-
-  // scalastyle:off magic.number
-  private object DataEntry {
-    def apply(id: String,
-              data: Array[Byte],
-              lastUpdated: DateTime = DateTime.now(DateTimeZone.UTC)): DataEntry =
-      DataEntry(id, BSONBinary(data, GenericBinarySubtype), lastUpdated)
-
-    private implicit val dateFormat: Format[DateTime] =
-      ReactiveMongoFormats.dateTimeFormats
-    implicit val format: Format[DataEntry] = Json.format[DataEntry]
-  }
+  import ListOfLegacySchemesCacheRepository._
 
   // scalastyle:on magic.number
-
-  private case class JsonDataEntry(
-                                    id: String,
-                                    data: JsValue,
-                                    lastUpdated: DateTime
-                                  )
-
-  private object JsonDataEntry {
-    private implicit val dateFormat: Format[DateTime] = ReactiveMongoFormats.dateTimeFormats
-    implicit val format: Format[JsonDataEntry] = Json.format[JsonDataEntry]
-  }
-
-  private val fieldName = "lastUpdated"
-  private val createdIndexName = "dataExpiry"
-  private val expireAfterSeconds = "expireAfterSeconds"
-
-  (for {
-    _ <- ensureIndex(fieldName, createdIndexName, ttl)
-  } yield {
-    ()
-  }) recoverWith {
-    case t: Throwable => Future.successful(logger.error(s"Error ensuring indexes on collection ${collection.name}", t))
-  }
-
-  private def ensureIndex(field: String, indexName: String, ttl: Option[Int]): Future[Boolean] = {
-
-    val defaultIndex: Index = Index(Seq((field, IndexType.Ascending)), Some(indexName))
-
-    val index: Index = ttl.fold(defaultIndex) { ttl =>
-      Index(
-        Seq((field, IndexType.Ascending)),
-        Some(indexName),
-        background = true,
-        options = BSONDocument(expireAfterSeconds -> ttl)
-      )
-    }
-
-    collection.indexesManager.ensure(index) map {
-      result => {
-        logger.warn(s"Created index $indexName on collection ${collection.name} with TTL value $ttl -> result: $result")
-        result
-      }
-    } recover {
-      case e => logger.error("Failed to set TTL index", e)
-        false
-    }
-  }
+//  private case class JsonDataEntry(
+//                                    id: String,
+//                                    data: JsValue,
+//                                    lastUpdated: DateTime
+//                                  )
 
   def upsert(id: String, data: JsValue)(implicit ec: ExecutionContext): Future[Boolean] = {
-    val document: JsValue = {
-      Json.toJson(JsonDataEntry(id, data, DateTime.now(DateTimeZone.UTC)))
-    }
-    val selector = BSONDocument("id" -> id)
-    val modifier = BSONDocument("$set" -> document)
-    collection.update(ordered = false).one(selector, modifier, upsert = true)
-      .map(_.ok)
+    val upsertOptions = new FindOneAndUpdateOptions().upsert(true)
+
+    collection.findOneAndUpdate(
+      filter = Filters.eq(idKey, id),
+      update = Updates.combine(
+        set(idKey, id),
+        set(dataKey, Codecs.toBson(data)),
+        set(lastUpdatedKey, Codecs.toBson(DateTime.now(DateTimeZone.UTC)))
+      ),
+      upsertOptions
+    ).toFuture().map(_ => true)
   }
 
-  def get(id: String)(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
-    collection.find(BSONDocument("id" -> id), projection = Option.empty[JsObject]).one[JsonDataEntry].map {
-      _.map {
-        dataEntry =>
-          dataEntry.data
+  /*
+    def get(pstr: String)(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
+    logger.debug("Calling get in Migration Data Cache")
+    collection.find(
+      filter = Filters.eq(pstrKey, pstr)
+    ).toFuture()
+      .map(_.headOption)
+      .map {
+        _.map { dataJson =>
+          dataJson.data.as[JsObject] ++
+            Json.obj("expireAt" -> JsNumber(dataJson.expireAt.minusDays(1).getMillis))
+        }
       }
-    }
+  }
+   */
+
+  def get(id: String)(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
+    collection.find(
+      filter = Filters.eq(idKey, id)
+    ).toFuture()
+      .map(_.headOption)
+      .map { _.flatMap { dataJson => (dataJson \ "data").asOpt[JsObject]}}
+//    collection.find(BSONDocument("id" -> id), projection = Option.empty[JsObject]).one[JsonDataEntry].map {
+//      _.map {
+//        dataEntry =>
+//          dataEntry.data
+//      }
+//    }
   }
 
   def getLastUpdated(id: String)(implicit ec: ExecutionContext): Future[Option[DateTime]] = {
-    collection.find(BSONDocument("id" -> id), projection = Option.empty[JsObject]).one[JsonDataEntry].map {
-      _.map {
-        dataEntry =>
-          dataEntry.lastUpdated
-      }
-    }
+    collection.find(
+      filter = Filters.eq(idKey, id)
+    ).toFuture()
+      .map(_.headOption)
+      .map { _.flatMap { dataJson => (dataJson \ "lastUpdated").asOpt[DateTime]}}
+//    collection.find(BSONDocument("id" -> id), projection = Option.empty[JsObject]).one[JsonDataEntry].map {
+//      _.map {
+//        dataEntry =>
+//          dataEntry.lastUpdated
+//      }
+//    }
   }
 
   def remove(id: String)(implicit ec: ExecutionContext): Future[Boolean] = {
-    logger.warn(s"Removing row from collection ${collection.name} externalId:$id")
-    val selector = BSONDocument("id" -> id)
-    collection.delete().one(selector).map(_.ok)
+    logger.warn(s"Removing row from list of legacy schemes collection externalId:$id")
+    collection.deleteOne(
+      filter = Filters.eq(idKey, id)
+    ).toFuture().map( _ => true)
+//    val selector = BSONDocument("id" -> id)
+//    collection.delete().one(selector).map(_.ok)
   }
 
 }
 
+object ListOfLegacySchemesCacheRepository {
+  private val idKey = "id"
+  private val dataKey = "data"
+  private val lastUpdatedKey = "lastUpdated"
+}
