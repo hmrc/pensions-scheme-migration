@@ -40,6 +40,7 @@ class LockCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
   override def beforeEach: Unit = {
     super.beforeEach
     when(mockConfiguration.get[String](path = "mongodb.migration-cache.lock-cache.name")).thenReturn("migration-lock")
+    when(mockConfiguration.get[Int](path = "mongodb.migration-cache.lock-cache.timeToLiveInSeconds")).thenReturn(900)
   }
 
   withEmbedMongoFixture(port = 24680) { _ =>

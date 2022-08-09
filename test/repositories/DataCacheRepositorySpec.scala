@@ -44,6 +44,7 @@ class DataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
     super.beforeEach
     reset(mockLockCacheRepository, mockConfiguration)
     when(mockConfiguration.get[String](path = "mongodb.migration-cache.data-cache.name")).thenReturn("migration-data")
+    when(mockConfiguration.get[Int](path = "mongodb.migration-cache.data-cache.timeToLiveInDays")).thenReturn(28)
   }
 
   withEmbedMongoFixture(port = 24680) { _ =>

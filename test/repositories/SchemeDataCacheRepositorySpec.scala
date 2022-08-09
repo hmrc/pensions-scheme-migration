@@ -33,16 +33,16 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 
 
-class ListOfLegacySchemesCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with MongoEmbedDatabase with BeforeAndAfter with
+class SchemeDataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with MongoEmbedDatabase with BeforeAndAfter with
   BeforeAndAfterEach { // scalastyle:off magic.number
 
-  import ListOfLegacySchemesCacheRepositorySpec._
+  import SchemeDataCacheRepositorySpec._
 
   override def beforeEach: Unit = {
     super.beforeEach
     reset(mockLockCacheRepository, mockConfiguration)
-    when(mockConfiguration.get[String](path = "mongodb.migration-cache.list-of-legacy-schemes.name")).thenReturn("list-of-legacy-schemes")
-    when(mockConfiguration.get[Int](path = "mongodb.migration-cache.list-of-legacy-schemes.timeToLiveInSeconds")).thenReturn(7200)
+    when(mockConfiguration.get[String](path = "mongodb.migration-cache.scheme-data-cache.name")).thenReturn("scheme-data")
+    when(mockConfiguration.get[Int](path = "mongodb.migration-cache.scheme-data-cache.timeToLiveInDays")).thenReturn(28)
   }
 
   withEmbedMongoFixture(port = 24680) { _ =>
@@ -63,84 +63,84 @@ class ListOfLegacySchemesCacheRepositorySpec extends AnyWordSpec with MockitoSug
         }
       }
 
-//      "get None from Mongo collection when not present" in {
-//        mongoCollectionDrop()
-//        val result = for {
-//          _ <- repository.collection.insertMany(seqExistingData).toFuture
-//          status <- repository.get("dummyId")
-//        } yield {
-//          status
-//        }
-//
-//        Await.result(result, Duration.Inf) match {
-//          case status =>
-//            status mustBe None
-//        }
-//      }
+      "get None from Mongo collection when not present" in {
+        mongoCollectionDrop()
+        val result = for {
+          _ <- repository.collection.insertMany(seqExistingData).toFuture
+          status <- repository.get("dummyId")
+        } yield {
+          status
+        }
+
+        Await.result(result, Duration.Inf) match {
+          case status =>
+            status mustBe None
+        }
+      }
     }
 
 
-//    "upsert" must {
-//      "insert into Mongo collection where item does not exist" in {
-//        mongoCollectionDrop()
-//
-//        val result = for {
-//          status <- repository.upsert(id2, data2)
-//          allDocs <- repository.collection.find().toFuture()
-//        } yield {
-//          Tuple2(allDocs.size, status)
-//        }
-//
-//        Await.result(result, Duration.Inf) match {
-//          case Tuple2(totalDocs, status) =>
-//            status mustBe true
-//            totalDocs mustBe 1
-//        }
-//      }
-//
-//      "update Mongo collection where item does exist" in {
-//        mongoCollectionDrop()
-//
-//        val result = for {
-//          _ <- repository.collection.insertMany(seqExistingData).toFuture
-//          _ <- repository.upsert(id2, data1)
-//          updatedItem <- repository.get(id2)
-//        } yield {
-//          updatedItem
-//        }
-//
-//        Await.result(result, Duration.Inf) match {
-//          case updatedItem =>
-//            updatedItem mustBe Some(data1)
-//        }
-//      }
-//    }
+    "save" must {
+      "insert into Mongo collection where item does not exist" in {
+        mongoCollectionDrop()
 
-//    "remove" must {
-//      "remove from Mongo collection leaving other one" in {
-//        mongoCollectionDrop()
-//
-//        val endState = for {
-//          _ <- repository.collection.insertMany(seqExistingData).toFuture
-//          response <- repository.remove(id2)
-//          firstRetrieved <- repository.get(id1)
-//          secondRetrieved <- repository.get(id2)
-//        } yield {
-//          Tuple3(response, firstRetrieved, secondRetrieved)
-//        }
-//
-//        Await.result(endState, Duration.Inf) match {
-//          case Tuple3(response, first, second) =>
-//            first mustBe Some(data1)
-//            second mustBe None
-//            response mustBe true
-//        }
-//      }
-//    }
+        val result = for {
+          status <- repository.save(id2, data2)
+          allDocs <- repository.collection.find().toFuture()
+        } yield {
+          Tuple2(allDocs.size, status)
+        }
+
+        Await.result(result, Duration.Inf) match {
+          case Tuple2(totalDocs, status) =>
+            status mustBe true
+            totalDocs mustBe 1
+        }
+      }
+
+      "update Mongo collection where item does exist" in {
+        mongoCollectionDrop()
+
+        val result = for {
+          _ <- repository.collection.insertMany(seqExistingData).toFuture
+          _ <- repository.save(id2, data1)
+          updatedItem <- repository.get(id2)
+        } yield {
+          updatedItem
+        }
+
+        Await.result(result, Duration.Inf) match {
+          case updatedItem =>
+            updatedItem mustBe Some(data1)
+        }
+      }
+    }
+
+    "remove" must {
+      "remove from Mongo collection leaving other one" in {
+        mongoCollectionDrop()
+
+        val endState = for {
+          _ <- repository.collection.insertMany(seqExistingData).toFuture
+          response <- repository.remove(id2)
+          firstRetrieved <- repository.get(id1)
+          secondRetrieved <- repository.get(id2)
+        } yield {
+          Tuple3(response, firstRetrieved, secondRetrieved)
+        }
+
+        Await.result(endState, Duration.Inf) match {
+          case Tuple3(response, first, second) =>
+            first mustBe Some(data1)
+            second mustBe None
+            response mustBe true
+        }
+      }
+    }
   }
 }
 
-object ListOfLegacySchemesCacheRepositorySpec extends AnyWordSpec with MockitoSugar {
+object SchemeDataCacheRepositorySpec extends AnyWordSpec with MockitoSugar {
   implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
 
   import scala.concurrent.ExecutionContext.Implicits._
@@ -155,7 +155,7 @@ object ListOfLegacySchemesCacheRepositorySpec extends AnyWordSpec with MockitoSu
 
   private val mockLockCacheRepository = mock[LockCacheRepository]
 
-  private def repository = new ListOfLegacySchemesCacheRepository(mongoComponent, mockConfiguration)
+  private def repository = new SchemeDataCacheRepository(mongoComponent, mockConfiguration)
 
   private val idKey = "id"
   private val lastUpdatedKey = "lastUpdated"
@@ -183,3 +183,5 @@ object ListOfLegacySchemesCacheRepositorySpec extends AnyWordSpec with MockitoSu
     item1, item2
   )
 }
+
+

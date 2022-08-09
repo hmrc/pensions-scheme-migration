@@ -38,11 +38,13 @@ class ListOfLegacySchemesCacheRepository@Inject()(
     collectionName = configuration.get[String](path = "mongodb.migration-cache.list-of-legacy-schemes.name"),
     mongoComponent = mongoComponent,
     domainFormat = implicitly,
-    indexes = Seq(
+    indexes =
+      Seq(
       IndexModel(
         keys = Indexes.ascending("lastUpdated"),
         indexOptions = IndexOptions().name("lastUpdated")
-          .expireAfter(configuration.get[Int](path = "mongodb.migration-cache.list-of-legacy-schemes.timeToLiveInSeconds"),
+          .expireAfter(
+            configuration.get[Int](path = "mongodb.migration-cache.list-of-legacy-schemes.timeToLiveInSeconds"),
             TimeUnit.SECONDS)
       )
     )

@@ -42,6 +42,7 @@ class RacDacRequestsQueueEventsLogRepositorySpec extends AnyWordSpec with Mockit
     super.beforeEach
     reset(mockLockCacheRepository, mockConfiguration)
     when(mockConfiguration.get[String](path = "mongodb.migration-cache.rac-dac-requests-queue-events-log.name")).thenReturn("rac-dac-requests-queue-events-log")
+    when(mockConfiguration.get[Int](path = "mongodb.migration-cache.rac-dac-requests-queue-events-log.timeToLiveInSeconds")).thenReturn(3600)
   }
 
   withEmbedMongoFixture(port = 24680) { _ =>
