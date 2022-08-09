@@ -52,13 +52,6 @@ class ListOfLegacySchemesCacheRepository@Inject()(
 
   import ListOfLegacySchemesCacheRepository._
 
-  // scalastyle:on magic.number
-//  private case class JsonDataEntry(
-//                                    id: String,
-//                                    data: JsValue,
-//                                    lastUpdated: DateTime
-//                                  )
-
   def upsert(id: String, data: JsValue)(implicit ec: ExecutionContext): Future[Boolean] = {
     val upsertOptions = new FindOneAndUpdateOptions().upsert(true)
 
@@ -73,34 +66,12 @@ class ListOfLegacySchemesCacheRepository@Inject()(
     ).toFuture().map(_ => true)
   }
 
-  /*
-    def get(pstr: String)(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
-    logger.debug("Calling get in Migration Data Cache")
-    collection.find(
-      filter = Filters.eq(pstrKey, pstr)
-    ).toFuture()
-      .map(_.headOption)
-      .map {
-        _.map { dataJson =>
-          dataJson.data.as[JsObject] ++
-            Json.obj("expireAt" -> JsNumber(dataJson.expireAt.minusDays(1).getMillis))
-        }
-      }
-  }
-   */
-
   def get(id: String)(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
     collection.find(
       filter = Filters.eq(idKey, id)
     ).toFuture()
       .map(_.headOption)
       .map { _.flatMap { dataJson => (dataJson \ "data").asOpt[JsObject]}}
-//    collection.find(BSONDocument("id" -> id), projection = Option.empty[JsObject]).one[JsonDataEntry].map {
-//      _.map {
-//        dataEntry =>
-//          dataEntry.data
-//      }
-//    }
   }
 
   def getLastUpdated(id: String)(implicit ec: ExecutionContext): Future[Option[DateTime]] = {
@@ -109,12 +80,6 @@ class ListOfLegacySchemesCacheRepository@Inject()(
     ).toFuture()
       .map(_.headOption)
       .map { _.flatMap { dataJson => (dataJson \ "lastUpdated").asOpt[DateTime]}}
-//    collection.find(BSONDocument("id" -> id), projection = Option.empty[JsObject]).one[JsonDataEntry].map {
-//      _.map {
-//        dataEntry =>
-//          dataEntry.lastUpdated
-//      }
-//    }
   }
 
   def remove(id: String)(implicit ec: ExecutionContext): Future[Boolean] = {
@@ -122,8 +87,6 @@ class ListOfLegacySchemesCacheRepository@Inject()(
     collection.deleteOne(
       filter = Filters.eq(idKey, id)
     ).toFuture().map( _ => true)
-//    val selector = BSONDocument("id" -> id)
-//    collection.delete().one(selector).map(_.ok)
   }
 
 }

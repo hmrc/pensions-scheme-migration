@@ -33,15 +33,15 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 
 
-class ListOfLegacySchemesCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with MongoEmbedDatabase with BeforeAndAfter with
+class RacDacRequestsQueueEventsLogRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with MongoEmbedDatabase with BeforeAndAfter with
   BeforeAndAfterEach { // scalastyle:off magic.number
 
-  import ListOfLegacySchemesCacheRepositorySpec._
+  import RacDacRequestsQueueEventsLogRepositorySpec._
 
   override def beforeEach: Unit = {
     super.beforeEach
     reset(mockLockCacheRepository, mockConfiguration)
-    when(mockConfiguration.get[String](path = "mongodb.migration-cache.list-of-legacy-schemes.name")).thenReturn("list-of-legacy-schemes")
+    when(mockConfiguration.get[String](path = "mongodb.migration-cache.rac-dac-requests-queue-events-log.name")).thenReturn("rac-dac-requests-queue-events-log")
   }
 
   withEmbedMongoFixture(port = 24680) { _ =>
@@ -79,12 +79,12 @@ class ListOfLegacySchemesCacheRepositorySpec extends AnyWordSpec with MockitoSug
     }
 
 
-    "upsert" must {
+    "save" must {
       "insert into Mongo collection where item does not exist" in {
         mongoCollectionDrop()
 
         val result = for {
-          status <- repository.upsert(id2, data2)
+          status <- repository.save(id2, data2)
           allDocs <- repository.collection.find().toFuture()
         } yield {
           Tuple2(allDocs.size, status)
@@ -102,7 +102,7 @@ class ListOfLegacySchemesCacheRepositorySpec extends AnyWordSpec with MockitoSug
 
         val result = for {
           _ <- repository.collection.insertMany(seqExistingData).toFuture
-          _ <- repository.upsert(id2, data1)
+          _ <- repository.save(id2, data1)
           updatedItem <- repository.get(id2)
         } yield {
           updatedItem
@@ -139,7 +139,8 @@ class ListOfLegacySchemesCacheRepositorySpec extends AnyWordSpec with MockitoSug
   }
 }
 
-object ListOfLegacySchemesCacheRepositorySpec extends AnyWordSpec with MockitoSugar {
+
+object RacDacRequestsQueueEventsLogRepositorySpec extends AnyWordSpec with MockitoSugar {
   implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
 
   import scala.concurrent.ExecutionContext.Implicits._
@@ -154,7 +155,7 @@ object ListOfLegacySchemesCacheRepositorySpec extends AnyWordSpec with MockitoSu
 
   private val mockLockCacheRepository = mock[LockCacheRepository]
 
-  private def repository = new ListOfLegacySchemesCacheRepository(mongoComponent, mockConfiguration)
+  private def repository = new RacDacRequestsQueueEventsLogRepository(mongoComponent, mockConfiguration)
 
   private val idKey = "id"
   private val lastUpdatedKey = "lastUpdated"
@@ -182,3 +183,4 @@ object ListOfLegacySchemesCacheRepositorySpec extends AnyWordSpec with MockitoSu
     item1, item2
   )
 }
+
