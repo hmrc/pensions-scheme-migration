@@ -63,81 +63,97 @@ class ListOfLegacySchemesCacheRepositorySpec extends AnyWordSpec with MockitoSug
         }
       }
 
-//      "get None from Mongo collection when not present" in {
-//        mongoCollectionDrop()
-//        val result = for {
-//          _ <- repository.collection.insertMany(seqExistingData).toFuture
-//          status <- repository.get("dummyId")
-//        } yield {
-//          status
-//        }
-//
-//        Await.result(result, Duration.Inf) match {
-//          case status =>
-//            status mustBe None
-//        }
-//      }
+      "get None from Mongo collection when not present" in {
+        mongoCollectionDrop()
+        val result = for {
+          _ <- repository.collection.insertMany(seqExistingData).toFuture
+          status <- repository.get("dummyId")
+        } yield {
+          status
+        }
+
+        Await.result(result, Duration.Inf) match {
+          case status =>
+            status mustBe None
+        }
+      }
     }
 
-
-//    "upsert" must {
-//      "insert into Mongo collection where item does not exist" in {
-//        mongoCollectionDrop()
-//
-//        val result = for {
-//          status <- repository.upsert(id2, data2)
-//          allDocs <- repository.collection.find().toFuture()
-//        } yield {
-//          Tuple2(allDocs.size, status)
-//        }
-//
-//        Await.result(result, Duration.Inf) match {
-//          case Tuple2(totalDocs, status) =>
-//            status mustBe true
-//            totalDocs mustBe 1
-//        }
-//      }
-//
-//      "update Mongo collection where item does exist" in {
-//        mongoCollectionDrop()
-//
-//        val result = for {
-//          _ <- repository.collection.insertMany(seqExistingData).toFuture
-//          _ <- repository.upsert(id2, data1)
-//          updatedItem <- repository.get(id2)
-//        } yield {
-//          updatedItem
-//        }
-//
-//        Await.result(result, Duration.Inf) match {
-//          case updatedItem =>
-//            updatedItem mustBe Some(data1)
-//        }
-//      }
-//    }
-
-//    "remove" must {
-//      "remove from Mongo collection leaving other one" in {
-//        mongoCollectionDrop()
-//
-//        val endState = for {
-//          _ <- repository.collection.insertMany(seqExistingData).toFuture
-//          response <- repository.remove(id2)
-//          firstRetrieved <- repository.get(id1)
-//          secondRetrieved <- repository.get(id2)
-//        } yield {
-//          Tuple3(response, firstRetrieved, secondRetrieved)
-//        }
-//
-//        Await.result(endState, Duration.Inf) match {
-//          case Tuple3(response, first, second) =>
-//            first mustBe Some(data1)
-//            second mustBe None
-//            response mustBe true
-//        }
-//      }
-//    }
+    //    "get None from Mongo collection when exception thrown" in {
+    //      mongoCollectionDrop()
+    //      val result = for {
+    //        _ <- repository.collection.insertMany(seqExistingData).toFuture
+    //        status <- repository.get("dummyId")
+    //      } yield {
+    //        status
+    //      }
+    //
+    //      Await.result(result, Duration.Inf) match {
+    //        case status =>
+    //          status mustBe None
+    //      }
+    //    }
   }
+
+
+  "upsert" must {
+    "insert into Mongo collection where item does not exist" in {
+      mongoCollectionDrop()
+
+      val result = for {
+        status <- repository.upsert(id2, data2)
+        allDocs <- repository.collection.find().toFuture()
+      } yield {
+        Tuple2(allDocs.size, status)
+      }
+
+      Await.result(result, Duration.Inf) match {
+        case Tuple2(totalDocs, status) =>
+          status mustBe true
+          totalDocs mustBe 1
+      }
+    }
+
+    "update Mongo collection where item does exist" in {
+      mongoCollectionDrop()
+
+      val result = for {
+        _ <- repository.collection.insertMany(seqExistingData).toFuture
+        _ <- repository.upsert(id2, data1)
+        updatedItem <- repository.get(id2)
+      } yield {
+        updatedItem
+      }
+
+      Await.result(result, Duration.Inf) match {
+        case updatedItem =>
+          updatedItem mustBe Some(data1)
+      }
+    }
+  }
+
+  "remove" must {
+    "remove from Mongo collection leaving other one" in {
+      mongoCollectionDrop()
+
+      val endState = for {
+        _ <- repository.collection.insertMany(seqExistingData).toFuture
+        response <- repository.remove(id2)
+        firstRetrieved <- repository.get(id1)
+        secondRetrieved <- repository.get(id2)
+      } yield {
+        Tuple3(response, firstRetrieved, secondRetrieved)
+      }
+
+      Await.result(endState, Duration.Inf) match {
+        case Tuple3(response, first, second) =>
+          first mustBe Some(data1)
+          second mustBe None
+          response mustBe true
+      }
+    }
+  }
+
 }
 
 object ListOfLegacySchemesCacheRepositorySpec extends AnyWordSpec with MockitoSugar {
