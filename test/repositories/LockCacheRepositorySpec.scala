@@ -19,7 +19,7 @@ package repositories
 import com.github.simplyscala.MongoEmbedDatabase
 import models.cache.{LockJson, MigrationLock}
 import org.joda.time.{DateTime, DateTimeZone}
-import org.mockito.MockitoSugar
+import org.mockito.{ArgumentMatchers, MockitoSugar}
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterEach}
@@ -39,8 +39,11 @@ class LockCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
 
   override def beforeEach: Unit = {
     super.beforeEach
-    when(mockConfiguration.get[String](path = "mongodb.migration-cache.lock-cache.name")).thenReturn("migration-lock")
-    when(mockConfiguration.get[Int](path = "mongodb.migration-cache.lock-cache.timeToLiveInSeconds")).thenReturn(900)
+    reset(mockConfiguration)
+    when(mockConfiguration.get[String](ArgumentMatchers.eq( "mongodb.migration-cache.lock-cache.name"))(ArgumentMatchers.any()))
+      .thenReturn("migration-lock")
+    when(mockConfiguration.get[Int](ArgumentMatchers.eq("mongodb.migration-cache.lock-cache.timeToLiveInSeconds"))(ArgumentMatchers.any()))
+      .thenReturn(900)
   }
 
   withEmbedMongoFixture(port = 24680) { _ =>

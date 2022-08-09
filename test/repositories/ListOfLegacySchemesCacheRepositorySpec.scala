@@ -19,7 +19,7 @@ package repositories
 import com.github.nscala_time.time.Imports.DateTimeZone
 import com.github.simplyscala.MongoEmbedDatabase
 import org.joda.time.DateTime
-import org.mockito.MockitoSugar
+import org.mockito.{ArgumentMatchers, MockitoSugar}
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterEach}
@@ -41,8 +41,10 @@ class ListOfLegacySchemesCacheRepositorySpec extends AnyWordSpec with MockitoSug
   override def beforeEach: Unit = {
     super.beforeEach
     reset(mockLockCacheRepository, mockConfiguration)
-    when(mockConfiguration.get[String](path = "mongodb.migration-cache.list-of-legacy-schemes.name")).thenReturn("list-of-legacy-schemes")
-    when(mockConfiguration.get[Int](path = "mongodb.migration-cache.list-of-legacy-schemes.timeToLiveInSeconds")).thenReturn(7200)
+    when(mockConfiguration.get[String](ArgumentMatchers.eq( "mongodb.migration-cache.list-of-legacy-schemes.name"))(ArgumentMatchers.any()))
+      .thenReturn("list-of-legacy-schemes")
+    when(mockConfiguration.get[Int](ArgumentMatchers.eq("mongodb.migration-cache.list-of-legacy-schemes.timeToLiveInSeconds"))(ArgumentMatchers.any()))
+      .thenReturn(7200)
   }
 
   withEmbedMongoFixture(port = 24680) { _ =>

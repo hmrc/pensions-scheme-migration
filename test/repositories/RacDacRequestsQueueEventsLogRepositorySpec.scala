@@ -19,7 +19,7 @@ package repositories
 import com.github.nscala_time.time.Imports.DateTimeZone
 import com.github.simplyscala.MongoEmbedDatabase
 import org.joda.time.DateTime
-import org.mockito.MockitoSugar
+import org.mockito.{ArgumentMatchers, MockitoSugar}
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterEach}
@@ -41,8 +41,10 @@ class RacDacRequestsQueueEventsLogRepositorySpec extends AnyWordSpec with Mockit
   override def beforeEach: Unit = {
     super.beforeEach
     reset(mockLockCacheRepository, mockConfiguration)
-    when(mockConfiguration.get[String](path = "mongodb.migration-cache.rac-dac-requests-queue-events-log.name")).thenReturn("rac-dac-requests-queue-events-log")
-    when(mockConfiguration.get[Int](path = "mongodb.migration-cache.rac-dac-requests-queue-events-log.timeToLiveInSeconds")).thenReturn(3600)
+    when(mockConfiguration.get[String](ArgumentMatchers.eq( "mongodb.migration-cache.rac-dac-requests-queue-events-log.name"))(ArgumentMatchers.any()))
+      .thenReturn("rac-dac-requests-queue-events-log")
+    when(mockConfiguration.get[Int](ArgumentMatchers.eq("mongodb.migration-cache.rac-dac-requests-queue-events-log.timeToLiveInSeconds"))(ArgumentMatchers.any()))
+      .thenReturn(3600)
   }
 
   withEmbedMongoFixture(port = 24680) { _ =>

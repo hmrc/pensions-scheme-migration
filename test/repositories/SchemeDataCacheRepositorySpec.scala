@@ -19,7 +19,7 @@ package repositories
 import com.github.nscala_time.time.Imports.DateTimeZone
 import com.github.simplyscala.MongoEmbedDatabase
 import org.joda.time.DateTime
-import org.mockito.MockitoSugar
+import org.mockito.{ArgumentMatchers, MockitoSugar}
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterEach}
@@ -41,8 +41,10 @@ class SchemeDataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with M
   override def beforeEach: Unit = {
     super.beforeEach
     reset(mockLockCacheRepository, mockConfiguration)
-    when(mockConfiguration.get[String](path = "mongodb.migration-cache.scheme-data-cache.name")).thenReturn("scheme-data")
-    when(mockConfiguration.get[Int](path = "mongodb.migration-cache.scheme-data-cache.timeToLiveInDays")).thenReturn(28)
+    when(mockConfiguration.get[String](ArgumentMatchers.eq( "mongodb.migration-cache.scheme-data-cache.name"))(ArgumentMatchers.any()))
+      .thenReturn("scheme-data")
+    when(mockConfiguration.get[Int](ArgumentMatchers.eq("mongodb.migration-cache.scheme-data-cache.timeToLiveInDays"))(ArgumentMatchers.any()))
+      .thenReturn(28)
   }
 
   withEmbedMongoFixture(port = 24680) { _ =>

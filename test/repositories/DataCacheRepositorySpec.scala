@@ -43,8 +43,10 @@ class DataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
   override def beforeEach: Unit = {
     super.beforeEach
     reset(mockLockCacheRepository, mockConfiguration)
-    when(mockConfiguration.get[String](path = "mongodb.migration-cache.data-cache.name")).thenReturn("migration-data")
-    when(mockConfiguration.get[Int](path = "mongodb.migration-cache.data-cache.timeToLiveInDays")).thenReturn(28)
+    when(mockConfiguration.get[String](ArgumentMatchers.eq( "mongodb.migration-cache.data-cache.name"))(ArgumentMatchers.any()))
+      .thenReturn("migration-data")
+    when(mockConfiguration.get[Int](ArgumentMatchers.eq( "mongodb.migration-cache.data-cache.timeToLiveInDays"))(ArgumentMatchers.any()))
+      .thenReturn(28)
   }
 
   withEmbedMongoFixture(port = 24680) { _ =>
@@ -129,7 +131,8 @@ class DataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
 
 
       "set lock in Mongo collection where there is current lock but it is locked for current pstr/ psa" in {
-        when(mockConfiguration.get[String](path = "mongodb.migration-cache.data-cache.name")).thenReturn("migration-data")
+        when(mockConfiguration.get[String](ArgumentMatchers.eq( "mongodb.migration-cache.data-cache.name"))(ArgumentMatchers.any()))
+          .thenReturn("migration-data")
         mongoCollectionDrop()
 
         when(mockLockCacheRepository.setLock(ArgumentMatchers.eq(migrationLock)))
@@ -154,7 +157,8 @@ class DataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
       }
 
       "throw LockCouldNotBeSetException where there is current lock but it is locked for different pstr/ psa" in {
-        when(mockConfiguration.get[String](path = "mongodb.migration-cache.data-cache.name")).thenReturn("migration-data")
+        when(mockConfiguration.get[String](ArgumentMatchers.eq("mongodb.migration-cache.data-cache.name"))(ArgumentMatchers.any()))
+          .thenReturn("migration-data")
         mongoCollectionDrop()
 
         when(mockLockCacheRepository.setLock(ArgumentMatchers.eq(migrationLock)))
