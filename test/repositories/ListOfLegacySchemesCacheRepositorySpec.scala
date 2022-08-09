@@ -78,21 +78,6 @@ class ListOfLegacySchemesCacheRepositorySpec extends AnyWordSpec with MockitoSug
         }
       }
     }
-
-    //    "get None from Mongo collection when exception thrown" in {
-    //      mongoCollectionDrop()
-    //      val result = for {
-    //        _ <- repository.collection.insertMany(seqExistingData).toFuture
-    //        status <- repository.get("dummyId")
-    //      } yield {
-    //        status
-    //      }
-    //
-    //      Await.result(result, Duration.Inf) match {
-    //        case status =>
-    //          status mustBe None
-    //      }
-    //    }
   }
 
 
