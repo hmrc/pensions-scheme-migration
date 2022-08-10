@@ -22,16 +22,17 @@ import config.AppConfig
 import models.racDac.WorkItemRequest
 import org.bson.types.ObjectId
 import org.joda.time.DateTime
-import org.mongodb.scala.model.Filters
+import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes}
 import play.api.libs.json._
 import play.api.{Configuration, Logger}
-import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
-import uk.gov.hmrc.mongo.workitem.ProcessingStatus.{Failed, PermanentlyFailed, ToDo}
+import uk.gov.hmrc.mongo.workitem.ProcessingStatus.{PermanentlyFailed, ToDo}
 import uk.gov.hmrc.mongo.workitem._
+import uk.gov.hmrc.mongo.{MongoComponent, MongoUtils}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import java.time.{Duration, Instant}
+import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
 
 class RacDacRequestsQueueRepository @Inject()(appConfig: AppConfig, configuration: Configuration, mongoComponent: MongoComponent, servicesConfig: ServicesConfig)
@@ -43,25 +44,29 @@ class RacDacRequestsQueueRepository @Inject()(appConfig: AppConfig, configuratio
     workItemFields = WorkItemFields.default
   ) {
 
+  override def ensureIndexes: Future[Seq[String]] = {
+    val extraIndexes = Seq[IndexModel](
+      IndexModel(Indexes.ascending("item.psaId"), IndexOptions().name("psaIdIdx").background(true)),
+      IndexModel(
+        Indexes.ascending("receivedAt"), IndexOptions()
+          .name("receivedAtTime")
+          .background(true)
+          .expireAfter(ttl, TimeUnit.SECONDS)
+      )
+    )
+    MongoUtils.ensureIndexes(collection, indexes ++ extraIndexes, replaceIndexes = true)
+  }
+
   private val logger: Logger = Logger(classOf[RacDacRequestsQueueRepository])
 
   override def now: Instant = Instant.now()
 
-  private implicit val dateFormats: Format[DateTime] = MongoJodaFormats.dateTimeFormat
-  //private implicit val dateFormats: Format[DateTime] = ReactiveMongoFormats.dateTimeFormats
-
-  //override def now: DateTime = DateTime.now
+//  private implicit val dateFormats: Format[DateTime] = MongoJodaFormats.dateTimeFormat
 
   override lazy val inProgressRetryAfter: Duration = appConfig.retryAfter
   private val retryPeriod = inProgressRetryAfter.toMillis
 
-  //private lazy val ttl = servicesConfig.getDuration("racDacWorkItem.submission-poller.mongo.ttl").toSeconds
-
-  //  override def indexes: Seq[Index] = super.indexes ++ Seq(
-  //    Index(key = Seq("item.psaId" -> IndexType.Ascending), name = Some("psaIdIdx"), background = true),
-  //    Index(key = Seq("receivedAt" -> IndexType.Ascending), name = Some("receivedAtTime"),
-  //      options = BSONDocument("expireAfterSeconds" -> ttl), background = true)
-  //  )
+  private lazy val ttl = servicesConfig.getDuration("racDacWorkItem.submission-poller.mongo.ttl").toSeconds
 
   def pushAll(racDacRequests: Seq[WorkItemRequest]): Future[Either[Exception, Seq[WorkItem[WorkItemRequest]]]] = {
     pushNewBatch(racDacRequests, now, (_: WorkItemRequest) => ToDo).map(item => Right(item)).recover {
@@ -106,13 +111,13 @@ class RacDacRequestsQueueRepository @Inject()(appConfig: AppConfig, configuratio
       case exception: Exception => Left(WorkItemProcessingException(
         s"getting no of requests failed due to ${exception.getMessage}"))
     }
-//    val selector = Json.obj("item.psaId" -> psaId)
-//    collection.count(Some(selector), None, skip = 0, None, ReadConcern.LOCAL).map(Right(_)).recover {
-//      case exception: Exception => {
-//        logger.error(s"getting total no of requests failed due to ${exception.getMessage}")
-//        Left(WorkItemProcessingException(s"getting total no of requests failed due to ${exception.getMessage}"))
-//      }
-//    }
+    //    val selector = Json.obj("item.psaId" -> psaId)
+    //    collection.count(Some(selector), None, skip = 0, None, ReadConcern.LOCAL).map(Right(_)).recover {
+    //      case exception: Exception => {
+    //        logger.error(s"getting total no of requests failed due to ${exception.getMessage}")
+    //        Left(WorkItemProcessingException(s"getting total no of requests failed due to ${exception.getMessage}"))
+    //      }
+    //    }
   }
 
   def getNoOfFailureByPsaId(psaId: String): Future[Either[Exception, Long]] = {
@@ -125,19 +130,19 @@ class RacDacRequestsQueueRepository @Inject()(appConfig: AppConfig, configuratio
       case exception: Exception => Left(WorkItemProcessingException(
         s"getting no of failed requests failed due to ${exception.getMessage}"))
     }
-//    val selector = Json.obj(workItemFields.status -> JsString(PermanentlyFailed.name), "item.psaId" -> psaId)
-//    collection.count(Some(selector), None, skip = 0, None, ReadConcern.Local).map(Right(_)).recover {
-//      case exception: Exception => Left(WorkItemProcessingException(
-//        s"getting no of failed requests failed due to ${exception.getMessage}"))
-//    }
+    //    val selector = Json.obj(workItemFields.status -> JsString(PermanentlyFailed.name), "item.psaId" -> psaId)
+    //    collection.count(Some(selector), None, skip = 0, None, ReadConcern.Local).map(Right(_)).recover {
+    //      case exception: Exception => Left(WorkItemProcessingException(
+    //        s"getting no of failed requests failed due to ${exception.getMessage}"))
+    //    }
   }
 
   def deleteRequest(id: ObjectId): Future[Boolean] = {
     collection.deleteOne(
       filter = Filters.eq(workItemFields.id, id)
-    ).toFuture().map( _ => true)
-//    val selector = BSONDocument(workItemFields.id -> id)
-//    collection.delete.one(selector).map(_.ok)
+    ).toFuture().map(_ => true)
+    //    val selector = BSONDocument(workItemFields.id -> id)
+    //    collection.delete.one(selector).map(_.ok)
   }
 
   def deleteAll(psaId: String): Future[Either[Exception, Boolean]] = {
@@ -145,84 +150,84 @@ class RacDacRequestsQueueRepository @Inject()(appConfig: AppConfig, configuratio
       filter = Filters.eq("item.psaId", psaId)
     ).toFuture().recover {
       case exception: Exception => Left(WorkItemProcessingException(s"deleting all requests failed due to ${exception.getMessage}"))
-    }.map( _ => Right(true))
+    }.map(_ => Right(true))
     //    val selector = BSONDocument("item.psaId" -> psaId)
     //    collection.delete.one(selector).map(_.ok).map(Right(_)).recover {
     //      case exception: Exception => Left(WorkItemProcessingException(s"deleting all requests failed due to ${exception.getMessage}"))
     //    }
   }
 
-//  override def pullOutstanding(failedBefore: DateTime, availableBefore: DateTime)(implicit ec: ExecutionContext):
-//  Future[Option[WorkItem[WorkItemRequest]]] = {
-//
-//    def getWorkItem(idList: IdList): Future[Option[WorkItem[WorkItemRequest]]] = {
-//      collection.find(
-//        filter = Filters.eq(workItemFields.id, idList._id)
-//      ).toFuture().map(_.headOption)
-//
-////      collection.find(
-////        selector = Json.obj(workItemFields.id -> ReactiveMongoFormats.objectIdWrite.writes(idList._id)),
-////        projection = Option.empty[JsObject]
-////      ).one[WorkItem[WorkItemRequest]]
-//    }
-//
-//    val id = findNextItemId(failedBefore, availableBefore)
-//    id.map(_.map(getWorkItem)).flatMap(_.getOrElse(Future.successful(None)))
-//  }
-//
-//  private def setStatusOperation(newStatus: ProcessingStatus, availableAt: Option[DateTime]): JsObject = {
-//    val fields = Json.obj(
-//      workItemFields.status -> newStatus.name,
-//      workItemFields.updatedAt -> now
-//    ) ++ availableAt.map(when => Json.obj(workItemFields.availableAt -> when)).getOrElse(Json.obj())
-//
-//    val ifFailed =
-//      if (newStatus == Failed)
-//        Json.obj("$inc" -> Json.obj(workItemFields.failureCount -> 1))
-//      else Json.obj()
-//
-//    Json.obj("$set" -> fields) ++ ifFailed
-//  }
+  //  override def pullOutstanding(failedBefore: DateTime, availableBefore: DateTime)(implicit ec: ExecutionContext):
+  //  Future[Option[WorkItem[WorkItemRequest]]] = {
+  //
+  //    def getWorkItem(idList: IdList): Future[Option[WorkItem[WorkItemRequest]]] = {
+  //      collection.find(
+  //        filter = Filters.eq(workItemFields.id, idList._id)
+  //      ).toFuture().map(_.headOption)
+  //
+  ////      collection.find(
+  ////        selector = Json.obj(workItemFields.id -> ReactiveMongoFormats.objectIdWrite.writes(idList._id)),
+  ////        projection = Option.empty[JsObject]
+  ////      ).one[WorkItem[WorkItemRequest]]
+  //    }
+  //
+  //    val id = findNextItemId(failedBefore, availableBefore)
+  //    id.map(_.map(getWorkItem)).flatMap(_.getOrElse(Future.successful(None)))
+  //  }
+  //
+  //  private def setStatusOperation(newStatus: ProcessingStatus, availableAt: Option[DateTime]): JsObject = {
+  //    val fields = Json.obj(
+  //      workItemFields.status -> newStatus.name,
+  //      workItemFields.updatedAt -> now
+  //    ) ++ availableAt.map(when => Json.obj(workItemFields.availableAt -> when)).getOrElse(Json.obj())
+  //
+  //    val ifFailed =
+  //      if (newStatus == Failed)
+  //        Json.obj("$inc" -> Json.obj(workItemFields.failureCount -> 1))
+  //      else Json.obj()
+  //
+  //    Json.obj("$set" -> fields) ++ ifFailed
+  //  }
 
-//  private def findNextItemId(failedBefore: DateTime, availableBefore: DateTime)(implicit ec: ExecutionContext): Future[Option[IdList]] = {
-//
-//    def findNextItemIdByQuery(query: JsObject)(implicit ec: ExecutionContext): Future[Option[IdList]] =
-//      findAndUpdate(
-//        query = query,
-//        update = setStatusOperation(InProgress, None),
-//        fetchNewObject = true,
-//        fields = Some(Json.obj(workItemFields.id -> 1))
-//      ).map(_.value.map(Json.toJson(_).as[IdList]))
-//
-//    def todoQuery: JsObject =
-//      Json.obj(
-//        workItemFields.status -> JsString(ToDo.name),
-//        workItemFields.availableAt -> Json.obj("$lt" -> availableBefore)
-//      )
-//
-//    def failedQuery: JsObject =
-//      Json.obj("$or" -> Seq(
-//        Json.obj(workItemFields.status -> JsString(Failed.name), workItemFields.updatedAt -> Json.obj("$lt" -> failedBefore),
-//          workItemFields.availableAt -> Json.obj("$lt" -> availableBefore)),
-//        Json.obj(workItemFields.status -> JsString(Failed.name), workItemFields.updatedAt -> Json.obj("$lt" -> failedBefore),
-//          workItemFields.availableAt -> Json.obj("$exists" -> false))
-//      ))
-//
-//
-//    def inProgressQuery: JsObject =
-//      Json.obj(
-//        workItemFields.status -> JsString(InProgress.name),
-//        workItemFields.updatedAt -> Json.obj("$lt" -> now.minus(inProgressRetryAfter))
-//      )
-//
-//    findNextItemIdByQuery(failedQuery).flatMap {
-//      case None => findNextItemIdByQuery(todoQuery).flatMap {
-//        case None => findNextItemIdByQuery(inProgressQuery)
-//        case item => Future.successful(item)
-//      }
-//      case item => Future.successful(item)
-//    }
-//  }
+  //  private def findNextItemId(failedBefore: DateTime, availableBefore: DateTime)(implicit ec: ExecutionContext): Future[Option[IdList]] = {
+  //
+  //    def findNextItemIdByQuery(query: JsObject)(implicit ec: ExecutionContext): Future[Option[IdList]] =
+  //      findAndUpdate(
+  //        query = query,
+  //        update = setStatusOperation(InProgress, None),
+  //        fetchNewObject = true,
+  //        fields = Some(Json.obj(workItemFields.id -> 1))
+  //      ).map(_.value.map(Json.toJson(_).as[IdList]))
+  //
+  //    def todoQuery: JsObject =
+  //      Json.obj(
+  //        workItemFields.status -> JsString(ToDo.name),
+  //        workItemFields.availableAt -> Json.obj("$lt" -> availableBefore)
+  //      )
+  //
+  //    def failedQuery: JsObject =
+  //      Json.obj("$or" -> Seq(
+  //        Json.obj(workItemFields.status -> JsString(Failed.name), workItemFields.updatedAt -> Json.obj("$lt" -> failedBefore),
+  //          workItemFields.availableAt -> Json.obj("$lt" -> availableBefore)),
+  //        Json.obj(workItemFields.status -> JsString(Failed.name), workItemFields.updatedAt -> Json.obj("$lt" -> failedBefore),
+  //          workItemFields.availableAt -> Json.obj("$exists" -> false))
+  //      ))
+  //
+  //
+  //    def inProgressQuery: JsObject =
+  //      Json.obj(
+  //        workItemFields.status -> JsString(InProgress.name),
+  //        workItemFields.updatedAt -> Json.obj("$lt" -> now.minus(inProgressRetryAfter))
+  //      )
+  //
+  //    findNextItemIdByQuery(failedQuery).flatMap {
+  //      case None => findNextItemIdByQuery(todoQuery).flatMap {
+  //        case None => findNextItemIdByQuery(inProgressQuery)
+  //        case item => Future.successful(item)
+  //      }
+  //      case item => Future.successful(item)
+  //    }
+  //  }
 
   case class WorkItemProcessingException(message: String) extends Exception(message)
 }
