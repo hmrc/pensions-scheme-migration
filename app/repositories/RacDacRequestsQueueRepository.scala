@@ -20,7 +20,6 @@ import com.google.inject.{Inject, Singleton}
 import models.racDac.WorkItemRequest
 import org.bson.types.ObjectId
 import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes}
-import play.api.libs.json._
 import play.api.{Configuration, Logger}
 import uk.gov.hmrc.mongo.workitem.ProcessingStatus.{PermanentlyFailed, ToDo}
 import uk.gov.hmrc.mongo.workitem._
@@ -112,7 +111,7 @@ class RacDacRequestsQueueRepository @Inject()(configuration: Configuration, mong
   def getNoOfFailureByPsaId(psaId: String): Future[Either[Exception, Long]] = {
     collection.countDocuments(
       filter = Filters.and(
-        Filters.eq(workItemFields.status, JsString(PermanentlyFailed.name)),
+        Filters.eq(workItemFields.status, PermanentlyFailed.name),
         Filters.eq("item.psaId", psaId)
       )
     ).toFuture().map(Right(_)).recover {

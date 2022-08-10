@@ -74,7 +74,7 @@ class DataCacheRepository @Inject()(
         collection.findOneAndUpdate(
           filter = Filters.eq(pstrKey, lock.pstr),
           update = Updates.combine(
-            set(pstrKey, lock.pstr),
+            set(pstrKey, Codecs.toBson(lock.pstr)),
             set(dataKey, Codecs.toBson(userData)),
             set(lastUpdatedKey, Codecs.toBson(DateTime.now(DateTimeZone.UTC))),
             set(expireAtKey, Codecs.toBson(expireInSeconds))
