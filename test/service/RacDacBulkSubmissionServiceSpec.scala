@@ -19,6 +19,7 @@ package service
 import akka.actor.ActorSystem
 import akka.util.Timeout
 import models.racDac.{RacDacHeaders, RacDacRequest, WorkItemRequest}
+import org.bson.types.ObjectId
 import org.joda.time.DateTime
 import org.mockito.scalatest.MockitoSugar
 import org.scalatest.EitherValues
@@ -26,11 +27,12 @@ import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.Json
 import play.api.test.Helpers.await
-import reactivemongo.bson.BSONObjectID
 import repositories.RacDacRequestsQueueRepository
 import uk.gov.hmrc.http.InternalServerException
-import uk.gov.hmrc.workitem.{Failed, PermanentlyFailed, ToDo, WorkItem}
+import uk.gov.hmrc.mongo.workitem.ProcessingStatus.{Failed, PermanentlyFailed, ToDo}
+import uk.gov.hmrc.mongo.workitem.WorkItem
 
+import java.time.Instant
 import java.util.concurrent.TimeUnit
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
@@ -43,7 +45,7 @@ class RacDacBulkSubmissionServiceSpec() extends AnyWordSpec with Matchers with M
   private val mockPensionSchemeService = mock[PensionSchemeService]
 
   private val actorSystem = ActorSystem()
-  implicit val dmsSubmissionPollerExecutionContext = new RacDacBulkSubmissionPollerExecutionContext(actorSystem)
+  implicit val dmsSubmissionPollerExecutionContext: RacDacBulkSubmissionPollerExecutionContext = new RacDacBulkSubmissionPollerExecutionContext(actorSystem)
 
   private val racDacBulkSubmissionService = new RacDacBulkSubmissionService(mockRacDacSubmissionRepo, mockPensionSchemeService)
 
@@ -54,7 +56,7 @@ class RacDacBulkSubmissionServiceSpec() extends AnyWordSpec with Matchers with M
 
     "the submission poller requests a work item" must {
       "dequeue the next work item" in {
-        val workItem: WorkItem[WorkItemRequest] = WorkItem(BSONObjectID.generate(), DateTime.now(), DateTime.now(), DateTime.now(), ToDo, 0,
+        val workItem: WorkItem[WorkItemRequest] = WorkItem(ObjectId.generate(), Instant.now(), Instant.now(), Instant.now(), ToDo, 0,
           racDacRequest)
         when(mockRacDacSubmissionRepo.pull).thenReturn(Future(Right(Some(workItem))))
         await(racDacBulkSubmissionService.dequeue) mustBe Right(Some(workItem))
@@ -70,8 +72,8 @@ class RacDacBulkSubmissionServiceSpec() extends AnyWordSpec with Matchers with M
     "a dms submission request is made" must {
       "return true after successfully enqueue the request" in {
         reset(mockRacDacSubmissionRepo)
-        val workItem: WorkItem[WorkItemRequest] = WorkItem(BSONObjectID.generate(), DateTime.now(),
-          DateTime.now(), DateTime.now(), ToDo, 0, racDacRequest)
+        val workItem: WorkItem[WorkItemRequest] = WorkItem(ObjectId.generate(), Instant.now(),
+          Instant.now(), Instant.now(), ToDo, 0, racDacRequest)
 
         when(mockRacDacSubmissionRepo.pushAll(any)).thenReturn(Future(Right(Seq(workItem))))
         when(mockRacDacSubmissionRepo.push(any)).thenReturn(Future(Right(workItem)))
@@ -91,26 +93,26 @@ class RacDacBulkSubmissionServiceSpec() extends AnyWordSpec with Matchers with M
     "the submission poller updates the processing status" must {
       "return true to indicate that the status has been updated" in {
         when(mockRacDacSubmissionRepo.setProcessingStatus(any, any)).thenReturn(Future(Right(true)))
-        await(racDacBulkSubmissionService.setProcessingStatus(BSONObjectID.generate(), Failed)) mustBe Right(true)
+        await(racDacBulkSubmissionService.setProcessingStatus(ObjectId.generate(), Failed)) mustBe Right(true)
       }
 
       "return error if error occurred" in {
         val ex = new Exception("message")
         when(mockRacDacSubmissionRepo.setProcessingStatus(any, any)).thenReturn(Future(Left(ex)))
-        await(racDacBulkSubmissionService.setProcessingStatus(BSONObjectID.generate(), Failed)) mustBe Left(ex)
+        await(racDacBulkSubmissionService.setProcessingStatus(ObjectId.generate(), Failed)) mustBe Left(ex)
       }
     }
 
     "the submission poller updates the complete status" must {
       "return true to indicate that the status has been updated" in {
-        val workItem: WorkItem[WorkItemRequest] = WorkItem(BSONObjectID.generate(), DateTime.now(),
+        val workItem: WorkItem[WorkItemRequest] = WorkItem(ObjectId.generate(), DateTime.now(),
           DateTime.now(), DateTime.now(), ToDo, 0, racDacRequest)
         when(mockRacDacSubmissionRepo.setResultStatus(any, any)).thenReturn(Future(Right(true)))
         await(racDacBulkSubmissionService.setResultStatus(workItem.id, PermanentlyFailed)) mustBe Right(true)
       }
 
       "return error if error occurred" in {
-        val workItem: WorkItem[WorkItemRequest] = WorkItem(BSONObjectID.generate(), DateTime.now(),
+        val workItem: WorkItem[WorkItemRequest] = WorkItem(ObjectId.generate(), DateTime.now(),
           DateTime.now(), DateTime.now(), ToDo, 0, racDacRequest)
         val ex = new Exception("message")
         when(mockRacDacSubmissionRepo.setResultStatus(any, any)).thenReturn(Future(Left(ex)))
