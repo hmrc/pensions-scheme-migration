@@ -51,7 +51,7 @@ scala.concurrent.ExecutionContext)
  */
 
 @Singleton
-class RacDacRequestsQueueRepository @Inject()(appConfig: AppConfig, configuration: Configuration, mongoComponent: MongoComponent, servicesConfig: ServicesConfig)
+class RacDacRequestsQueueRepository @Inject()(configuration: Configuration, mongoComponent: MongoComponent, servicesConfig: ServicesConfig)
                                              (implicit val ec: ExecutionContext) extends
   WorkItemRepository[WorkItemRequest](
     collectionName = configuration.get[String](path = "mongodb.migration-cache.racDac-work-item-queue.name"),
@@ -61,7 +61,7 @@ class RacDacRequestsQueueRepository @Inject()(appConfig: AppConfig, configuratio
   ) {
 
   override def ensureIndexes: Future[Seq[String]] = {
-    val extraIndexes = Seq[IndexModel](
+    val extraIndexes: Seq[IndexModel] = Seq(
       IndexModel(Indexes.ascending("item.psaId"), IndexOptions().name("psaIdIdx").background(true)),
       IndexModel(
         Indexes.ascending("receivedAt"), IndexOptions()
@@ -79,7 +79,8 @@ class RacDacRequestsQueueRepository @Inject()(appConfig: AppConfig, configuratio
 
 //  private implicit val dateFormats: Format[DateTime] = MongoJodaFormats.dateTimeFormat
 
-  override lazy val inProgressRetryAfter: Duration = appConfig.retryAfter
+  override lazy val inProgressRetryAfter: Duration =
+    Duration.ofMillis(configuration.get[Long]("racDacWorkItem.submission-poller.in-progress-retry-after"))
   private val retryPeriod = inProgressRetryAfter.toMillis
 
   private lazy val ttl = servicesConfig.getDuration("racDacWorkItem.submission-poller.mongo.ttl").toSeconds

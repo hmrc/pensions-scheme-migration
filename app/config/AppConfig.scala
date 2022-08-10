@@ -51,6 +51,4 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig)
   lazy val emailApiUrl: String = s"${servicesConfig.baseUrl("email")}"
   lazy val emailSendForce: Boolean = config.getOptional[Boolean]("email.force").getOrElse(false)
   lazy val getPSAMinDetails: String = s"$pensionsAdministratorUrl${config.get[String]("urls.get-psa-min-details")}"
-
-  lazy val retryAfter: Duration = Duration.ofMillis(config.get[Long]("racDacWorkItem.submission-poller.in-progress-retry-after"))
 }
