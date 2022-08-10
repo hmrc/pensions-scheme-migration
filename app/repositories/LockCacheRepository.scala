@@ -84,7 +84,7 @@ class LockCacheRepository @Inject()(
         set(pstrKey, Codecs.toBson(lock.pstr)),
         set(credIdKey, Codecs.toBson(lock.credId)),
         set(dataKey, Codecs.toBson(data)),
-        set(lastUpdatedKey, DateTime.now(DateTimeZone.UTC)),
+        set(lastUpdatedKey, Codecs.toBson(DateTime.now(DateTimeZone.UTC))),
         set(expireAtKey, Codecs.toBson(expireInSeconds))
       ),
       upsertOptions
