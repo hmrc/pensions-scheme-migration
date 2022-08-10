@@ -16,9 +16,7 @@
 
 package repositories
 
-
-
-import config.AppConfig
+import com.google.inject.{ImplementedBy, Inject, Singleton}
 import models.racDac.WorkItemRequest
 import org.bson.types.ObjectId
 import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes}
@@ -31,7 +29,6 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import java.time.{Duration, Instant}
 import java.util.concurrent.TimeUnit
-import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 /*
