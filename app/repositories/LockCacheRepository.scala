@@ -71,6 +71,7 @@ class LockCacheRepository @Inject()(
 
   def setLock(lock: MigrationLock): Future[Boolean] = {
     implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
+    import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats._
     val upsertOptions = new FindOneAndUpdateOptions().upsert(true)
 
     val data: JsValue = Json.toJson(MigrationLock(lock.pstr, lock.credId, lock.psaId))
