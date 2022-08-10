@@ -43,6 +43,6 @@ case class WorkItemRequest(
 
 object WorkItemRequest {
 
-  implicit val workItemRequestFormat: OFormat[WorkItemRequest] = Json.format
+  implicit val workItemRequestFormat: OFormat[WorkItemRequest] = Json.format[WorkItemRequest]
 }
 

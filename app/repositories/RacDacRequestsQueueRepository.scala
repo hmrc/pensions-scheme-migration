@@ -17,15 +17,13 @@
 package repositories
 
 
-import com.google.inject.Inject
+
 import config.AppConfig
 import models.racDac.WorkItemRequest
 import org.bson.types.ObjectId
-import org.joda.time.DateTime
 import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes}
 import play.api.libs.json._
 import play.api.{Configuration, Logger}
-import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
 import uk.gov.hmrc.mongo.workitem.ProcessingStatus.{PermanentlyFailed, ToDo}
 import uk.gov.hmrc.mongo.workitem._
 import uk.gov.hmrc.mongo.{MongoComponent, MongoUtils}
@@ -33,8 +31,26 @@ import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
 import java.time.{Duration, Instant}
 import java.util.concurrent.TimeUnit
+import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
+/*
+1) Error injecting constructor, java.lang.NoSuchMethodError: 'void uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+.<init>(
+uk.gov.hmrc.mongo.MongoComponent,
+java.lang.String,
+play.api.libs.json.Format,
+scala.collection.Seq,
+scala.Option,
+boolean,
+scala.reflect.ClassTag,
+scala.concurrent.ExecutionContext)
+'
+  at repositories.RacDacRequestsQueueRepository.<init>(RacDacRequestsQueueRepository.scala:38)
+
+ */
+
+@Singleton
 class RacDacRequestsQueueRepository @Inject()(appConfig: AppConfig, configuration: Configuration, mongoComponent: MongoComponent, servicesConfig: ServicesConfig)
                                              (implicit val ec: ExecutionContext) extends
   WorkItemRepository[WorkItemRequest](
