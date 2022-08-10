@@ -135,11 +135,5 @@ class RacDacRequestsQueueRepository @Inject()(configuration: Configuration, mong
     }.map(_ => Right(true))
   }
 
-//  override def pullOutstanding(failedBefore: Instant, availableBefore: Instant): Future[Option[WorkItem[WorkItemRequest]]] = {
-//
-//
-//
-//  }
-
   case class WorkItemProcessingException(message: String) extends Exception(message)
 }
