@@ -16,7 +16,7 @@
 
 package repositories
 
-import com.google.inject.{ImplementedBy, Inject}
+import com.google.inject.Inject
 import com.mongodb.client.model.FindOneAndUpdateOptions
 import models.cache.{LockJson, MigrationLock}
 import org.joda.time.{DateTime, DateTimeZone}

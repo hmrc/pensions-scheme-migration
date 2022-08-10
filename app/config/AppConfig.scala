@@ -16,9 +16,11 @@
 
 package config
 
-import javax.inject.{Inject, Singleton}
 import play.api.Configuration
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+
+import java.time.Duration
+import javax.inject.{Inject, Singleton}
 
 @Singleton
 class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig) {
@@ -49,4 +51,6 @@ class AppConfig @Inject()(config: Configuration, servicesConfig: ServicesConfig)
   lazy val emailApiUrl: String = s"${servicesConfig.baseUrl("email")}"
   lazy val emailSendForce: Boolean = config.getOptional[Boolean]("email.force").getOrElse(false)
   lazy val getPSAMinDetails: String = s"$pensionsAdministratorUrl${config.get[String]("urls.get-psa-min-details")}"
+
+  lazy val retryAfter: Duration = Duration.ofMillis(config.get[Long]("racDacWorkItem.submission-poller.in-progress-retry-after"))
 }

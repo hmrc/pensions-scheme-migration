@@ -16,19 +16,19 @@
 
 package models.racDac
 
+import org.bson.types.ObjectId
 import play.api.libs.json.{Json, Reads, Writes}
-import reactivemongo.bson.BSONObjectID
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
 
-case class IdList(_id: BSONObjectID)
+
+case class IdList(_id: ObjectId)
 
 object IdList {
   implicit val read: Reads[IdList] = {
-    implicit val objectIdReads: Reads[BSONObjectID] = ReactiveMongoFormats.objectIdRead
+    implicit val objectIdReads: Reads[ObjectId] = uk.gov.hmrc.mongo.play.json.formats.MongoFormats.objectIdReads
     Json.reads[IdList]
   }
   implicit val writes: Writes[IdList] = {
-    implicit val objectIdReads: Writes[BSONObjectID] = ReactiveMongoFormats.objectIdWrite
+    implicit val objectIdReads: Writes[ObjectId] = uk.gov.hmrc.mongo.play.json.formats.MongoFormats.objectIdWrites
     Json.writes[IdList]
   }
 }

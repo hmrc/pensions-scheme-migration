@@ -25,8 +25,9 @@ import play.api.libs.json.JsValue
 import service.RacDacBulkSubmissionPoller.OnCompleteHandler
 import uk.gov.hmrc.http.HttpErrorFunctions.{is4xx, is5xx}
 import uk.gov.hmrc.http.UpstreamErrorResponse
+import uk.gov.hmrc.mongo.workitem.ProcessingStatus.{Failed, PermanentlyFailed}
+import uk.gov.hmrc.mongo.workitem.WorkItem
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import uk.gov.hmrc.workitem.{Failed, PermanentlyFailed, WorkItem}
 
 import java.util.concurrent.TimeUnit
 import scala.concurrent.Future

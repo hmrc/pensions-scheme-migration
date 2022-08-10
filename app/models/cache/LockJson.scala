@@ -18,11 +18,11 @@ package models.cache
 
 import org.joda.time.DateTime
 import play.api.libs.json.{Format, JsValue, Json, OFormat}
-import uk.gov.hmrc.mongo.json.ReactiveMongoFormats
+import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
 
 case class LockJson(pstr: String, credId: String, data: JsValue, lastUpdated: DateTime, expireAt: DateTime)
 
 object LockJson {
-  implicit val dateFormat: Format[DateTime] = ReactiveMongoFormats.dateTimeFormats
+  implicit val dateFormats: Format[DateTime] = MongoJodaFormats.dateTimeFormat
   implicit val format: OFormat[LockJson] = Json.format[LockJson]
 }

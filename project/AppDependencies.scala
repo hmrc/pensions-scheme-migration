@@ -12,7 +12,8 @@ object AppDependencies {
     "uk.gov.hmrc"             %% "domain"                     % "7.0.0-play-28",
     "com.typesafe.play"       %% "play-json-joda"             % "2.6.10",
     "com.typesafe.play"       %% "play-json"                  % "2.6.10",
-    "uk.gov.hmrc"             %% "work-item-repo"             % "8.1.0-play-28",
+    "uk.gov.hmrc.mongo"       %% "hmrc-mongo-work-item-repo-play-27" % "0.51.0",
+    "uk.gov.hmrc"             %% "play-scheduling-play-27"           % "7.10.0",
     "com.networknt"           %  "json-schema-validator"      % "1.0.49",
     ehcache
   )
