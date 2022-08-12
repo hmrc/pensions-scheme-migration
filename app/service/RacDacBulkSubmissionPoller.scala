@@ -59,7 +59,7 @@ class RacDacBulkSubmissionPoller @Inject()(
 
   val _ = {
     object MyThread extends Runnable {
-      def run() {
+      def run(): Unit = {
         poller()
       }
     }
