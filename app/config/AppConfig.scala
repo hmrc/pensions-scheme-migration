@@ -19,7 +19,6 @@ package config
 import play.api.Configuration
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
 
-import java.time.Duration
 import javax.inject.{Inject, Singleton}
 
 @Singleton

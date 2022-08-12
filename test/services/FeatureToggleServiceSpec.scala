@@ -20,18 +20,15 @@ import akka.Done
 import base.SpecBase
 import models.FeatureToggle.{Disabled, Enabled}
 import models.FeatureToggleName.DummyToggle
-import models.{FeatureToggle, FeatureToggleName, OperationFailed, OperationSucceeded}
+import models.{FeatureToggle, FeatureToggleName}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.{ArgumentCaptor, MockitoSugar}
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.{Arbitrary, Gen}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
-import play.api.Configuration
 import play.api.cache.AsyncCacheApi
 import repositories.AdminDataRepository
-import repositories.AdminDataRepositorySpec.{mock, mongoUri}
-import uk.gov.hmrc.mongo.MongoComponent
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -68,7 +65,7 @@ class FeatureToggleServiceSpec
   "When set works in the repo returns a success result" in {
     val adminDataRepository = mock[AdminDataRepository]
     when(adminDataRepository.getFeatureToggles).thenReturn(Future.successful(Seq.empty))
-    when(adminDataRepository.setFeatureToggles(any())).thenReturn(Future.successful(true))
+    when(adminDataRepository.setFeatureToggles(any())).thenReturn(Future.successful( ():Unit ))
 
     val OUT = new FeatureToggleService(adminDataRepository, new FakeCache())
     val toggleName = arbitrary[FeatureToggleName].sample.value
@@ -88,9 +85,11 @@ class FeatureToggleServiceSpec
     val OUT = new FeatureToggleService(adminDataRepository, new FakeCache())
 
     when(adminDataRepository.getFeatureToggles).thenReturn(Future.successful(Seq.empty))
-    when(adminDataRepository.setFeatureToggles(any())).thenReturn(Future.successful(false))
+    when(adminDataRepository.setFeatureToggles(any())).thenReturn(Future.successful( ():Unit ))
 
-    whenReady(OUT.set(toggleName = toggleName, enabled = true))(_ mustBe ())
+    whenReady(OUT.set(toggleName = toggleName, enabled = true)){
+      _ mustBe (():Unit)
+    }
   }
 
   "When getAll is called returns all of the toggles from the repo" in {

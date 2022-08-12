@@ -16,7 +16,6 @@
 
 package transformations.etmpToUserAnswers
 
-import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks.forAll
 import play.api.libs.json.{JsSuccess, JsValue}
 
 class PsaSchemeDetailsTransformerSpec extends TransformationSpec {

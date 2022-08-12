@@ -55,7 +55,16 @@ class RacDacBulkSubmissionPoller @Inject()(
 
   private val failureCountLimit: Int = servicesConfig.getInt("racDacWorkItem.submission-poller.failure-count-limit")
 
-  val _ = actorSystem.scheduler.schedule(initialDelay, pollerInterval)(poller())(racDacBulkSubmissionPollerContext)
+
+
+  val _ = {
+    object MyThread extends Runnable {
+      def run() {
+        poller()
+      }
+    }
+    actorSystem.scheduler.scheduleAtFixedRate(initialDelay, pollerInterval)(MyThread)(racDacBulkSubmissionPollerContext)
+  }
 
   def poller(): Unit = {
     val result = racDacBulkSubmissionService.dequeue.map {

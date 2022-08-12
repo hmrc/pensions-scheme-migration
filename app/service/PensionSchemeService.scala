@@ -36,7 +36,7 @@ class PensionSchemeService @Inject()(schemeConnector: SchemeConnector,
   private val logger = Logger(classOf[PensionSchemeService])
 
   def registerScheme(psaId: String, json: JsValue)
-                    (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext,
+                    (implicit ec: ExecutionContext,
                      request: RequestHeader):
   Future[Either[HttpException, JsValue]] = {
     json.validate[PensionsScheme](PensionsScheme.registerApiReads).fold(

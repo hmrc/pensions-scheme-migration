@@ -16,10 +16,9 @@
 
 package repositories
 
-import com.github.nscala_time.time.Imports.DateTimeZone
 import com.github.simplyscala.MongoEmbedDatabase
 import models.cache.{DataJson, MigrationLock}
-import org.joda.time.DateTime
+import org.joda.time.{DateTime, DateTimeZone}
 import org.mockito.{ArgumentMatchers, MockitoSugar}
 import org.scalatest.RecoverMethods.recoverToExceptionIf
 import org.scalatest.matchers.must.Matchers
@@ -232,7 +231,6 @@ object DataCacheRepositorySpec extends AnyWordSpec with MockitoSugar {
   private val psaId = "psaId"
 
   private val anotherPstr = "pstr2"
-  private val anotherCredId = "credId2"
   private val anotherPsaId = "psaId2"
 
   private val migrationLock = MigrationLock(pstr, credId, psaId)

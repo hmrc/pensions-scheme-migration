@@ -43,14 +43,13 @@ class SchemeConnector @Inject()(
   private val logger = Logger(classOf[SchemeConnector])
 
   def listOfLegacySchemes(psaId: String)
-                         (implicit headerCarrier: HeaderCarrier,
-                          ec: ExecutionContext,
+                         (implicit ec: ExecutionContext,
                           request: RequestHeader): Future[Either[HttpException, JsValue]] = {
 
     val listOfSchemesUrl = config.listOfSchemesUrl.format(psaId)
 
     implicit val hc: HeaderCarrier = HeaderCarrier(extraHeaders =
-      headerUtils.integrationFrameworkHeader(implicitly[HeaderCarrier](headerCarrier)))
+      headerUtils.integrationFrameworkHeader)
     logger.debug(s"Calling migration list of schemes API on IF with url $listOfSchemesUrl")
 
     http.GET[HttpResponse](listOfSchemesUrl)(
@@ -80,15 +79,11 @@ class SchemeConnector @Inject()(
   def registerScheme(
                       psaId: String,
                       registerData: JsValue
-                    )(
-                      implicit
-                      headerCarrier: HeaderCarrier,
-                      ec: ExecutionContext
-                    ): Future[Either[HttpException, JsValue]] = {
+                    )(implicit ec: ExecutionContext): Future[Either[HttpException, JsValue]] = {
 
     val (url, hc, schemaPath) =
       (config.schemeRegistrationIFUrl.format(psaId),
-        HeaderCarrier(extraHeaders = headerUtils.integrationFrameworkHeader(implicitly[HeaderCarrier](headerCarrier))),
+        HeaderCarrier(extraHeaders = headerUtils.integrationFrameworkHeader),
         "/resources/schemas/schemeSubscriptionIF.json")
     logger.debug(s"[Register-Migration-Scheme--Outgoing-Payload] - ${registerData.toString()}")
 

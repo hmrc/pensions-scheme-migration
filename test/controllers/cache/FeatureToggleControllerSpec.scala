@@ -23,7 +23,6 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfterEach
 import play.api.libs.json.{JsBoolean, Json}
-import play.api.mvc.ControllerComponents
 import play.api.test.Helpers._
 import repositories.AdminDataRepository
 import services.FeatureToggleService

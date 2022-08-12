@@ -71,7 +71,7 @@ class LegacySchemeDetailsConnectorImpl @Inject()(
                                ): Future[Either[HttpException, JsObject]] = {
     val (url, hc) = (
       config.legacySchemeDetailsUrl.format(pstr, psaId),
-      HeaderCarrier(extraHeaders = headerUtils.integrationFrameworkHeader(implicitly[HeaderCarrier](headerCarrier)))
+      HeaderCarrier(extraHeaders = headerUtils.integrationFrameworkHeader)
     )
 
     logger.debug(s"Calling get scheme details API on IF with url $url and hc $hc")
