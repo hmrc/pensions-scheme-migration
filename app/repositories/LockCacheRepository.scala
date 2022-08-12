@@ -116,7 +116,7 @@ class LockCacheRepository @Inject()(
       filter = Filters.and(
         Filters.eq(pstrKey, lock.pstr),
         Filters.eq(credIdKey, lock.credId)
-      ),
+      )
     ).toFuture()
       .map(_.headOption)
       .map(_.map(_.data.as[MigrationLock]))
