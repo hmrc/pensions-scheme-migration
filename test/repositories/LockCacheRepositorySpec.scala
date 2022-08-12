@@ -163,31 +163,6 @@ class LockCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
         }
       }
     }
-
-    "releaseLockByCredId" must {
-      "release lock from Mongo collection leaving other lock alone" in {
-        mongoCollectionDrop()
-
-        val endState = for {
-          _ <- repository.collection.insertMany(
-            seqExistingData
-          ).toFuture
-
-          response <- repository.releaseLockByCredId(pstr)
-          lock <- repository.getLock(MigrationLock(pstr, credId, psaId))
-          anotherLock <- repository.getLock(MigrationLock(anotherPstr, anotherCredId, anotherPsaId))
-        } yield {
-          Tuple3(response, lock, anotherLock)
-        }
-
-        endState.map { case Tuple3(response, migrationLock, anotherLock) =>
-          migrationLock mustBe None
-          anotherLock.isDefined mustBe true
-          response mustBe true
-        }
-      }
-    }
-
   }
 }
 
@@ -205,6 +180,7 @@ object LockCacheRepositorySpec extends AnyWordSpec with MockitoSugar {
     .result(repository.collection.drop().toFuture(), Duration.Inf)
 
   private def repository = new LockCacheRepository(mongoComponent, mockConfiguration)
+
 
   private val pstr = "pstr"
   private val credId = "credId"
