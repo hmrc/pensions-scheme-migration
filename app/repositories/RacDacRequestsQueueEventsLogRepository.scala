@@ -17,66 +17,85 @@
 package repositories
 
 import com.google.inject.Inject
-import models.cache.RacDacEventsLogJson
+import com.mongodb.client.model.FindOneAndUpdateOptions
 import org.joda.time.{DateTime, DateTimeZone}
-import org.slf4j.{Logger, LoggerFactory}
-import play.api.Configuration
+import org.mongodb.scala.model.Updates.set
+import org.mongodb.scala.model._
 import play.api.libs.json._
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.indexes.IndexType.Ascending
-import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.bson.{BSONDocument, BSONObjectID}
-import reactivemongo.play.json.ImplicitBSONHandlers._
-import uk.gov.hmrc.mongo.ReactiveRepository
+import play.api.{Configuration, Logging}
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
+import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
+import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
 
-class RacDacRequestsQueueEventsLogRepository @Inject()(mongoComponent: ReactiveMongoComponent,
+class RacDacRequestsQueueEventsLogRepository @Inject()(mongoComponent: MongoComponent,
                                                        configuration: Configuration
-                                      )(implicit val ec: ExecutionContext)
-  extends ReactiveRepository[JsValue, BSONObjectID](
-    configuration.get[String](path = "mongodb.migration-cache.rac-dac-requests-queue-events-log.name"),
-    mongoComponent.mongoConnector.db,
-    implicitly
-  ) {
+                                                      )(implicit val ec: ExecutionContext)
+  extends PlayMongoRepository[JsObject](
+    collectionName = configuration.get[String](path = "mongodb.migration-cache.rac-dac-requests-queue-events-log.name"),
+    mongoComponent = mongoComponent,
+    domainFormat = implicitly,
+    indexes = Seq(
+      IndexModel(
+        keys = Indexes.ascending("id"),
+        indexOptions = IndexOptions().name("id").unique(true)
+      ),
+      IndexModel(
+        keys = Indexes.ascending("expireAt"),
+        indexOptions = IndexOptions().name("dataExpiry")
+          .expireAfter(0, TimeUnit.SECONDS)
+      )
+    )
+  ) with Logging {
 
-  override val logger: Logger = LoggerFactory.getLogger("RacDacRequestsQueueEventsLogRepository")
+  import RacDacRequestsQueueEventsLogRepository._
+
+  implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
 
   private def expireInSeconds: DateTime = DateTime.now(DateTimeZone.UTC).
     plusSeconds(configuration.get[Int](path = "mongodb.migration-cache.rac-dac-requests-queue-events-log.timeToLiveInSeconds"))
 
-  override lazy val indexes = Seq(
-    Index(Seq(("id", Ascending)), Some("id"), unique = true),
-    Index(Seq(("expireAt", IndexType.Ascending)), Some("dataExpiry"), options = BSONDocument("expireAfterSeconds" -> 0))
-  )
-
-  (for { _ <- ensureIndexes } yield { () }) recoverWith {
-    case t: Throwable => Future.successful(logger.error(s"Error creating indexes on collection ${collection.name}", t))
-  } andThen {
-    case _ => CollectionDiagnostics.logCollectionInfo(collection)
-  }
-
-  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] =
-    Future.sequence(indexes.map(collection.indexesManager.ensure(_)))
-
   def save(id: String, userData: JsValue)(implicit ec: ExecutionContext): Future[Boolean] = {
     logger.debug("Calling Save in RacDacRequestsQueueEventsLogRepository")
+    val upsertOptions = new FindOneAndUpdateOptions().upsert(true)
 
-    val document: JsValue = Json.toJson(RacDacEventsLogJson(userData, DateTime.now(DateTimeZone.UTC), expireInSeconds))
-    val modifier = BSONDocument("$set" -> document)
-
-    collection.update.one(BSONDocument("id" -> id), modifier, upsert = true).map(_.ok)
+    collection.findOneAndUpdate(
+      filter = Filters.eq(idKey, id),
+      update = Updates.combine(
+        set(idKey, id),
+        set(dataKey, Codecs.toBson(userData)),
+        set(lastUpdatedKey, Codecs.toBson(DateTime.now(DateTimeZone.UTC))),
+        set(expireAtKey, Codecs.toBson(expireInSeconds))
+      ),
+      upsertOptions
+    ).toFuture().map(_ => true)
   }
 
   def get(id: String)(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
     logger.debug("Calling get in RacDacRequestsQueueEventsLogRepository")
-    collection.find(BSONDocument("id" -> id), projection = Option.empty[JsObject]).one[RacDacEventsLogJson].map(_.map(_.data))
+
+    collection.find(
+      filter = Filters.eq(idKey, id)
+    ).toFuture()
+      .map(_.headOption)
+      .map {
+        _.flatMap { dataJson => (dataJson \ "data").asOpt[JsObject] }
+      }
   }
 
   def remove(id: String)(implicit ec: ExecutionContext): Future[Boolean] = {
-    logger.warn(s"Removing row from collection ${collection.name}")
-    val selector = BSONDocument("id" -> id)
-    collection.delete.one(selector).map(_.ok)
+    logger.warn(s"Removing row from collection rac dac requests queue events log repository")
+    collection.deleteOne(
+      filter = Filters.eq(idKey, id)
+    ).toFuture().map(_ => true)
   }
 }
 
+object RacDacRequestsQueueEventsLogRepository {
+  private val idKey = "id"
+  private val dataKey = "data"
+  private val lastUpdatedKey = "lastUpdated"
+  private val expireAtKey = "expireAt"
+}

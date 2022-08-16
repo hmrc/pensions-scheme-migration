@@ -34,7 +34,6 @@ import uk.gov.hmrc.http.HeaderCarrier
 import scala.concurrent.Future
 
 class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSugar with BeforeAndAfter {
-
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
   private val repo = mock[LockCacheRepository]

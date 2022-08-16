@@ -18,13 +18,12 @@ package connector
 
 import com.google.inject.Inject
 import config.AppConfig
-import uk.gov.hmrc.http.HeaderCarrier
 
 import java.util.UUID.randomUUID
 
 class HeaderUtils @Inject()(config: AppConfig) {
   private val maxLengthCorrelationIdIF = 36
-  def integrationFrameworkHeader(implicit hc: HeaderCarrier): Seq[(String, String)] = {
+  def integrationFrameworkHeader: Seq[(String, String)] = {
 
     Seq("Environment" -> config.integrationframeworkEnvironment,
       "Authorization" -> config.integrationframeworkAuthorization,

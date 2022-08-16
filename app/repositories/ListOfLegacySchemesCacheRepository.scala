@@ -17,18 +17,85 @@
 package repositories
 
 import com.google.inject.Inject
-import play.api.Configuration
-import play.modules.reactivemongo.ReactiveMongoComponent
+import com.mongodb.client.model.FindOneAndUpdateOptions
+import org.joda.time.{DateTime, DateTimeZone}
+import org.mongodb.scala.model.Updates.set
+import org.mongodb.scala.model._
+import play.api.libs.json.{Format, JsObject, JsValue}
+import play.api.{Configuration, Logging}
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
+import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
-import scala.concurrent.ExecutionContext
+import java.util.concurrent.TimeUnit
+import scala.concurrent.{ExecutionContext, Future}
 
-class ListOfLegacySchemesCacheRepository @Inject()(
-                                        mongoComponent: ReactiveMongoComponent,
+class ListOfLegacySchemesCacheRepository@Inject()(
+                                        mongoComponent: MongoComponent,
                                         configuration: Configuration
-                                      )(implicit val ec: ExecutionContext)
-  extends ManageCacheRepository(
-    configuration.get[String](path = "mongodb.migration-cache.list-of-legacy-schemes.name"),
-    Some(configuration.get[Int](path = "mongodb.migration-cache.list-of-legacy-schemes.timeToLiveInSeconds")),
-    mongoComponent
-  )
+                                      )(implicit ec: ExecutionContext)
+  extends PlayMongoRepository[JsObject](
+    collectionName = configuration.get[String](path = "mongodb.migration-cache.list-of-legacy-schemes.name"),
+    mongoComponent = mongoComponent,
+    domainFormat = implicitly,
+    indexes =
+      Seq(
+      IndexModel(
+        keys = Indexes.ascending("lastUpdated"),
+        indexOptions = IndexOptions().name("lastUpdated")
+          .background(true)
+          .expireAfter(
+            configuration.get[Int](path = "mongodb.migration-cache.list-of-legacy-schemes.timeToLiveInSeconds"),
+            TimeUnit.SECONDS)
+      )
+    )
+  ) with Logging {
 
+  implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
+
+  import ListOfLegacySchemesCacheRepository._
+
+  def upsert(id: String, data: JsValue)(implicit ec: ExecutionContext): Future[Boolean] = {
+    val upsertOptions = new FindOneAndUpdateOptions().upsert(true)
+
+    collection.findOneAndUpdate(
+      filter = Filters.eq(idKey, id),
+      update = Updates.combine(
+        set(idKey, id),
+        set(dataKey, Codecs.toBson(data)),
+        set(lastUpdatedKey, Codecs.toBson(DateTime.now(DateTimeZone.UTC)))
+      ),
+      upsertOptions
+    ).toFuture().map(_ => true)
+  }
+
+  def get(id: String)(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
+    collection.find(
+      filter = Filters.eq(idKey, id)
+    ).toFuture()
+      .map(_.headOption)
+      .map { _.flatMap { dataJson => (dataJson \ "data").asOpt[JsObject]}}
+  }
+
+  def getLastUpdated(id: String)(implicit ec: ExecutionContext): Future[Option[DateTime]] = {
+    collection.find(
+      filter = Filters.eq(idKey, id)
+    ).toFuture()
+      .map(_.headOption)
+      .map { _.flatMap { dataJson => (dataJson \ "lastUpdated").asOpt[DateTime]}}
+  }
+
+  def remove(id: String)(implicit ec: ExecutionContext): Future[Boolean] = {
+    logger.warn(s"Removing row from list of legacy schemes collection externalId:$id")
+    collection.deleteOne(
+      filter = Filters.eq(idKey, id)
+    ).toFuture().map( _ => true)
+  }
+
+}
+
+object ListOfLegacySchemesCacheRepository {
+  private val idKey = "id"
+  private val dataKey = "data"
+  private val lastUpdatedKey = "lastUpdated"
+}

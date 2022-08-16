@@ -22,25 +22,50 @@ import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import play.api.Environment
 import play.api.inject.Injector
 import play.api.libs.json.Json
-import play.api.mvc.AnyContentAsEmpty
+import play.api.mvc.{AnyContentAsEmpty, ControllerComponents}
 import play.api.test.FakeRequest
 import uk.gov.hmrc.crypto.ApplicationCrypto
 
-trait SpecBase extends PlaySpec with GuiceOneAppPerSuite {
+trait SpecBase extends PlaySpec with GuiceOneAppPerSuite with JsonFileReader {
   def injector: Injector = app.injector
-  protected def crypto: ApplicationCrypto = injector.instanceOf[ApplicationCrypto]
+
   def environment: Environment = injector.instanceOf[Environment]
 
   def appConfig: AppConfig = injector.instanceOf[AppConfig]
 
   def fakeRequest: FakeRequest[AnyContentAsEmpty.type] = FakeRequest("", "")
 
-  def errorResponse(code: String): String = {
-    Json.stringify(
-      Json.obj(
-        "code" -> code,
-        "reason" -> s"Reason for $code"
+  protected def crypto: ApplicationCrypto = injector.instanceOf[ApplicationCrypto]
+
+  def controllerComponents: ControllerComponents = injector.instanceOf[ControllerComponents]
+
+    protected def errorResponse(code: String): String = {
+      Json.stringify(
+        Json.obj(
+          "code" -> code,
+          "reason" -> s"Reason for $code"
+        )
       )
-    )
-  }
+    }
 }
+
+//trait SpecBase extends PlaySpec with GuiceOneAppPerSuite {
+//  def injector: Injector = app.injector
+//  protected def crypto: ApplicationCrypto = injector.instanceOf[ApplicationCrypto]
+//  protected def environment: Environment = injector.instanceOf[Environment]
+//
+//  protected def appConfig: AppConfig = injector.instanceOf[AppConfig]
+//
+//  protected def fakeRequest: FakeRequest[AnyContentAsEmpty.type] = FakeRequest("", "")
+//
+//  protected def errorResponse(code: String): String = {
+//    Json.stringify(
+//      Json.obj(
+//        "code" -> code,
+//        "reason" -> s"Reason for $code"
+//      )
+//    )
+//  }
+//
+//  protected def controllerComponents: ControllerComponents = injector.instanceOf[ControllerComponents]
+//}

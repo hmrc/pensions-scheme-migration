@@ -1,3 +1,8 @@
+#admin
+
++nocsrf
 GET        /feature-toggles                    controllers.cache.FeatureToggleController.getAll()
++nocsrf
 GET        /feature-toggles/:toggleName        controllers.cache.FeatureToggleController.get(toggleName: FeatureToggleName)
++nocsrf
 PUT        /feature-toggles/:toggleName        controllers.cache.FeatureToggleController.put(toggleName: FeatureToggleName)

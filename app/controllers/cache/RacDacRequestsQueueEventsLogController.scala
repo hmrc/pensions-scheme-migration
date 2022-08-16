@@ -49,7 +49,7 @@ class RacDacRequestsQueueEventsLogController @Inject()(repository: RacDacRequest
   }
 
   private def withId(block: (String) => Future[Result])
-                      (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
+                      (implicit hc: HeaderCarrier): Future[Result] = {
     authorised().retrieve(Retrievals.externalId) {
       case Some(_) =>
         hc.sessionId match {

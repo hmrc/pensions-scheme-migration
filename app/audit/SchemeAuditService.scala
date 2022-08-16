@@ -20,7 +20,6 @@ import play.api.http.Status
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.http.{HttpException, UpstreamErrorResponse}
 
-import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success, Try}
 
 class SchemeAuditService {
@@ -72,8 +71,7 @@ class SchemeAuditService {
   def sendRACDACSchemeSubscriptionEvent(psaId: String,pstr:String, registerData: JsValue)
                                        (
                                          sendEvent: RacDacMigrationAuditEvent => Unit
-                                       )
-                                       (implicit ec: ExecutionContext):
+                                       ):
   PartialFunction[Try[Either[HttpException, JsValue]], Unit] = {
     case Success(Right(outputResponse)) =>
       sendEvent(RacDacMigrationAuditEvent(psaId,pstr, Status.OK, registerData, Some(outputResponse)))
@@ -91,8 +89,7 @@ class SchemeAuditService {
   def sendSchemeSubscriptionEvent(psaId: String,pstr:String, registerData: JsValue)
                                        (
                                          sendEvent: SchemeMigrationAuditEvent => Unit
-                                       )
-                                       (implicit ec: ExecutionContext):
+                                       ):
   PartialFunction[Try[Either[HttpException, JsValue]], Unit] = {
     case Success(Right(outputResponse)) =>
       sendEvent(SchemeMigrationAuditEvent(psaId,pstr, Status.OK, registerData, Some(outputResponse)))

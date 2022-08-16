@@ -18,10 +18,10 @@ package service
 
 import com.google.inject.{Inject, Singleton}
 import models.racDac.WorkItemRequest
+import org.bson.types.ObjectId
 import play.api.libs.json.{JsValue, Json}
-import reactivemongo.bson.BSONObjectID
 import repositories.RacDacRequestsQueueRepository
-import uk.gov.hmrc.workitem.{ProcessingStatus, ResultStatus, WorkItem}
+import uk.gov.hmrc.mongo.workitem.{ProcessingStatus, ResultStatus, WorkItem}
 
 import scala.concurrent.Future
 
@@ -55,10 +55,10 @@ class RacDacBulkSubmissionService @Inject()(
   def dequeue: Future[Either[Exception, Option[WorkItem[WorkItemRequest]]]] =
     racDacSubmissionRepo.pull
 
-  def setProcessingStatus(id: BSONObjectID, status: ProcessingStatus): Future[Either[Exception, Boolean]] =
+  def setProcessingStatus(id: ObjectId, status: ProcessingStatus): Future[Either[Exception, Boolean]] =
     racDacSubmissionRepo.setProcessingStatus(id, status)
 
-  def setResultStatus(id: BSONObjectID, status: ResultStatus): Future[Either[Exception, Boolean]] =
+  def setResultStatus(id: ObjectId, status: ResultStatus): Future[Either[Exception, Boolean]] =
     racDacSubmissionRepo.setResultStatus(id, status)
 
   def isRequestSubmitted(psaId: String): Future[Either[Exception, Boolean]] = {
@@ -81,7 +81,7 @@ class RacDacBulkSubmissionService @Inject()(
     }
   }
 
-  def deleteRequest(id: BSONObjectID): Future[Boolean] = {
+  def deleteRequest(id: ObjectId): Future[Boolean] = {
     racDacSubmissionRepo.deleteRequest(id)
   }
 

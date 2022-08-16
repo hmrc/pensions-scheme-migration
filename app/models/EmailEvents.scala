@@ -17,10 +17,9 @@
 package models
 
 import org.joda.time.DateTime
-import play.api.libs.json.{JsPath, Json, Reads}
-import utils.{Enumerable, WithName}
-import play.api.libs.json._
 import play.api.libs.functional.syntax._
+import play.api.libs.json._
+import utils.Enumerable
 
 sealed trait Event
 

@@ -18,7 +18,6 @@ package controllers
 
 import base.SpecBase
 import connector.LegacySchemeDetailsConnector
-import connector.LegacySchemeDetailsConnectorSpec.readJsonFromFile
 import org.mockito.ArgumentMatchers.any
 import org.mockito.MockitoSugar
 import org.scalatest.BeforeAndAfter

@@ -59,7 +59,7 @@ class SchemeDataCacheController @Inject()(repository: SchemeDataCacheRepository,
   }
 
   private def withId(block: (String) => Future[Result])
-                      (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
+                      (implicit hc: HeaderCarrier): Future[Result] = {
     authorised().retrieve(Retrievals.externalId) {
       case Some(id) => block(id)
       case _ => Future.failed(CredIdNotFoundFromAuth())

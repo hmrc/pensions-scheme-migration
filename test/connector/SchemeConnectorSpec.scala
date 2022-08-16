@@ -31,7 +31,7 @@ import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.RequestHeader
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, UpstreamErrorResponse}
+import uk.gov.hmrc.http.{BadRequestException, UpstreamErrorResponse}
 
 import java.time.LocalDate
 
@@ -180,7 +180,6 @@ class SchemeConnectorSpec
 }
 
 object SchemeConnectorSpec {
-  private implicit val hc: HeaderCarrier = HeaderCarrier()
   private implicit val rh: RequestHeader = FakeRequest("", "")
   private val idValue = "test"
   private val registerSchemeData = readJsonFromFile("/data/validSchemeRegistrationRequest.json")
@@ -228,13 +227,6 @@ object SchemeConnectorSpec {
       Json.obj(
         "code" -> "DUPLICATE_SUBMISSION",
         "reason" -> "The remote endpoint has indicated that duplicate submission."
-      )
-    )
-  private val unprocessableEntityResponse =
-    Json.stringify(
-      Json.obj(
-        "code" -> "REQUEST_NOT_PROCESSED",
-        "reason" -> "The remote endpoint has indicated that the scheme corresponding to the TPSS ID provided is currently being migrated."
       )
     )
 }

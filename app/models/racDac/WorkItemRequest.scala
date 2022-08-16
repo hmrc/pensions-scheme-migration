@@ -16,9 +16,8 @@
 
 package models.racDac
 
-import play.api.libs.json.{Format, Json, OFormat}
+import play.api.libs.json.{Json, OFormat}
 import uk.gov.hmrc.http.{HeaderCarrier, RequestId, SessionId}
-import uk.gov.hmrc.workitem.WorkItem
 
 case class RacDacHeaders(requestId: Option[String], sessionId: Option[String]) {
   def toHeaderCarrier: HeaderCarrier = HeaderCarrier(requestId = requestId.map(RequestId), sessionId = sessionId.map(SessionId))
@@ -44,8 +43,6 @@ case class WorkItemRequest(
 
 object WorkItemRequest {
 
-  implicit val workItemRequestFormat: OFormat[WorkItemRequest] = Json.format
-
-  val workItemFormat: Format[WorkItem[WorkItemRequest]] = WorkItem.workItemMongoFormat[WorkItemRequest]
+  implicit val workItemRequestFormat: OFormat[WorkItemRequest] = Json.format[WorkItemRequest]
 }
 

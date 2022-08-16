@@ -14,22 +14,6 @@
  * limitations under the License.
  */
 
-/*
- * Copyright 2022 HM Revenue & Customs
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package service
 
 import audit._
@@ -69,32 +53,32 @@ class PensionSchemeServiceSpec
   "registerScheme" must "return the result of submitting a pensions scheme " in {
     reset(schemeConnector)
     val regDataWithRacDacNode = schemeJsValue.as[JsObject]
-    when(schemeConnector.registerScheme(any(), any())(any(), any())).
+    when(schemeConnector.registerScheme(any(), any())(any())).
       thenReturn(Future.successful(Right(schemeRegistrationResponseJson)))
     pensionSchemeService.registerScheme(psaId, pensionsSchemeJson).map {
       response =>
         val json = response.right.value
-        verify(schemeConnector, times(1)).registerScheme(any(), eqTo(regDataWithRacDacNode))(any(), any())
+        verify(schemeConnector, times(1)).registerScheme(any(), eqTo(regDataWithRacDacNode))(any())
         json.validate[SchemeRegistrationResponse] mustBe JsSuccess(schemeRegistrationResponse)
     }
   }
 
   "registerScheme" must "return the result of submitting a RAC/DAC pensions scheme" in {
     reset(schemeConnector)
-    when(schemeConnector.registerScheme(any(), any())(any(), any())).
+    when(schemeConnector.registerScheme(any(), any())(any())).
       thenReturn(Future.successful(Right(schemeRegistrationResponseJson)))
 
     pensionSchemeService.registerRacDac(psaId, racDACPensionsSchemeJson)(implicitly,implicitly,Some(implicitly)).map {
       response =>
         val json = response.right.value
-        verify(schemeConnector, times(1)).registerScheme(any(), eqTo(racDacRegisterData))(any(), any())
+        verify(schemeConnector, times(1)).registerScheme(any(), eqTo(racDacRegisterData))(any())
         json.validate[SchemeRegistrationResponse] mustBe JsSuccess(schemeRegistrationResponse)
     }
   }
 
   "register scheme" must "send a SchemeMigrationAudit event following a successful submission" in {
     reset(schemeConnector)
-    when(schemeConnector.registerScheme(any(), any())(any(), any())).
+    when(schemeConnector.registerScheme(any(), any())(any())).
       thenReturn(Future.successful(Right(schemeRegistrationResponseJson)))
     pensionSchemeService.registerScheme(psaId, pensionsSchemeJson).map {
       response =>
@@ -110,7 +94,7 @@ class PensionSchemeServiceSpec
 
   it must "send a SchemeMigrationAudit event following an unsuccessful submission" in {
     reset(schemeConnector)
-    when(schemeConnector.registerScheme(any(), any())(any(), any())).
+    when(schemeConnector.registerScheme(any(), any())(any())).
       thenReturn(Future.failed(new BadRequestException("bad request")))
 
     pensionSchemeService.registerScheme(psaId, pensionsSchemeJson)
@@ -128,7 +112,7 @@ class PensionSchemeServiceSpec
 
   "register RAC DAC scheme" must "send a RacDacMigrationAuditEvent event following a successful submission" in {
     reset(schemeConnector)
-    when(schemeConnector.registerScheme(any(), any())(any(), any())).
+    when(schemeConnector.registerScheme(any(), any())(any())).
       thenReturn(Future.successful(Right(schemeRegistrationResponseJson)))
     pensionSchemeService.registerRacDac(psaId, racDACPensionsSchemeJson,true).map {
       response =>
@@ -146,7 +130,7 @@ class PensionSchemeServiceSpec
 
   it must "send a RacDacMigrationAuditEvent event following an unsuccessful submission" in {
     reset(schemeConnector)
-    when(schemeConnector.registerScheme(any(), any())(any(), any())).
+    when(schemeConnector.registerScheme(any(), any())(any())).
       thenReturn(Future.failed(new BadRequestException("bad request")))
 
     pensionSchemeService.registerRacDac(psaId, racDACPensionsSchemeJson,true)

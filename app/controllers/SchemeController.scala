@@ -98,7 +98,7 @@ class SchemeController @Inject()(
   }
 
   private def getListOfLegacySchemes(psaId: String)(
-    implicit hc: HeaderCarrier, request: RequestHeader): Future[Either[HttpException, JsValue]] = {
+    implicit request: RequestHeader): Future[Either[HttpException, JsValue]] = {
     listOfLegacySchemesCacheRepository.get(psaId).flatMap {
       case Some(response) =>
         Future.successful(Right(response))
@@ -108,7 +108,7 @@ class SchemeController @Inject()(
   }
 
   private def getAndCacheListOfLegacySchemes(psaId: String)(
-    implicit hc: HeaderCarrier, request: RequestHeader): Future[Either[HttpException, JsValue]] = {
+    implicit request: RequestHeader): Future[Either[HttpException, JsValue]] = {
     schemeConnector.listOfLegacySchemes(psaId) flatMap {
       case Right(psaDetails) => {
         listOfLegacySchemesCacheRepository.upsert(psaId, Json.toJson(psaDetails)).map(_ =>

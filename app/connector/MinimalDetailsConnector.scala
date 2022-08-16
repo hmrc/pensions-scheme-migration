@@ -27,6 +27,7 @@ import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpException, HttpResponse}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
+import uk.gov.hmrc.http.HttpReads.Implicits
 
 @ImplementedBy(classOf[MinimalDetailsConnectorImpl])
 trait MinimalDetailsConnector {
@@ -43,7 +44,7 @@ class MinimalDetailsConnectorImpl @Inject()(http: HttpClient, config: AppConfig)
 
   def getPSADetails(psaId: String)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Either[HttpException, MinPSA]] = {
     val url = config.getPSAMinDetails
-    http.GET[HttpResponse](url)(implicitly, hc.withExtraHeaders("psaId" -> psaId), implicitly).map { response =>
+    http.GET[HttpResponse](url)(Implicits.readRaw, hc.withExtraHeaders("psaId" -> psaId), implicitly).map { response =>
       handleSchemeDetailsResponse(response, url)
     }
   }

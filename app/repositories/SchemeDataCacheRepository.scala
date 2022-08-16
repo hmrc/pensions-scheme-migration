@@ -17,68 +17,86 @@
 package repositories
 
 import com.google.inject.Inject
-import models.cache.DataJson
+import com.mongodb.client.model.FindOneAndUpdateOptions
 import org.joda.time.{DateTime, DateTimeZone}
-import org.slf4j.{Logger, LoggerFactory}
-import play.api.Configuration
+import org.mongodb.scala.model.Updates.set
+import org.mongodb.scala.model._
 import play.api.libs.json._
-import play.modules.reactivemongo.ReactiveMongoComponent
-import reactivemongo.api.indexes.IndexType.Ascending
-import reactivemongo.api.indexes.{Index, IndexType}
-import reactivemongo.bson.{BSONDocument, BSONObjectID}
-import reactivemongo.play.json.ImplicitBSONHandlers._
-import uk.gov.hmrc.mongo.ReactiveRepository
+import play.api.{Configuration, Logging}
+import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
+import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
+import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
 
-class SchemeDataCacheRepository @Inject()(mongoComponent: ReactiveMongoComponent,
+class SchemeDataCacheRepository @Inject()(mongoComponent: MongoComponent,
                                           configuration: Configuration
-                                      )(implicit val ec: ExecutionContext)
-  extends ReactiveRepository[JsValue, BSONObjectID](
-    configuration.get[String](path = "mongodb.migration-cache.scheme-data-cache.name"),
-    mongoComponent.mongoConnector.db,
-    implicitly
-  ) {
+                                         )(implicit val ec: ExecutionContext)
+  extends PlayMongoRepository[JsObject](
+    collectionName = configuration.get[String](path = "mongodb.migration-cache.scheme-data-cache.name"),
+    mongoComponent = mongoComponent,
+    domainFormat = implicitly,
+    indexes = Seq(
+      IndexModel(
+        keys = Indexes.ascending("id"),
+        indexOptions = IndexOptions().name("id").unique(true)
+      ),
+      IndexModel(
+        keys = Indexes.ascending("expireAt"),
+        indexOptions = IndexOptions().name("dataExpiry").expireAfter(0, TimeUnit.SECONDS)
+      )
+    )
+  ) with Logging {
 
-  override val logger: Logger = LoggerFactory.getLogger("SchemeDataCacheRepository")
+  import SchemeDataCacheRepository._
+
+  implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
 
   private def expireInSeconds: DateTime = DateTime.now(DateTimeZone.UTC)
     .toLocalDate
     .plusDays(configuration.get[Int](path = "mongodb.migration-cache.scheme-data-cache.timeToLiveInDays") + 1)
     .toDateTimeAtStartOfDay()
 
-  override lazy val indexes = Seq(
-    Index(Seq(("id", Ascending)), Some("id"), unique = true),
-    Index(Seq(("expireAt", IndexType.Ascending)), Some("dataExpiry"), options = BSONDocument("expireAfterSeconds" -> 0))
-  )
-
-  (for { _ <- ensureIndexes } yield { () }) recoverWith {
-    case t: Throwable => Future.successful(logger.error(s"Error creating indexes on collection ${collection.name}", t))
-  } andThen {
-    case _ => CollectionDiagnostics.logCollectionInfo(collection)
-  }
-
-  override def ensureIndexes(implicit ec: ExecutionContext): Future[Seq[Boolean]] =
-    Future.sequence(indexes.map(collection.indexesManager.ensure(_)))
-
   def save(id: String, userData: JsValue)(implicit ec: ExecutionContext): Future[Boolean] = {
     logger.debug("Calling Save in Scheme Data Cache")
 
-    val document: JsValue = Json.toJson(DataJson(id, userData, DateTime.now(DateTimeZone.UTC), expireInSeconds))
-    val modifier = BSONDocument("$set" -> document)
+    val upsertOptions = new FindOneAndUpdateOptions().upsert(true)
 
-    collection.update.one(BSONDocument("id" -> id), modifier, upsert = true).map(_.ok)
+    collection.findOneAndUpdate(
+      filter = Filters.eq(idKey, id),
+      update = Updates.combine(
+        set(idKey, id),
+        set(dataKey, Codecs.toBson(userData)),
+        set(lastUpdatedKey, Codecs.toBson(DateTime.now(DateTimeZone.UTC))),
+        set(expireAtKey, Codecs.toBson(expireInSeconds))
+      ),
+      upsertOptions
+    ).toFuture().map(_ => true)
   }
 
   def get(id: String)(implicit ec: ExecutionContext): Future[Option[JsValue]] = {
     logger.debug("Calling get in Scheme Data Cache")
-    collection.find(BSONDocument("id" -> id), projection = Option.empty[JsObject]).one[DataJson].map(_.map(_.data))
+    collection.find(
+      filter = Filters.eq(idKey, id)
+    ).toFuture()
+      .map(_.headOption)
+      .map {
+        _.flatMap { dataJson => (dataJson \ "data").asOpt[JsObject] }
+      }
   }
 
   def remove(id: String)(implicit ec: ExecutionContext): Future[Boolean] = {
-    logger.warn(s"Removing row from collection ${collection.name}")
-    val selector = BSONDocument("id" -> id)
-    collection.delete.one(selector).map(_.ok)
+    logger.warn(s"Removing row from collection scheme data cache")
+    collection.deleteOne(
+      filter = Filters.eq(idKey, id)
+    ).toFuture().map(_ => true)
   }
 }
 
+object SchemeDataCacheRepository {
+  private val idKey = "id"
+  private val dataKey = "data"
+  private val lastUpdatedKey = "lastUpdated"
+  private val expireAtKey = "expireAt"
+}
