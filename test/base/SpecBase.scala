@@ -39,7 +39,7 @@ trait SpecBase extends PlaySpec with GuiceOneAppPerSuite with JsonFileReader {
 
   def controllerComponents: ControllerComponents = injector.instanceOf[ControllerComponents]
 
-    protected def errorResponse(code: String): String = {
+  protected def errorResponse(code: String): String = {
       Json.stringify(
         Json.obj(
           "code" -> code,
@@ -48,24 +48,3 @@ trait SpecBase extends PlaySpec with GuiceOneAppPerSuite with JsonFileReader {
       )
     }
 }
-
-//trait SpecBase extends PlaySpec with GuiceOneAppPerSuite {
-//  def injector: Injector = app.injector
-//  protected def crypto: ApplicationCrypto = injector.instanceOf[ApplicationCrypto]
-//  protected def environment: Environment = injector.instanceOf[Environment]
-//
-//  protected def appConfig: AppConfig = injector.instanceOf[AppConfig]
-//
-//  protected def fakeRequest: FakeRequest[AnyContentAsEmpty.type] = FakeRequest("", "")
-//
-//  protected def errorResponse(code: String): String = {
-//    Json.stringify(
-//      Json.obj(
-//        "code" -> code,
-//        "reason" -> s"Reason for $code"
-//      )
-//    )
-//  }
-//
-//  protected def controllerComponents: ControllerComponents = injector.instanceOf[ControllerComponents]
-//}
