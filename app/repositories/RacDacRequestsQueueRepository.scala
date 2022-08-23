@@ -50,7 +50,7 @@ class RacDacRequestsQueueRepository @Inject()(configuration: Configuration, mong
           .expireAfter(ttl, TimeUnit.SECONDS)
       )
     )
-    MongoUtils.ensureIndexes(collection, indexes ++ extraIndexes, replaceIndexes = true)
+    MongoUtils.ensureIndexes(collection, indexes ++ extraIndexes, replaceIndexes = false)
   }
 
   private val logger: Logger = Logger(classOf[RacDacRequestsQueueRepository])
