@@ -16,9 +16,9 @@
 
 package models.userAnswersToEtmp.reads
 
-import models.userAnswersToEtmp.{UkAddress, CustomerAndSchemeDetails}
-import org.scalatest.wordspec.AnyWordSpec
+import models.userAnswersToEtmp.{CustomerAndSchemeDetails, UkAddress}
 import org.scalatest.matchers.must.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json._
 
 class CustomerAndSchemeDetailsReadsSpec extends AnyWordSpec with Matchers {
@@ -212,18 +212,20 @@ class CustomerAndSchemeDetailsReadsSpec extends AnyWordSpec with Matchers {
   }
 
   "Json Payload containing Customer and scheme details" must {
-    behave like readsTests
+    behave like readsTests()
   }
 
 }
 
 object CustomerAndSchemeDetailsReadsSpec {
-  val customerDetails: CustomerAndSchemeDetails = CustomerAndSchemeDetails("test scheme name", isSchemeMasterTrust = false, schemeStructure = Some("A single trust under which all" +
-    " of the assets are held for the benefit of all members of the scheme"), otherSchemeStructure = Some("other details"),
-    haveMoreThanTenTrustee = Some(true), currentSchemeMembers = "2 to 11", futureSchemeMembers = "0", isRegulatedSchemeInvestment = true, isOccupationalPensionScheme = true,
-    areBenefitsSecuredContractInsuranceCompany = true, doesSchemeProvideBenefits = "Defined Benefits only", tcmpBenefitType = None,
-    schemeEstablishedCountry = "GB", haveInvalidBank = false, insuranceCompanyName = Some("my insurance company"), policyNumber = Some("111"),
-    insuranceCompanyAddress = Some(UkAddress("ADDRESS LINE 1", Some("ADDRESS LINE 2"), Some("ADDRESS LINE 3"), Some("ADDRESS LINE 4"), "GB", "ZZ1 1ZZ")))
+  val customerDetails: CustomerAndSchemeDetails =
+    CustomerAndSchemeDetails("test scheme name", isSchemeMasterTrust = false, schemeStructure = Some("A single trust under which all" +
+      " of the assets are held for the benefit of all members of the scheme"), otherSchemeStructure = Some("other details"),
+      haveMoreThanTenTrustee = Some(true),
+      currentSchemeMembers = "2 to 11", futureSchemeMembers = "0", isRegulatedSchemeInvestment = true, isOccupationalPensionScheme = true,
+      areBenefitsSecuredContractInsuranceCompany = true, doesSchemeProvideBenefits = "Defined Benefits only", tcmpBenefitType = None,
+      schemeEstablishedCountry = "GB", haveInvalidBank = false, insuranceCompanyName = Some("my insurance company"), policyNumber = Some("111"),
+      insuranceCompanyAddress = Some(UkAddress("ADDRESS LINE 1", Some("ADDRESS LINE 2"), Some("ADDRESS LINE 3"), Some("ADDRESS LINE 4"), "GB", "ZZ1 1ZZ")))
 
 
   val dataJson: JsObject =

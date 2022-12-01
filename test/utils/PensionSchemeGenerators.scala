@@ -20,7 +20,7 @@ import org.joda.time.LocalDate
 import org.scalacheck.Gen
 import play.api.libs.json.{JsObject, Json}
 
-trait PensionSchemeGenerators {
+trait PensionSchemeGenerators { // scalastyle:off magic.number
   val specialCharStringGen: Gen[String] = Gen.listOfN[Char](160, Gen.alphaChar).map(_.mkString)
   val addressLineGen: Gen[String] = Gen.listOfN[Char](35, Gen.alphaChar).map(_.mkString)
   val addressLineOptional: Gen[Option[String]] = Gen.option(addressLineGen)
@@ -35,7 +35,7 @@ trait PensionSchemeGenerators {
     randomNumberFromRange(1, 3) match {
       case 1 => utrRange
       case 2 => "k" + utrRange
-      case 3 => utrRange + "k"
+      case 3 => utrRange.toString + "k"
     }
   }
   val optionalPostalCodeGen: Gen[Option[String]] = Gen.option(Gen.listOfN[Char](10, Gen.alphaChar).map(_.mkString))
@@ -60,7 +60,9 @@ trait PensionSchemeGenerators {
 
   val boolenGen: Gen[Boolean] = Gen.oneOf(Seq(true, false))
 
-  val schemeStatusGen: Gen[String] = Gen.oneOf(Seq("Open", "Pending", "Pending Info Required", "Pending Info Received", "Deregistered", "Wound-up", "Rejected Under Appeal"))
+  val schemeStatusGen: Gen[String] = Gen.oneOf(
+    Seq("Open", "Pending", "Pending Info Required", "Pending Info Received", "Deregistered", "Wound-up", "Rejected Under Appeal")
+  )
 
   val memberGen: Gen[String] = Gen.oneOf(Seq("0",
     "1",
@@ -86,19 +88,19 @@ trait PensionSchemeGenerators {
     }.getOrElse(Json.obj(reason -> reason))
   }
 
-  protected def crnJsValue(crn: Option[String], wrapper: String) =
+  protected def crnJsValue(crn: Option[String], wrapper: String): JsObject =
     crn.fold(Json.obj("haveCompanyNumber" -> false, "noCompanyNumberReason" -> "noCrnReason"))(crn =>
       Json.obj("haveCompanyNumber" -> true, wrapper -> Json.obj("value" -> crn)))
 
-  protected def ninoJsValue(nino: Option[String], wrapper: String) =
+  protected def ninoJsValue(nino: Option[String], wrapper: String): JsObject =
     nino.fold(Json.obj("hasNino" -> false, "noNinoReason" -> "noNinoReason"))(nino =>
       Json.obj("hasNino" -> true, wrapper -> Json.obj("value" -> nino)))
 
-  protected def vatJsValue(vat: Option[String], wrapper: String) =
+  protected def vatJsValue(vat: Option[String], wrapper: String): JsObject =
     vat.fold(Json.obj("haveVat" -> false))(vat =>
       Json.obj("haveVat" -> true, wrapper -> Json.obj("value" -> vat)))
 
-  protected def payeJsValue(paye: Option[String], wrapper: String) =
+  protected def payeJsValue(paye: Option[String], wrapper: String): JsObject =
     paye.fold(Json.obj("havePaye" -> false))(paye =>
       Json.obj("havePaye" -> true, wrapper -> Json.obj("value" -> paye)))
 

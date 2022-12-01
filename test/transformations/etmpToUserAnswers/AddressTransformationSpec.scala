@@ -21,7 +21,7 @@ import play.api.libs.json._
 
 class AddressTransformationSpec extends TransformationSpec {
 
-  val addressTransformer = new AddressTransformer
+  val addressTransformer: AddressTransformer = injector.instanceOf[AddressTransformer]
 
   "if payload containing an address" when {
     "transformed using getAddress" must {
@@ -29,7 +29,8 @@ class AddressTransformationSpec extends TransformationSpec {
         forAll(addressJsValueGen("correspAddrDetails", "address")) {
           address => {
             val (ifAddress, userAnswersExpectedAddress) = address
-            lazy val transformedJson = ifAddress.transform(addressTransformer.getAddress(__ \ 'address, __ \ 'correspAddrDetails, countryOptions)).asOpt.value
+            lazy val transformedJson = ifAddress.transform(
+              addressTransformer.getAddress(__ \ Symbol("address"), __ \ Symbol("correspAddrDetails"), countryOptions)).asOpt.value
             transformedJson mustBe userAnswersExpectedAddress
           }
         }

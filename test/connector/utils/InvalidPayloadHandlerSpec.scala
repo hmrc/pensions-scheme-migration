@@ -173,7 +173,7 @@ class InvalidPayloadHandlerSpec extends AnyFlatSpec with Matchers {
     val actual = logger.getFailures(multiSchema, json)
 
     actual.size shouldBe 2
-    actual should contain allOf(maxLengthError, typeError)
+    (actual should contain).allOf(maxLengthError, typeError)
 
   }
 }

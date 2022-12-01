@@ -20,28 +20,25 @@ import audit.{AuditService, ListOfLegacySchemesAuditEvent}
 import base.WireMockHelper
 import com.github.tomakehurst.wiremock.client.WireMock._
 import connector.LegacySchemeDetailsConnectorSpec.readJsonFromFile
+import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
-import org.mockito.{ArgumentCaptor, MockitoSugar}
+import org.mockito.Mockito.doNothing
 import org.scalatest._
 import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.inject.bind
 import play.api.inject.guice.GuiceableModule
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.RequestHeader
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
+import repositories._
 import uk.gov.hmrc.http.{BadRequestException, UpstreamErrorResponse}
 
 import java.time.LocalDate
 
-class SchemeConnectorSpec
-  extends AsyncFlatSpec
-    with WireMockHelper
-    with OptionValues
-    with MockitoSugar
-    with RecoverMethods
-    with EitherValues {
+class SchemeConnectorSpec extends AsyncFlatSpec with WireMockHelper with OptionValues with MockitoSugar with RecoverMethods with EitherValues {
 
   import SchemeConnectorSpec._
 
@@ -57,12 +54,19 @@ class SchemeConnectorSpec
 
   override protected def bindings: Seq[GuiceableModule] =
     Seq(
-      bind[AuditService].toInstance(mockAuditService)
+      bind[AuditService].toInstance(mockAuditService),
+      bind[AdminDataRepository].toInstance(mock[AdminDataRepository]),
+      bind[DataCacheRepository].toInstance(mock[DataCacheRepository]),
+      bind[ListOfLegacySchemesCacheRepository].toInstance(mock[ListOfLegacySchemesCacheRepository]),
+      bind[LockCacheRepository].toInstance(mock[LockCacheRepository]),
+      bind[RacDacRequestsQueueEventsLogRepository].toInstance(mock[RacDacRequestsQueueEventsLogRepository]),
+      bind[RacDacRequestsQueueRepository].toInstance(mock[RacDacRequestsQueueRepository]),
+      bind[SchemeDataCacheRepository].toInstance(mock[SchemeDataCacheRepository])
     )
 
   "SchemeConnector listOfScheme" should "return OK with the list of schemes response for PSA and audit the response" in {
     val captor = ArgumentCaptor.forClass(classOf[ListOfLegacySchemesAuditEvent])
-    doNothing.when(mockAuditService).sendEvent(captor.capture())(any(), any())
+    doNothing().when(mockAuditService).sendEvent(captor.capture())(any(), any())
     server.stubFor(
       get(listOfSchemesIFUrl)
         .willReturn(
@@ -71,16 +75,16 @@ class SchemeConnectorSpec
     )
 
     connector.listOfLegacySchemes(idValue).map { response =>
-      response.right.value shouldBe validListOfSchemeIFResponse
+      response.value shouldBe validListOfSchemeIFResponse
       val expectedAuditEvent = ListOfLegacySchemesAuditEvent(idValue, OK, 2, "")
       captor.getValue shouldBe expectedAuditEvent
     }
   }
 
-  it should "return 422 when if/ETMP throws Unprocessable Entity and audit the response" in {
+  it should "return 422 when if/ETMP throws Unprocessable Entity and audit the response" in { // scalastyle:off magic.number
     val responseBody = "test response body"
     val captor = ArgumentCaptor.forClass(classOf[ListOfLegacySchemesAuditEvent])
-    doNothing.when(mockAuditService).sendEvent(captor.capture())(any(), any())
+    doNothing().when(mockAuditService).sendEvent(captor.capture())(any(), any())
     server.stubFor(
       get(listOfSchemesIFUrl)
         .willReturn(
@@ -97,7 +101,7 @@ class SchemeConnectorSpec
   }
 
   it should "throw UpStream5XXResponse when if/ETMP throws Server error" in {
-    doNothing.when(mockAuditService).sendEvent(any())(any(), any())
+    doNothing().when(mockAuditService).sendEvent(any())(any(), any())
     server.stubFor(
       get(listOfSchemesIFUrl)
         .willReturn(
@@ -125,7 +129,7 @@ class SchemeConnectorSpec
     )
 
     connector.registerScheme(idValue, registerSchemeData).map { response =>
-      response.right.value shouldBe successResponse
+      response.value shouldBe successResponse
     }
   }
 

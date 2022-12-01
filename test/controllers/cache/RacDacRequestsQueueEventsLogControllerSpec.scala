@@ -17,16 +17,17 @@
 package controllers.cache
 
 import org.mockito.ArgumentMatchers.{eq => eqTo, _}
-import org.mockito.MockitoSugar
+import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.inject.bind
 import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import repositories.RacDacRequestsQueueEventsLogRepository
+import repositories._
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.{HeaderCarrier, HeaderNames}
 
@@ -43,7 +44,13 @@ class RacDacRequestsQueueEventsLogControllerSpec extends AnyWordSpec with Matche
 
   private val modules: Seq[GuiceableModule] = Seq(
     bind[AuthConnector].toInstance(authConnector),
-    bind[RacDacRequestsQueueEventsLogRepository].toInstance(repo)
+    bind[RacDacRequestsQueueEventsLogRepository].toInstance(repo),
+    bind[AdminDataRepository].toInstance(mock[AdminDataRepository]),
+    bind[DataCacheRepository].toInstance(mock[DataCacheRepository]),
+    bind[ListOfLegacySchemesCacheRepository].toInstance(mock[ListOfLegacySchemesCacheRepository]),
+    bind[LockCacheRepository].toInstance(mock[LockCacheRepository]),
+    bind[RacDacRequestsQueueRepository].toInstance(mock[RacDacRequestsQueueRepository]),
+    bind[SchemeDataCacheRepository].toInstance(mock[SchemeDataCacheRepository])
   )
 
   before {

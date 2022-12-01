@@ -63,7 +63,7 @@ class FeatureToggleSpec
 
       forAll(arbitrary[FeatureToggleName]) {
         name =>
-          pathBindable.bind("key", name.asString).right.value mustEqual name
+          pathBindable.bind("key", name.asString).value mustEqual name
 
       }
     }

@@ -20,11 +20,13 @@ import akka.stream.Materializer
 import org.scalatest.Inside
 import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.should.Matchers
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.inject.{ApplicationLifecycle, bind}
 import play.api.libs.json.{JsObject, Json}
 import play.api.mvc.AnyContentAsEmpty
 import play.api.test.{FakeHeaders, FakeRequest}
+import repositories._
 import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.audit.AuditExtensions.auditHeaderCarrier
 import uk.gov.hmrc.play.audit.http.config.AuditingConfig
@@ -49,7 +51,7 @@ class AuditServiceSpec extends AsyncFlatSpec with Matchers with Inside {
     val sentEvent = FakeAuditConnector.lastSentEvent
 
     inside(sentEvent) {
-      case DataEvent(auditSource, auditType, _, _, detail, _) =>
+      case DataEvent(auditSource, auditType, _, _, detail, _, _, _) =>
         auditSource shouldBe appName
         auditType shouldBe "TestAuditEvent"
         detail should contain("payload" -> "test-audit-payload")
@@ -58,15 +60,23 @@ class AuditServiceSpec extends AsyncFlatSpec with Matchers with Inside {
   }
 }
 
-object AuditServiceSpec {
+object AuditServiceSpec extends MockitoSugar {
 
   private val app = new GuiceApplicationBuilder()
     .overrides(
-      bind[AuditConnector].toInstance(FakeAuditConnector)
+      bind[AuditConnector].toInstance(FakeAuditConnector),
+      bind[AdminDataRepository].toInstance(mock[AdminDataRepository]),
+      bind[DataCacheRepository].toInstance(mock[DataCacheRepository]),
+      bind[ListOfLegacySchemesCacheRepository].toInstance(mock[ListOfLegacySchemesCacheRepository]),
+      bind[LockCacheRepository].toInstance(mock[LockCacheRepository]),
+      bind[RacDacRequestsQueueEventsLogRepository].toInstance(mock[RacDacRequestsQueueEventsLogRepository]),
+      bind[RacDacRequestsQueueRepository].toInstance(mock[RacDacRequestsQueueRepository]),
+      bind[SchemeDataCacheRepository].toInstance(mock[SchemeDataCacheRepository])
     )
     .build()
 
   def fakeRequest(): FakeRequest[AnyContentAsEmpty.type] = FakeRequest("", "")
+
   def fakeHeader(): FakeHeaders = FakeHeaders(Seq.empty)
 
   def auditService(): AuditService = app.injector.instanceOf[AuditService]
@@ -94,19 +104,21 @@ object FakeAuditConnector extends AuditConnector {
     sentEvent = event
     super.sendEvent(event)
   }
+
   override def sendExplicitAudit(auditType: String, detail: Map[String, String])
-                        (implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
-    sentExtendedDataEvent= ExtendedDataEvent(
+                                (implicit hc: HeaderCarrier, ec: ExecutionContext): Unit = {
+    sentExtendedDataEvent = ExtendedDataEvent(
       auditSource = auditingConfig.auditSource,
-      auditType   = auditType,
-      eventId     = UUID.randomUUID().toString,
-      tags        = hc.toAuditTags(),
-      detail      = Json.toJson(detail).as[JsObject]
+      auditType = auditType,
+      eventId = UUID.randomUUID().toString,
+      tags = hc.toAuditTags(),
+      detail = Json.toJson(detail).as[JsObject]
     )
     super.sendExtendedEvent(sentExtendedDataEvent)
   }
 
   def lastSentEvent: DataEvent = sentEvent
+
   def lastSentExtendedDataEvent: ExtendedDataEvent = sentExtendedDataEvent
 
   def materializer: Materializer = ???

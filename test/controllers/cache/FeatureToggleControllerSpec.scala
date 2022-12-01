@@ -20,8 +20,9 @@ import base.SpecBase
 import models.FeatureToggle.Enabled
 import models.FeatureToggleName.DummyToggle
 import org.mockito.ArgumentMatchers.any
-import org.mockito.MockitoSugar
+import org.mockito.Mockito.{reset, times, verify, when}
 import org.scalatest.BeforeAndAfterEach
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.{JsBoolean, Json}
 import play.api.test.Helpers._
 import repositories.AdminDataRepository
@@ -30,17 +31,16 @@ import services.FeatureToggleService
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class FeatureToggleControllerSpec
-  extends SpecBase
-    with MockitoSugar
-    with BeforeAndAfterEach {
+class FeatureToggleControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfterEach {
 
   private val mockAdminDataRepository = mock[AdminDataRepository]
-
   private val mockFeatureToggleService = mock[FeatureToggleService]
 
+
+
   override def beforeEach(): Unit = {
-    reset(mockAdminDataRepository, mockFeatureToggleService)
+    reset(mockAdminDataRepository)
+    reset(mockFeatureToggleService)
     when(mockAdminDataRepository.getFeatureToggles)
       .thenReturn(Future.successful(Seq(Enabled(DummyToggle))))
     when(mockFeatureToggleService.getAll)

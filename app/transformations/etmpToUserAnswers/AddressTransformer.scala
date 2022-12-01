@@ -20,36 +20,37 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
 import utils.CountryOptions
+
 import scala.language.postfixOps
 
 class AddressTransformer extends JsonTransformer {
 
   private def getCommonAddressElements(userAnswersPath: JsPath, ifAddressPath: JsPath): Reads[JsObject] = {
-    ((userAnswersPath \ 'addressLine1).json.copyFrom((ifAddressPath \ 'addressLine1).json.pick)
-    orElse doNothing) and
-    ((userAnswersPath \ 'addressLine2).json.copyFrom((ifAddressPath \ 'addressLine2).json.pick)
-      orElse doNothing)and
-    ((userAnswersPath \ 'addressLine3).json.copyFrom((ifAddressPath \ 'addressLine3).json.pick)
+    ((userAnswersPath \ Symbol("addressLine1")).json.copyFrom((ifAddressPath \ Symbol("addressLine1")).json.pick)
       orElse doNothing) and
-    ((userAnswersPath \ 'addressLine4).json.copyFrom((ifAddressPath \ 'addressLine4).json.pick)
-      orElse doNothing) reduce
+      ((userAnswersPath \ Symbol("addressLine2")).json.copyFrom((ifAddressPath \ Symbol("addressLine2")).json.pick)
+        orElse doNothing) and
+      ((userAnswersPath \ Symbol("addressLine3")).json.copyFrom((ifAddressPath \ Symbol("addressLine3")).json.pick)
+        orElse doNothing) and
+      ((userAnswersPath \ Symbol("addressLine4")).json.copyFrom((ifAddressPath \ Symbol("addressLine4")).json.pick)
+        orElse doNothing) reduce
   }
 
   def getAddress(userAnswersPath: JsPath, ifAddressPath: JsPath, countryOptions: CountryOptions): Reads[JsObject] = {
     getCommonAddressElements(userAnswersPath, ifAddressPath) and
-      ((userAnswersPath \ 'postcode).json.copyFrom((ifAddressPath \ 'postalCode).json.pick)
+      ((userAnswersPath \ Symbol("postcode")).json.copyFrom((ifAddressPath \ Symbol("postalCode")).json.pick)
         orElse doNothing) and
-      (getCountry(userAnswersPath\ 'country, ifAddressPath\ 'country, countryOptions)  orElse doNothing) reduce
-}
+      (getCountry(userAnswersPath \ Symbol("country"), ifAddressPath \ Symbol("country"), countryOptions) orElse doNothing) reduce
+  }
 
   def getCountry(userAnswersPath: JsPath, ifAddressPath: JsPath, countryOptions: CountryOptions): Reads[JsObject] = {
-   (ifAddressPath).readNullable[String].flatMap {
-     _.flatMap {
-      countryOptions.getCountryCodeFromName(_).map {
-        countryCode =>
-          (userAnswersPath).json.put(JsString(countryCode))
-      }
-    } getOrElse (doNothing)
-   } orElse doNothing
+    (ifAddressPath).readNullable[String].flatMap {
+      _.flatMap {
+        countryOptions.getCountryCodeFromName(_).map {
+          countryCode =>
+            (userAnswersPath).json.put(JsString(countryCode))
+        }
+      } getOrElse (doNothing)
+    } orElse doNothing
   }
 }

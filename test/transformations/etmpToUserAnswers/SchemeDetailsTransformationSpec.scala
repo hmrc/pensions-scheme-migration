@@ -20,8 +20,7 @@ import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks.forAll
 
 class SchemeDetailsTransformationSpec extends TransformationSpec {
 
-  val addressTransformer = new AddressTransformer
-  val schemeDetailsTransformer = new SchemeDetailsTransformer(addressTransformer, countryOptions)
+  val schemeDetailsTransformer: SchemeDetailsTransformer = injector.instanceOf[SchemeDetailsTransformer]
 
   "An IF payload with Scheme details" must {
     "have the scheme details transformed correctly to valid user answers format" in {

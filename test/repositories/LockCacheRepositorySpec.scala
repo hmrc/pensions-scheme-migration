@@ -16,171 +16,173 @@
 
 package repositories
 
-import com.github.simplyscala.MongoEmbedDatabase
 import models.cache.{LockJson, MigrationLock}
 import org.joda.time.{DateTime, DateTimeZone}
-import org.mockito.{ArgumentMatchers, MockitoSugar}
+import org.mockito.ArgumentMatchers
+import org.mockito.Mockito.{reset, when}
+import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
+import org.scalatest.time.{Millis, Seconds, Span}
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatest.{BeforeAndAfter, BeforeAndAfterEach}
+import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, BeforeAndAfterEach}
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.Configuration
 import play.api.libs.json.Json
 import uk.gov.hmrc.mongo.MongoComponent
 
-import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.duration.Duration
 
 
-class LockCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with MongoEmbedDatabase with BeforeAndAfter with
-  BeforeAndAfterEach { // scalastyle:off magic.number
+class LockCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with EmbeddedMongoDBSupport with BeforeAndAfter with
+  BeforeAndAfterAll with BeforeAndAfterEach with ScalaFutures { // scalastyle:off magic.number
+
+  override implicit val patienceConfig: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(1, Millis))
 
   import LockCacheRepositorySpec._
 
-  override def beforeEach: Unit = {
-    super.beforeEach
-    reset(mockConfiguration)
-    when(mockConfiguration.get[String](ArgumentMatchers.eq( "mongodb.migration-cache.lock-cache.name"))(ArgumentMatchers.any()))
+  var lockCacheRepository: LockCacheRepository = _
+
+  override def beforeAll(): Unit = {
+
+    when(mockConfiguration.get[String](ArgumentMatchers.eq("mongodb.migration-cache.lock-cache.name"))(ArgumentMatchers.any()))
       .thenReturn("migration-lock")
     when(mockConfiguration.get[Int](ArgumentMatchers.eq("mongodb.migration-cache.lock-cache.timeToLiveInSeconds"))(ArgumentMatchers.any()))
       .thenReturn(900)
+    initMongoDExecutable()
+    startMongoD()
+    lockCacheRepository = buildFormRepository(mongoHost, mongoPort)
+    super.beforeAll()
   }
 
-  withEmbedMongoFixture(port = 24680) { _ =>
+  override def afterAll(): Unit =
+    stopMongoD()
 
-    "getLockByPstr" must {
-      "get lock from Mongo collection" in {
-        mongoCollectionDrop()
+  override def beforeEach(): Unit = {
+    reset(mockConfiguration)
+    super.beforeEach()
+  }
 
-        val documentsInDB = for {
-          _ <- repository.collection.insertMany(
-            seqExistingData
-          ).toFuture
+  "getLockByPstr" must {
+    "get lock from Mongo collection" in {
 
-          documentsInDB <- repository.getLockByPstr(pstr)
-        } yield documentsInDB
+      val documentsInDB = for {
+        _ <- lockCacheRepository.collection.drop().toFuture()
+        _ <- lockCacheRepository.collection.insertMany(
+          seqExistingData
+        ).toFuture()
 
-        documentsInDB.map { documentsInDB =>
-          documentsInDB.size mustBe 1
-        }
-      }
-    }
+        documentsInDB <- lockCacheRepository.getLockByPstr(pstr)
+      } yield documentsInDB
 
-    "getLockByCredId" must {
-      "get lock from Mongo collection" in {
-        mongoCollectionDrop()
-
-        val documentsInDB = for {
-          _ <- repository.collection.insertMany(
-            seqExistingData
-          ).toFuture
-
-          documentsInDB <- repository.getLockByCredId(credId)
-        } yield documentsInDB
-
-        documentsInDB.map { documentsInDB =>
-          documentsInDB.size mustBe 1
-        }
-      }
-    }
-
-    "getLock" must {
-      "get lock from Mongo collection" in {
-        mongoCollectionDrop()
-
-        val documentsInDB = for {
-          _ <- repository.collection.insertMany(
-            seqExistingData
-          ).toFuture
-
-          documentsInDB <- repository.getLock(MigrationLock(pstr, credId, psaId))
-        } yield documentsInDB
-
-        documentsInDB.map { documentsInDB =>
-          documentsInDB.size mustBe 1
-        }
-      }
-    }
-
-    "setLock" must {
-      "set lock in Mongo collection" in {
-        mongoCollectionDrop()
-
-        val documentsInDB = for {
-          documentsInDB <- repository.getLock(MigrationLock(pstr, credId, psaId))
-        } yield documentsInDB
-
-        documentsInDB.map { documentsInDB =>
-          documentsInDB.size mustBe 1
-        }
-      }
-    }
-
-    "releaseLock" must {
-      "release lock from Mongo collection leaving other lock alone" in {
-        mongoCollectionDrop()
-
-        val endState = for {
-          _ <- repository.collection.insertMany(
-            seqExistingData
-          ).toFuture
-
-          response <- repository.releaseLock(MigrationLock(pstr, credId, psaId))
-          lock <- repository.getLock(MigrationLock(pstr, credId, psaId))
-          anotherLock <- repository.getLock(MigrationLock(anotherPstr, anotherCredId, anotherPsaId))
-        } yield {
-          Tuple3(response, lock, anotherLock)
-        }
-
-        endState.map { case Tuple3(response, migrationLock, anotherLock) =>
-          migrationLock mustBe None
-          anotherLock.isDefined mustBe true
-          response mustBe true
-        }
-      }
-    }
-
-    "releaseLockByPstr" must {
-      "release lock from Mongo collection leaving other lock alone" in {
-        mongoCollectionDrop()
-
-        val endState = for {
-          _ <- repository.collection.insertMany(
-            seqExistingData
-          ).toFuture
-
-          response <- repository.releaseLockByPstr(pstr)
-          lock <- repository.getLock(MigrationLock(pstr, credId, psaId))
-          anotherLock <- repository.getLock(MigrationLock(anotherPstr, anotherCredId, anotherPsaId))
-        } yield {
-          Tuple3(response, lock, anotherLock)
-        }
-
-        endState.map { case Tuple3(response, migrationLock, anotherLock) =>
-          migrationLock mustBe None
-          anotherLock.isDefined mustBe true
-          response mustBe true
-        }
+      documentsInDB.map { documentsInDB =>
+        documentsInDB.size mustBe 1
       }
     }
   }
+
+  "getLockByCredId" must {
+    "get lock from Mongo collection" in {
+
+      val documentsInDB = for {
+        _ <- lockCacheRepository.collection.drop().toFuture()
+        _ <- lockCacheRepository.collection.insertMany(
+          seqExistingData
+        ).toFuture()
+
+        documentsInDB <- lockCacheRepository.getLockByCredId(credId)
+      } yield documentsInDB
+
+      documentsInDB.map { documentsInDB =>
+        documentsInDB.size mustBe 1
+      }
+    }
+  }
+
+  "getLock" must {
+    "get lock from Mongo collection" in {
+
+      val documentsInDB = for {
+        _ <- lockCacheRepository.collection.drop().toFuture()
+        _ <- lockCacheRepository.collection.insertMany(
+          seqExistingData
+        ).toFuture()
+
+        documentsInDB <- lockCacheRepository.getLock(MigrationLock(pstr, credId, psaId))
+      } yield documentsInDB
+
+      documentsInDB.map { documentsInDB =>
+        documentsInDB.size mustBe 1
+      }
+    }
+  }
+
+  "setLock" must {
+    "set lock in Mongo collection" in {
+
+      val documentsInDB = for {
+        _ <- lockCacheRepository.collection.drop().toFuture()
+        documentsInDB <- lockCacheRepository.getLock(MigrationLock(pstr, credId, psaId))
+      } yield documentsInDB
+
+      documentsInDB.map { documentsInDB =>
+        documentsInDB.size mustBe 1
+      }
+    }
+  }
+
+  "releaseLock" must {
+    "release lock from Mongo collection leaving other lock alone" in {
+
+      val endState = for {
+        _ <- lockCacheRepository.collection.drop().toFuture()
+        _ <- lockCacheRepository.collection.insertMany(
+          seqExistingData
+        ).toFuture()
+
+        response <- lockCacheRepository.releaseLock(MigrationLock(pstr, credId, psaId))
+        lock <- lockCacheRepository.getLock(MigrationLock(pstr, credId, psaId))
+        anotherLock <- lockCacheRepository.getLock(MigrationLock(anotherPstr, anotherCredId, anotherPsaId))
+      } yield {
+        Tuple3(response, lock, anotherLock)
+      }
+
+      endState.map { case Tuple3(response, migrationLock, anotherLock) =>
+        migrationLock mustBe None
+        anotherLock.isDefined mustBe true
+        response mustBe true
+      }
+    }
+  }
+
+  "releaseLockByPstr" must {
+    "release lock from Mongo collection leaving other lock alone" in {
+
+      val endState = for {
+        _ <- lockCacheRepository.collection.drop().toFuture()
+        _ <- lockCacheRepository.collection.insertMany(
+          seqExistingData
+        ).toFuture()
+
+        response <- lockCacheRepository.releaseLockByPstr(pstr)
+        lock <- lockCacheRepository.getLock(MigrationLock(pstr, credId, psaId))
+        anotherLock <- lockCacheRepository.getLock(MigrationLock(anotherPstr, anotherCredId, anotherPsaId))
+      } yield {
+        Tuple3(response, lock, anotherLock)
+      }
+
+      endState.map { case Tuple3(response, migrationLock, anotherLock) =>
+        migrationLock mustBe None
+        anotherLock.isDefined mustBe true
+        response mustBe true
+      }
+    }
+  }
+
 }
-
 
 object LockCacheRepositorySpec extends AnyWordSpec with MockitoSugar {
 
-  import scala.concurrent.ExecutionContext.Implicits._
-
   private val mockConfiguration = mock[Configuration]
-  private val databaseName = "pensions-scheme-migration"
-  private val mongoUri: String = s"mongodb://127.0.0.1:27017/$databaseName?heartbeatFrequencyMS=1000&rm.failover=default"
-  private val mongoComponent = MongoComponent(mongoUri)
-
-  private def mongoCollectionDrop(): Void = Await
-    .result(repository.collection.drop().toFuture(), Duration.Inf)
-
-  private def repository = new LockCacheRepository(mongoComponent, mockConfiguration)
-
 
   private val pstr = "pstr"
   private val credId = "credId"
@@ -207,5 +209,10 @@ object LockCacheRepositorySpec extends AnyWordSpec with MockitoSugar {
     )
   )
 
+  private def buildFormRepository(mongoHost: String, mongoPort: Int): LockCacheRepository = {
+    val databaseName = "pensions-scheme-migration"
+    val mongoUri = s"mongodb://$mongoHost:$mongoPort/$databaseName?heartbeatFrequencyMS=1000&rm.failover=default"
+    new LockCacheRepository(MongoComponent(mongoUri), mockConfiguration)
+  }
 }
 

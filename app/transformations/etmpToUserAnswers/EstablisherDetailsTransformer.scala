@@ -21,6 +21,7 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
 import utils.CountryOptions
+
 import scala.language.postfixOps
 
 class EstablisherDetailsTransformer @Inject()(addressTransformer: AddressTransformer, countryOptions: CountryOptions) extends JsonTransformer {
@@ -28,10 +29,10 @@ class EstablisherDetailsTransformer @Inject()(addressTransformer: AddressTransfo
   val userAnswersEstablishersReads: Reads[JsObject] = {
 
     val readsIndividualOrCompanyObject: Reads[JsObject] = {
-      val individualReads = (__ \ 'individualDetails).readNullable(userAnswersEstablisherIndividualReads)
+      val individualReads = (__ \ Symbol("individualDetails")).readNullable(userAnswersEstablisherIndividualReads)
       individualReads.flatMap {
         case None =>
-          (__ \ 'companyOrOrgDetails).readNullable(userAnswersEstablisherCompanyReads).map{
+          (__ \ Symbol("companyOrOrgDetails")).readNullable(userAnswersEstablisherCompanyReads).map {
             case None => Json.obj()
             case Some(jsObject) => jsObject
           }
@@ -41,30 +42,30 @@ class EstablisherDetailsTransformer @Inject()(addressTransformer: AddressTransfo
     }
 
     val establisherReads: Reads[Seq[JsObject]] =
-      (__ \ 'schemeEstablishers).readNullable(Reads.seq(readsIndividualOrCompanyObject)).map(_.getOrElse(Nil))
+      (__ \ Symbol("schemeEstablishers")).readNullable(Reads.seq(readsIndividualOrCompanyObject)).map(_.getOrElse(Nil))
 
-    (__ \ 'items).readNullable(Reads.seq(establisherReads)).flatMap{
-      case None =>  (__ \ 'establishers).json.put(Json.arr())
+    (__ \ Symbol("items")).readNullable(Reads.seq(establisherReads)).flatMap {
+      case None => (__ \ Symbol("establishers")).json.put(Json.arr())
       case Some(items) =>
         val firstItem = Json.toJson(items.head)
-        (__ \ 'establishers).json.put(firstItem)
+        (__ \ Symbol("establishers")).json.put(firstItem)
     }
   }
 
   def userAnswersEstablisherIndividualReads: Reads[JsObject] = {
-    (__ \ 'establisherKind).json.put(JsString("individual")) and
+    (__ \ Symbol("establisherKind")).json.put(JsString("individual")) and
       userAnswersIndividualDetailsReads("establisherDetails") and
       userAnswersNinoReads and
-      addressTransformer.getAddress( __ \ 'address, __ \ 'correspAddrDetails, countryOptions) and
-      userAnswersContactDetailsReads  reduce
+      addressTransformer.getAddress(__ \ Symbol("address"), __ \ Symbol("correspAddrDetails"), countryOptions) and
+      userAnswersContactDetailsReads reduce
   }
 
   def userAnswersEstablisherCompanyReads: Reads[JsObject] =
-    (__ \ 'establisherKind).json.put(JsString("company")) and
+    (__ \ Symbol("establisherKind")).json.put(JsString("company")) and
       userAnswersCompanyDetailsReads and
       userAnswersVatReads and
       userAnswersPayeReads and
       userAnswersCrnReads and
-      addressTransformer.getAddress( __ \ 'address, __ \ 'correspAddrDetails, countryOptions) and
+      addressTransformer.getAddress(__ \ Symbol("address"), __ \ Symbol("correspAddrDetails"), countryOptions) and
       userAnswersContactDetailsReads reduce
 }

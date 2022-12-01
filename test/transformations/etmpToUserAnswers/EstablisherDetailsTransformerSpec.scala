@@ -21,8 +21,7 @@ import play.api.libs.json.Json
 
 class EstablisherDetailsTransformerSpec extends TransformationSpec {
 
-  private val addressTransformer = new AddressTransformer
-  private val transformer = new EstablisherDetailsTransformer(addressTransformer, countryOptions)
+  private val transformer: EstablisherDetailsTransformer = injector.instanceOf[EstablisherDetailsTransformer]
 
   "An if payload containing establisher details" must {
     "have the individual details transformed correctly to valid user answers format" that {
@@ -59,7 +58,7 @@ class EstablisherDetailsTransformerSpec extends TransformationSpec {
             val result = details.transform(transformer.userAnswersContactDetailsReads).get
 
             (result \ "email").as[String] mustBe (details \ "correspContDetails" \ "email").as[String]
-            (result  \ "phone").as[String] mustBe
+            (result \ "phone").as[String] mustBe
               (details \ "correspContDetails" \ "telephone").as[String]
           }
         }

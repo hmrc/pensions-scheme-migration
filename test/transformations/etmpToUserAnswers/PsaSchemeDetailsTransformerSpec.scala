@@ -20,21 +20,7 @@ import play.api.libs.json.{JsSuccess, JsValue}
 
 class PsaSchemeDetailsTransformerSpec extends TransformationSpec {
 
-  private def addressTransformer = new AddressTransformer
-
-
-  private def schemeDetailsTransformer =
-    new SchemeDetailsTransformer(addressTransformer, countryOptions)
-
-  private def establisherTransformer =
-    new EstablisherDetailsTransformer(addressTransformer, countryOptions)
-
-  private def trusteesTransformer =
-    new TrusteeDetailsTransformer(addressTransformer, countryOptions)
-
-  private def transformer = new PsaSchemeDetailsTransformer(
-    schemeDetailsTransformer, establisherTransformer,
-    trusteesTransformer)
+  val transformer: PsaSchemeDetailsTransformer = injector.instanceOf[PsaSchemeDetailsTransformer]
 
   private val ifResponse: JsValue =
     readJsonFromFile("/data/validGetSchemeDetailsResponse.json")

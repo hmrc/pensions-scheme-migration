@@ -31,25 +31,25 @@ class SchemeDetailsTransformer @Inject()(
                                         )
   extends JsonTransformer {
 
-  val schemeTypeReads: Reads[JsObject] = (__ \ 'pensionSchemeStructure).readNullable[String].flatMap {
+  val schemeTypeReads: Reads[JsObject] = (__ \ Symbol("pensionSchemeStructure")).readNullable[String].flatMap {
     _.map {
       schemeType =>
-        (__ \ 'schemeType \ 'name).json.put(
+        (__ \ Symbol("schemeType") \ Symbol("name")).json.put(
           JsString(SchemeType.nameWithValue(schemeType))
         )
-    }.getOrElse((__ \ 'schemeType \ 'name).json.put(JsString(SchemeType.other.name)))
+    }.getOrElse((__ \ Symbol("schemeType") \ Symbol("name")).json.put(JsString(SchemeType.other.name)))
   }
 
   val beforeYouStartReads: Reads[JsObject] = (
-    (__ \ 'schemeName).json.copyFrom((__ \ 'schemeName).json.pick) and
+    (__ \ Symbol("schemeName")).json.copyFrom((__ \ Symbol("schemeName")).json.pick) and
       schemeTypeReads and
-      (addressTransformer.getCountry(__ \ 'schemeEstablishedCountry, __ \ 'schemeEstablishedCountry, countryOptions) orElse doNothing)
+      (addressTransformer.getCountry(__ \ Symbol("schemeEstablishedCountry"), __ \ Symbol("schemeEstablishedCountry"), countryOptions) orElse doNothing)
     ) reduce
 
-  val aboutMembershipReads: Reads[JsObject] = (__ \ 'currentSchemeMembers).readNullable[String].flatMap {
+  val aboutMembershipReads: Reads[JsObject] = (__ \ Symbol("currentSchemeMembers")).readNullable[String].flatMap {
     _.flatMap {
       SchemeMembers.tppsNameWithValue(_).map { member =>
-        (__ \ 'futureMembers).json.put(
+        (__ \ Symbol("futureMembers")).json.put(
           JsString(member)
         )
       }
@@ -57,9 +57,9 @@ class SchemeDetailsTransformer @Inject()(
   }
 
   val benefitsAndInsuranceReads: Reads[JsObject] = (
-    (__ \ 'securedBenefits).json.copyFrom((__ \ 'isSchemeBenefitsInsuranceCompany).json.pick) and
-      (__ \ 'investmentRegulated).json.copyFrom((__ \ 'isRegulatedSchemeInvestment).json.pick) and
-      (__ \ 'occupationalPensionScheme).json.copyFrom((__ \ 'isOccupationalPensionScheme).json.pick)
+    (__ \ Symbol("securedBenefits")).json.copyFrom((__ \ Symbol("isSchemeBenefitsInsuranceCompany")).json.pick) and
+      (__ \ Symbol("investmentRegulated")).json.copyFrom((__ \ Symbol("isRegulatedSchemeInvestment")).json.pick) and
+      (__ \ Symbol("occupationalPensionScheme")).json.copyFrom((__ \ Symbol("isOccupationalPensionScheme")).json.pick)
     ) reduce
 
   val userAnswersSchemeDetailsReads: Reads[JsObject] = {
@@ -67,11 +67,11 @@ class SchemeDetailsTransformer @Inject()(
       beforeYouStartReads and
         aboutMembershipReads and
         benefitsAndInsuranceReads and
-        (__ \ 'racDac).json.copyFrom((__ \ 'racDac).json.pick) and
-        (__ \ 'relationshipStartDate).json.copyFrom((__ \ 'relationshipStartDate).json.pick) and
-        (__ \ 'schemeOpenDate).json.copyFrom((__ \ 'schemeOpenDate).json.pick)
+        (__ \ Symbol("racDac")).json.copyFrom((__ \ Symbol("racDac")).json.pick) and
+        (__ \ Symbol("relationshipStartDate")).json.copyFrom((__ \ Symbol("relationshipStartDate")).json.pick) and
+        (__ \ Symbol("schemeOpenDate")).json.copyFrom((__ \ Symbol("schemeOpenDate")).json.pick)
       ) reduce
 
-    (__ \ 'items).read(Reads.seq(readsSchemeDetails)).map(_.head)
+    (__ \ Symbol("items")).read(Reads.seq(readsSchemeDetails)).map(_.head)
   }
 }

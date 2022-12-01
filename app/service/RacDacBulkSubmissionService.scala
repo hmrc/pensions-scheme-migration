@@ -35,7 +35,7 @@ class RacDacBulkSubmissionService @Inject()(
     val psaId = racDacRequest.psaId
     val requestBody = Json.toJson(racDacRequest.request)
     val headerCarrier = racDacRequest.headers.toHeaderCarrier
-    pensionSchemeService.registerRacDac(psaId, requestBody,true)(headerCarrier, implicitly)
+    pensionSchemeService.registerRacDac(psaId, requestBody,isBulk = true)(headerCarrier, implicitly)
   }
 
   def enqueue(requests: Seq[WorkItemRequest]): Future[Boolean] = {
@@ -49,6 +49,7 @@ class RacDacBulkSubmissionService @Inject()(
           false
       }
       case Nil => Future(false)
+      case _ => Future(false)
     }
   }
 

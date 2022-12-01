@@ -73,6 +73,9 @@ class BulkRacDacController @Inject()(appConfig: AppConfig,
           auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(psaId, 0, serviceUnavailable))(implicitly, executionContext)
           logger.warn("Unable to add messages to queue: service unavailable")
           Future.successful(r)
+        case r@_ =>
+          logger.warn("Unable to add messages to queue: unknown error")
+          Future.successful(r)
       }
       futureEmailResult.flatMap { _ =>
         repository.save(sessionId, Json.obj("status" -> result.header.status))(executionContext)

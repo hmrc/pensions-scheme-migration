@@ -24,9 +24,11 @@ import connector.{EmailConnector, EmailNotSent, EmailSent, MinimalDetailsConnect
 import models.enumeration.JourneyType.RACDAC_BULK_MIG
 import models.{IndividualDetails, MinPSA}
 import org.mockito.ArgumentMatchers.any
-import org.mockito.{ArgumentCaptor, ArgumentMatchers, MockitoSugar}
+import org.mockito.Mockito._
+import org.mockito.{ArgumentCaptor, ArgumentMatchers}
 import org.scalatest.BeforeAndAfter
 import org.scalatest.concurrent.{Eventually, PatienceConfiguration, ScalaFutures}
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.{JsBoolean, JsValue, Json}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
@@ -102,7 +104,7 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
 
     "return ACCEPTED, send audit event, email and email audit event if all the rac dac requests are successfully pushed to the queue" in {
       val captor = ArgumentCaptor.forClass(classOf[RacDacBulkMigrationTriggerAuditEvent])
-      doNothing.when(mockAuditService).sendEvent(captor.capture())(any(), any())
+      doNothing().when(mockAuditService).sendEvent(captor.capture())(any(), any())
       when(mockRacDacBulkSubmissionService.enqueue(any())).thenReturn(Future.successful(true))
 
       val result = bulkRacDacController.clearEventLogThenInitiateMigration(fakeRequest)
@@ -136,7 +138,7 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
     "return ACCEPTED, send audit event but no email audit event if all the rac dac requests are successfully pushed to the " +
       "queue but min details call fails" in {
       val captor = ArgumentCaptor.forClass(classOf[RacDacBulkMigrationTriggerAuditEvent])
-      doNothing.when(mockAuditService).sendEvent(captor.capture())(any(), any())
+      doNothing().when(mockAuditService).sendEvent(captor.capture())(any(), any())
       when(mockRacDacBulkSubmissionService.enqueue(any())).thenReturn(Future.successful(true))
 
       when(mockMinimalDetailsConnector.getPSADetails(any())(any(), any()))
@@ -173,7 +175,7 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
     "return ACCEPTED, send audit event but no email audit event if all the rac dac requests are successfully pushed to the " +
       "queue but email not sent" in {
       val captor = ArgumentCaptor.forClass(classOf[RacDacBulkMigrationTriggerAuditEvent])
-      doNothing.when(mockAuditService).sendEvent(captor.capture())(any(), any())
+      doNothing().when(mockAuditService).sendEvent(captor.capture())(any(), any())
       when(mockRacDacBulkSubmissionService.enqueue(any())).thenReturn(Future.successful(true))
 
       when(mockEmailConnector.sendEmail(any(), any(), any(), any())(any(), any())).thenReturn(Future.successful(EmailNotSent))
@@ -208,7 +210,7 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
 
     "return ServiceUnavailable and send audit event if NOT all the rac dac requests are successfully pushed to the queue" in {
       val captor = ArgumentCaptor.forClass(classOf[RacDacBulkMigrationTriggerAuditEvent])
-      doNothing.when(mockAuditService).sendEvent(captor.capture())(any(), any())
+      doNothing().when(mockAuditService).sendEvent(captor.capture())(any(), any())
       when(mockRacDacBulkSubmissionService.enqueue(any())).thenReturn(Future.successful(false))
 
       val result = bulkRacDacController.clearEventLogThenInitiateMigration(fakeRequest)
@@ -244,7 +246,7 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
         HeaderNames.xSessionId -> sessionId).withJsonBody(Json.parse(jsValue)
       )
       val captor = ArgumentCaptor.forClass(classOf[RacDacBulkMigrationTriggerAuditEvent])
-      doNothing.when(mockAuditService).sendEvent(captor.capture())(any(), any())
+      doNothing().when(mockAuditService).sendEvent(captor.capture())(any(), any())
       when(mockRacDacBulkSubmissionService.enqueue(any())).thenReturn(Future.successful(false))
 
       val result = bulkRacDacController.clearEventLogThenInitiateMigration(fakeRequest)
@@ -279,7 +281,7 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
         HeaderNames.xSessionId -> sessionId
       ).withJsonBody(Json.obj("invalid" -> "request"))
       val captor = ArgumentCaptor.forClass(classOf[RacDacBulkMigrationTriggerAuditEvent])
-      doNothing.when(mockAuditService).sendEvent(captor.capture())(any(), any())
+      doNothing().when(mockAuditService).sendEvent(captor.capture())(any(), any())
       when(mockRacDacBulkSubmissionService.enqueue(any())).thenReturn(Future.successful(false))
 
       val result = bulkRacDacController.clearEventLogThenInitiateMigration(fakeRequest)
@@ -290,7 +292,8 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
 
         verify(mockRacDacBulkSubmissionService, times(0)).enqueue(any())
         verify(mockAuditService, times(1))
-          .sendEvent(ArgumentMatchers.eq(RacDacBulkMigrationTriggerAuditEvent(psaId, 0, "Invalid request received from frontend for rac dac migration")))(any(), any())
+          .sendEvent(ArgumentMatchers.eq
+          (RacDacBulkMigrationTriggerAuditEvent(psaId, 0, "Invalid request received from frontend for rac dac migration")))(any(), any())
         verify(mockMinimalDetailsConnector, times(0)).getPSADetails(ArgumentMatchers.eq(psaId))(any(), any())
         verify(mockEmailConnector, times(0))
           .sendEmail(
