@@ -33,7 +33,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.RequestHeader
 import play.api.test.FakeRequest
 import repositories._
-import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, UpstreamErrorResponse}
+import uk.gov.hmrc.http.{BadRequestException, UpstreamErrorResponse}
 
 
 class LegacySchemeDetailsConnectorSpec
@@ -180,7 +180,6 @@ class LegacySchemeDetailsConnectorSpec
 
 
 object LegacySchemeDetailsConnectorSpec extends JsonFileReader {
-  private implicit val hc: HeaderCarrier = HeaderCarrier()
   private implicit val rh: RequestHeader = FakeRequest("", "")
   private val pstr = "20010010AA"
 

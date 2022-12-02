@@ -36,8 +36,6 @@ class FeatureToggleControllerSpec extends SpecBase with MockitoSugar with Before
   private val mockAdminDataRepository = mock[AdminDataRepository]
   private val mockFeatureToggleService = mock[FeatureToggleService]
 
-
-
   override def beforeEach(): Unit = {
     reset(mockAdminDataRepository)
     reset(mockFeatureToggleService)

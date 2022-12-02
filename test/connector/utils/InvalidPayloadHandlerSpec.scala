@@ -183,12 +183,12 @@ object InvalidPayloadHandlerSpec {
   trait TestFixture {
     def logger: Logger
 
-    def handler: InvalidPayloadHandlerImpl
+    def handler: InvalidPayloadHandler
   }
 
   def testFixture(): TestFixture = new TestFixture {
     override val logger: Logger = Logger(classOf[InvalidPayloadHandler])
-    override val handler: InvalidPayloadHandlerImpl = new InvalidPayloadHandlerImpl()
+    override val handler: InvalidPayloadHandler = new InvalidPayloadHandler()
   }
 
   val enumSchemaString: String =
@@ -348,16 +348,12 @@ object InvalidPayloadHandlerSpec {
 
   }
 
-  implicit val validationFailureEquality: Equality[ValidationFailure] = new Equality[ValidationFailure] {
-
-    override def areEqual(a: ValidationFailure, b: Any): Boolean = {
-      b match {
-        case failure: ValidationFailure =>
-          a.failureType == failure.failureType && a.message.contains(failure.message) && a.value == failure.value
-        case _ => false
-      }
+  implicit val validationFailureEquality: Equality[ValidationFailure] = (a: ValidationFailure, b: Any) => {
+    b match {
+      case failure: ValidationFailure =>
+        a.failureType == failure.failureType && a.message.contains(failure.message) && a.value == failure.value
+      case _ => false
     }
-
   }
 
 }

@@ -99,7 +99,7 @@ class AdminDataRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
   }
 }
 
-object AdminDataRepositorySpec extends AnyWordSpec with MockitoSugar {
+object AdminDataRepositorySpec extends MockitoSugar {
 
   private val mockAppConfig = mock[Configuration]
 

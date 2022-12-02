@@ -58,7 +58,6 @@ class RacDacRequestsQueueEventsLogRepositorySpec extends AnyWordSpec with Mockit
     stopMongoD()
 
   override def beforeEach(): Unit = {
-    reset(mockLockCacheRepository)
     reset(mockConfiguration)
     super.beforeEach()
   }
@@ -159,11 +158,10 @@ class RacDacRequestsQueueEventsLogRepositorySpec extends AnyWordSpec with Mockit
 }
 
 
-object RacDacRequestsQueueEventsLogRepositorySpec extends AnyWordSpec with MockitoSugar {
+object RacDacRequestsQueueEventsLogRepositorySpec extends MockitoSugar {
   implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
 
   private val mockConfiguration = mock[Configuration]
-  private val mockLockCacheRepository = mock[LockCacheRepository]
 
   private val idKey = "id"
   private val lastUpdatedKey = "lastUpdated"

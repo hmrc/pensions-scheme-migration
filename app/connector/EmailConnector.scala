@@ -16,10 +16,10 @@
 
 package connector
 
-import com.google.inject.{ImplementedBy, Inject, Singleton}
+import com.google.inject.{Inject, Singleton}
 import config.AppConfig
 import models.SendEmailRequest
-import play.api.Logger
+import play.api.Logging
 import play.api.http.Status._
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.http.HttpReads.Implicits._
@@ -34,24 +34,14 @@ case object EmailSent extends EmailStatus
 
 case object EmailNotSent extends EmailStatus
 
-@ImplementedBy(classOf[EmailConnectorImpl])
-trait EmailConnector {
-  def sendEmail(emailAddress: String, templateName: String, params: Map[String, String], callbackUrl: String)
-               (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[EmailStatus]
-}
 
 @Singleton
-class EmailConnectorImpl @Inject()(
-                                    http: HttpClient,
-                                    config: AppConfig
-                                  ) extends EmailConnector {
-
-  private val logger = Logger(classOf[EmailConnectorImpl])
+class EmailConnector @Inject()(http: HttpClient, config: AppConfig) extends Logging {
 
   lazy val postUrl: String = s"${config.emailApiUrl}/hmrc/email"
 
-  override def sendEmail(emailAddress: String, templateName: String, params: Map[String, String], callbackUrl: String)
-                        (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[EmailStatus] = {
+  def sendEmail(emailAddress: String, templateName: String, params: Map[String, String], callbackUrl: String)
+               (implicit hc: HeaderCarrier, ec: ExecutionContext): Future[EmailStatus] = {
     val sendEmailReq = SendEmailRequest(
       to = List(emailAddress),
       templateId = templateName,

@@ -56,7 +56,6 @@ class SchemeDataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with M
     stopMongoD()
 
   override def beforeEach(): Unit = {
-    reset(mockLockCacheRepository)
     reset(mockConfiguration)
     super.beforeEach()
   }
@@ -156,14 +155,10 @@ class SchemeDataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with M
 
 }
 
-object SchemeDataCacheRepositorySpec extends AnyWordSpec with MockitoSugar {
+object SchemeDataCacheRepositorySpec extends MockitoSugar {
   implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
 
-  import scala.concurrent.ExecutionContext.Implicits._
-
   private val mockConfiguration = mock[Configuration]
-
-  private val mockLockCacheRepository = mock[LockCacheRepository]
 
   private val idKey = "id"
   private val lastUpdatedKey = "lastUpdated"

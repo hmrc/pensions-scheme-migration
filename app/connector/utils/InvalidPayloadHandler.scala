@@ -17,26 +17,16 @@
 package connector.utils
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.google.inject.ImplementedBy
 import com.networknt.schema.{JsonSchema, JsonSchemaFactory, SpecVersion, ValidationMessage}
-import play.api.Logger
+import play.api.Logging
 import play.api.libs.json._
 
 import java.io.InputStream
 import javax.inject.Inject
 import scala.jdk.CollectionConverters.IterableHasAsScala
 
-@ImplementedBy(classOf[InvalidPayloadHandlerImpl])
-trait InvalidPayloadHandler {
 
-  def getFailures(schemaFileName: String, json: JsValue): Set[ValidationFailure]
-
-  def logFailures(schemaFileName: String, json: JsValue, args: String*): Unit
-
-}
-
-class InvalidPayloadHandlerImpl @Inject() extends InvalidPayloadHandler {
-  private val logger = Logger(classOf[InvalidPayloadHandler])
+class InvalidPayloadHandler @Inject() extends Logging {
 
   private[utils] def loadSchema(schemaFileName: String): JsonSchema = {
     val schemaUrl: InputStream = getClass.getResourceAsStream(schemaFileName)
@@ -44,7 +34,7 @@ class InvalidPayloadHandlerImpl @Inject() extends InvalidPayloadHandler {
     factory.getSchema(schemaUrl)
   }
 
-  override def getFailures(schemaFileName: String, json: JsValue): Set[ValidationFailure] = {
+  def getFailures(schemaFileName: String, json: JsValue): Set[ValidationFailure] = {
 
     val schema = loadSchema(schemaFileName)
     getFailures(schema, json)
@@ -66,7 +56,7 @@ class InvalidPayloadHandlerImpl @Inject() extends InvalidPayloadHandler {
 
   }
 
-  override def logFailures(schemaFileName: String, json: JsValue, args: String*): Unit = {
+  def logFailures(schemaFileName: String, json: JsValue, args: String*): Unit = {
 
     val schema = loadSchema(schemaFileName)
     logFailure(schema, json, args)

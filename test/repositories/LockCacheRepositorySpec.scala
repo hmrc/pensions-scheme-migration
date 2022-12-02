@@ -180,7 +180,7 @@ class LockCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
 
 }
 
-object LockCacheRepositorySpec extends AnyWordSpec with MockitoSugar {
+object LockCacheRepositorySpec extends MockitoSugar {
 
   private val mockConfiguration = mock[Configuration]
 
@@ -192,7 +192,7 @@ object LockCacheRepositorySpec extends AnyWordSpec with MockitoSugar {
   val anotherCredId = "credId2"
   val anotherPsaId = "psaId2"
 
-  val seqExistingData = Seq(
+  val seqExistingData: Seq[LockJson] = Seq(
     LockJson(
       pstr = pstr,
       credId = credId,

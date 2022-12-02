@@ -225,7 +225,7 @@ class DataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
 
 }
 
-object DataCacheRepositorySpec extends AnyWordSpec with MockitoSugar {
+object DataCacheRepositorySpec extends MockitoSugar {
 
 
   private val mockConfiguration = mock[Configuration]

@@ -17,10 +17,10 @@
 package connector
 
 import audit._
-import com.google.inject.{ImplementedBy, Inject}
+import com.google.inject.Inject
 import config.AppConfig
 import connector.utils.HttpResponseHelper
-import play.api.Logger
+import play.api.Logging
 import play.api.http.Status._
 import play.api.libs.json._
 import play.api.mvc.RequestHeader
@@ -30,45 +30,19 @@ import uk.gov.hmrc.http.{HttpClient, _}
 
 import scala.concurrent.{ExecutionContext, Future}
 
-@ImplementedBy(classOf[LegacySchemeDetailsConnectorImpl])
-trait LegacySchemeDetailsConnector {
 
-  def getSchemeDetails(
-                        psaId: String,
-                        pstr: String
-                      )(
-                        implicit
-                        headerCarrier: HeaderCarrier,
-                        ec: ExecutionContext,
-                        request: RequestHeader
-                      ): Future[Either[HttpException, JsObject]]
+class LegacySchemeDetailsConnector @Inject()(
+                                              http: HttpClient,
+                                              config: AppConfig,
+                                              auditService: AuditService,
+                                              schemeSubscriptionDetailsTransformer: PsaSchemeDetailsTransformer,
+                                              schemeAuditService: SchemeAuditService,
+                                              headerUtils: HeaderUtils
+                                            )
+  extends HttpResponseHelper with Logging {
 
-}
-
-class LegacySchemeDetailsConnectorImpl @Inject()(
-                                     http: HttpClient,
-                                     config: AppConfig,
-                                     auditService: AuditService,
-                                     schemeSubscriptionDetailsTransformer: PsaSchemeDetailsTransformer,
-                                     schemeAuditService: SchemeAuditService,
-                                     headerUtils: HeaderUtils
-                                   )
-  extends LegacySchemeDetailsConnector
-    with HttpResponseHelper {
-
-  private val logger = Logger(classOf[LegacySchemeDetailsConnector])
-
-  case class SchemeFailedMapToUserAnswersException() extends Exception
-
-  override def getSchemeDetails(
-                                 psaId: String,
-                                 pstr: String
-                               )(
-                                 implicit
-                                 headerCarrier: HeaderCarrier,
-                                 ec: ExecutionContext,
-                                 request: RequestHeader
-                               ): Future[Either[HttpException, JsObject]] = {
+  def getSchemeDetails(psaId: String, pstr: String)
+                      (implicit ec: ExecutionContext, rh: RequestHeader): Future[Either[HttpException, JsObject]] = {
     val (url, hc) = (
       config.legacySchemeDetailsUrl.format(pstr, psaId),
       HeaderCarrier(extraHeaders = headerUtils.integrationFrameworkHeader)

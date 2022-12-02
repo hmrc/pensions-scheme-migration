@@ -34,7 +34,6 @@ import play.api.inject.bind
 import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import repositories._
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 import scala.reflect.ClassTag
@@ -66,12 +65,13 @@ class FeatureToggleServiceSpec extends SpecBase with MockitoSugar with ScalaFutu
 
   private val modules: Seq[GuiceableModule] = Seq(
     bind[LockCacheRepository].toInstance(mock[LockCacheRepository]),
-    bind[AdminDataRepository].toInstance(mock[AdminDataRepository]),
+    bind[AdminDataRepository].toInstance(adminDataRepository),
     bind[DataCacheRepository].toInstance(mock[DataCacheRepository]),
     bind[ListOfLegacySchemesCacheRepository].toInstance(mock[ListOfLegacySchemesCacheRepository]),
     bind[RacDacRequestsQueueRepository].toInstance(mock[RacDacRequestsQueueRepository]),
     bind[SchemeDataCacheRepository].toInstance(mock[SchemeDataCacheRepository]),
-    bind[RacDacRequestsQueueEventsLogRepository].toInstance(mock[RacDacRequestsQueueEventsLogRepository])
+    bind[RacDacRequestsQueueEventsLogRepository].toInstance(mock[RacDacRequestsQueueEventsLogRepository]),
+    bind[AsyncCacheApi].toInstance(new FakeCache())
   )
 
   override lazy val app = new GuiceApplicationBuilder()
@@ -86,7 +86,7 @@ class FeatureToggleServiceSpec extends SpecBase with MockitoSugar with ScalaFutu
     when(adminDataRepository.getFeatureToggles).thenReturn(Future.successful(Seq.empty))
     when(adminDataRepository.setFeatureToggles(any())).thenReturn(Future.successful((): Unit))
 
-    val OUT = new FeatureToggleService(adminDataRepository, new FakeCache())
+    val OUT: FeatureToggleService = injector.instanceOf[FeatureToggleService]
     val toggleName = arbitrary[FeatureToggleName].sample.value
 
     whenReady(OUT.set(toggleName = toggleName, enabled = true)) {
@@ -99,7 +99,7 @@ class FeatureToggleServiceSpec extends SpecBase with MockitoSugar with ScalaFutu
 
   "When set fails in the repo returns a success result" in {
     val toggleName = arbitrary[FeatureToggleName].sample.value
-    val OUT = new FeatureToggleService(adminDataRepository, new FakeCache())
+    val OUT: FeatureToggleService = injector.instanceOf[FeatureToggleService]
 
     when(adminDataRepository.getFeatureToggles).thenReturn(Future.successful(Seq.empty))
     when(adminDataRepository.setFeatureToggles(any())).thenReturn(Future.successful((): Unit))
@@ -109,7 +109,7 @@ class FeatureToggleServiceSpec extends SpecBase with MockitoSugar with ScalaFutu
   }
 
   "When getAll is called returns all of the toggles from the repo" in {
-    val OUT = new FeatureToggleService(adminDataRepository, new FakeCache())
+    val OUT: FeatureToggleService = injector.instanceOf[FeatureToggleService]
 
     when(adminDataRepository.getFeatureToggles).thenReturn(Future.successful(Seq.empty))
 
@@ -121,14 +121,14 @@ class FeatureToggleServiceSpec extends SpecBase with MockitoSugar with ScalaFutu
   "When a toggle doesn't exist in the repo, return default" in {
     when(adminDataRepository.getFeatureToggles).thenReturn(Future.successful(Seq.empty))
 
-    val OUT = new FeatureToggleService(adminDataRepository, new FakeCache())
+    val OUT: FeatureToggleService = injector.instanceOf[FeatureToggleService]
     OUT.get(DummyToggle).futureValue mustBe Disabled(DummyToggle)
   }
 
   "When a toggle exists in the repo, override default" in {
     when(adminDataRepository.getFeatureToggles).thenReturn(Future.successful(Seq(Enabled(DummyToggle))))
 
-    val OUT = new FeatureToggleService(adminDataRepository, new FakeCache())
+    val OUT: FeatureToggleService = injector.instanceOf[FeatureToggleService]
     OUT.get(DummyToggle).futureValue mustBe Enabled(DummyToggle)
   }
 }

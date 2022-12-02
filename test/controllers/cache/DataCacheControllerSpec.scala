@@ -66,11 +66,10 @@ class DataCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
     reset(authConnector)
   }
 
-  val controller: DataCacheController = app.injector.instanceOf[DataCacheController]
-
   "DataCacheController" when {
     "calling get" must {
       "return OK with the data" in {
+        val controller = app.injector.instanceOf[DataCacheController]
         when(repo.get(eqTo(pstr))(any())) thenReturn Future.successful(Some(Json.obj("testId" -> "data")))
         when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
 
