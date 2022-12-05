@@ -24,7 +24,7 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.doNothing
 import org.scalatest._
 import org.scalatest.flatspec.AsyncFlatSpec
-import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
+import org.scalatest.matchers.should.Matchers
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status._
 import play.api.inject.bind
@@ -42,6 +42,7 @@ class LegacySchemeDetailsConnectorSpec
     with OptionValues
     with MockitoSugar
     with RecoverMethods
+    with Matchers
     with EitherValues {
 
   import LegacySchemeDetailsConnectorSpec._
@@ -56,8 +57,6 @@ class LegacySchemeDetailsConnectorSpec
 
   private val mockAuditService = mock[AuditService]
 
-  val captor = ArgumentCaptor.forClass(classOf[LegacySchemeDetailsAuditEvent])
-
   override protected def bindings: Seq[GuiceableModule] =
     Seq(
       bind[AuditService].toInstance(mockAuditService),
@@ -71,7 +70,7 @@ class LegacySchemeDetailsConnectorSpec
     )
 
   "LegacySchemeDetailsConnector getLegacySchemeDetails" should "return user answer json" in {
-    doNothing().when(mockAuditService).sendEvent(captor.capture())(any(), any())
+    doNothing().when(mockAuditService).sendEvent(any())(any(), any())
     val IfResponse: JsValue = readJsonFromFile("/data/validGetSchemeDetailsResponse.json")
     val userAnswersResponse: JsValue = readJsonFromFile("/data/validGetSchemeDetailsIFUserAnswers.json")
 
@@ -88,7 +87,28 @@ class LegacySchemeDetailsConnectorSpec
     }
   }
 
+  it should "send audit event for successful response" in {
+    val captor = ArgumentCaptor.forClass(classOf[LegacySchemeDetailsAuditEvent])
+    doNothing().when(mockAuditService).sendEvent(captor.capture())(any(), any())
+    val IfResponse: JsValue = readJsonFromFile("/data/validGetSchemeDetailsResponse.json")
+    val userAnswersResponse: JsValue = readJsonFromFile("/data/validGetSchemeDetailsIFUserAnswers.json")
+
+    server.stubFor(
+      get(urlEqualTo(schemeDetailsIFUrl))
+        .willReturn(
+          ok
+            .withHeader("Content-Type", "application/json")
+            .withBody(IfResponse.toString())
+        )
+    )
+    connector.getSchemeDetails(psaId, pstr).map { _ =>
+      val expectedAuditEvent = LegacySchemeDetailsAuditEvent(psaId, pstr, OK, Json.stringify(userAnswersResponse))
+      captor.getValue shouldBe expectedAuditEvent
+    }
+  }
+
   it should "return a BadRequestException for a 400 INVALID_ID response" in {
+    val captor = ArgumentCaptor.forClass(classOf[LegacySchemeDetailsAuditEvent])
     doNothing().when(mockAuditService).sendEvent(captor.capture())(any(), any())
     server.stubFor(
       get(urlEqualTo(schemeDetailsIFUrl))
@@ -107,6 +127,7 @@ class LegacySchemeDetailsConnectorSpec
   }
 
   it should "throw Upstream4XX for Not Found - 404" in {
+    val captor = ArgumentCaptor.forClass(classOf[LegacySchemeDetailsAuditEvent])
     doNothing().when(mockAuditService).sendEvent(captor.capture())(any(), any())
     server.stubFor(
       get(urlEqualTo(schemeDetailsIFUrl))
@@ -123,6 +144,7 @@ class LegacySchemeDetailsConnectorSpec
   }
 
   it should "throw Upstream4XX for server unavailable - 403" in {
+    val captor = ArgumentCaptor.forClass(classOf[LegacySchemeDetailsAuditEvent])
     doNothing().when(mockAuditService).sendEvent(captor.capture())(any(), any())
     server.stubFor(
       get(urlEqualTo(schemeDetailsIFUrl))
@@ -139,26 +161,8 @@ class LegacySchemeDetailsConnectorSpec
     }
   }
 
-  it should "send audit event for successful response" in {
-    doNothing().when(mockAuditService).sendEvent(captor.capture())(any(), any())
-    val IfResponse: JsValue = readJsonFromFile("/data/validGetSchemeDetailsResponse.json")
-    val userAnswersResponse: JsValue = readJsonFromFile("/data/validGetSchemeDetailsIFUserAnswers.json")
-
-    server.stubFor(
-      get(urlEqualTo(schemeDetailsIFUrl))
-        .willReturn(
-          ok
-            .withHeader("Content-Type", "application/json")
-            .withBody(IfResponse.toString())
-        )
-    )
-    connector.getSchemeDetails(psaId, pstr).map { _ =>
-      val expectedAuditEvent = LegacySchemeDetailsAuditEvent(psaId, pstr, OK, userAnswersResponse.toString())
-      captor.getValue shouldBe expectedAuditEvent
-    }
-  }
-
   it should "return 422 when if/TPSS throws Unprocessable Entity and audit the response" in {
+    val captor = ArgumentCaptor.forClass(classOf[LegacySchemeDetailsAuditEvent])
     doNothing().when(mockAuditService).sendEvent(captor.capture())(any(), any())
 
     server.stubFor(
