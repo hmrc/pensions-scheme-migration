@@ -103,7 +103,12 @@ class LegacySchemeDetailsConnectorSpec
     )
     connector.getSchemeDetails(psaId, pstr).map { _ =>
       val expectedAuditEvent = LegacySchemeDetailsAuditEvent(psaId, pstr, OK, Json.stringify(userAnswersResponse))
-      captor.getValue shouldBe expectedAuditEvent
+      val parameterAuditEvent: LegacySchemeDetailsAuditEvent = captor.getValue
+      Json.parse(parameterAuditEvent.response) shouldBe userAnswersResponse
+      parameterAuditEvent.pstr shouldBe expectedAuditEvent.pstr
+      parameterAuditEvent.auditType shouldBe expectedAuditEvent.auditType
+      parameterAuditEvent.psaId shouldBe expectedAuditEvent.psaId
+      parameterAuditEvent.status shouldBe expectedAuditEvent.status
     }
   }
 

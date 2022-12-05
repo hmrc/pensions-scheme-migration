@@ -12,7 +12,7 @@ object AppDependencies {
     "com.typesafe.play"             %% "play-json-joda"                    % "2.9.3",
     "com.typesafe.play"             %% "play-json"                         % "2.9.3",
     "com.networknt"                 %  "json-schema-validator"             % "1.0.73",
-    "com.fasterxml.jackson.module"  %% "jackson-module-scala"              % "2.14.0",
+    "com.fasterxml.jackson.module"  %% "jackson-module-scala"              % "2.14.1",
     ehcache
   )
 
