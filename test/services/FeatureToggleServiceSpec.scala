@@ -21,25 +21,24 @@ import base.SpecBase
 import models.FeatureToggle.{Disabled, Enabled}
 import models.FeatureToggleName.DummyToggle
 import models.{FeatureToggle, FeatureToggleName}
+import org.mockito.ArgumentCaptor
 import org.mockito.ArgumentMatchers.any
-import org.mockito.{ArgumentCaptor, MockitoSugar}
+import org.mockito.Mockito.{times, verify, when}
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.{Arbitrary, Gen}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.cache.AsyncCacheApi
-import repositories.AdminDataRepository
+import play.api.inject.bind
+import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
+import repositories._
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 import scala.reflect.ClassTag
 
-class FeatureToggleServiceSpec
-  extends SpecBase
-    with MockitoSugar
-    with ScalaFutures
-    with Matchers {
+class FeatureToggleServiceSpec extends SpecBase with MockitoSugar with ScalaFutures with Matchers {
 
   implicit private val arbitraryFeatureToggleName: Arbitrary[FeatureToggleName] =
     Arbitrary {
@@ -62,16 +61,36 @@ class FeatureToggleServiceSpec
     override def removeAll(): Future[Done] = ???
   }
 
-  "When set works in the repo returns a success result" in {
-    val adminDataRepository = mock[AdminDataRepository]
-    when(adminDataRepository.getFeatureToggles).thenReturn(Future.successful(Seq.empty))
-    when(adminDataRepository.setFeatureToggles(any())).thenReturn(Future.successful( ():Unit ))
+  private val adminDataRepository = mock[AdminDataRepository]
 
-    val OUT = new FeatureToggleService(adminDataRepository, new FakeCache())
+  private val modules: Seq[GuiceableModule] = Seq(
+    bind[LockCacheRepository].toInstance(mock[LockCacheRepository]),
+    bind[AdminDataRepository].toInstance(adminDataRepository),
+    bind[DataCacheRepository].toInstance(mock[DataCacheRepository]),
+    bind[ListOfLegacySchemesCacheRepository].toInstance(mock[ListOfLegacySchemesCacheRepository]),
+    bind[RacDacRequestsQueueRepository].toInstance(mock[RacDacRequestsQueueRepository]),
+    bind[SchemeDataCacheRepository].toInstance(mock[SchemeDataCacheRepository]),
+    bind[RacDacRequestsQueueEventsLogRepository].toInstance(mock[RacDacRequestsQueueEventsLogRepository]),
+    bind[AsyncCacheApi].toInstance(new FakeCache())
+  )
+
+  override lazy val app = new GuiceApplicationBuilder()
+    .configure(
+      conf = "auditing.enabled" -> false,
+      "metrics.enabled" -> false,
+      "metrics.jvm" -> false,
+      "run.mode" -> "Test"
+    ).overrides(modules: _*).build()
+
+  "When set works in the repo returns a success result" in {
+    when(adminDataRepository.getFeatureToggles).thenReturn(Future.successful(Seq.empty))
+    when(adminDataRepository.setFeatureToggles(any())).thenReturn(Future.successful((): Unit))
+
+    val OUT: FeatureToggleService = injector.instanceOf[FeatureToggleService]
     val toggleName = arbitrary[FeatureToggleName].sample.value
 
     whenReady(OUT.set(toggleName = toggleName, enabled = true)) {
-      result =>
+      _ =>
         val captor = ArgumentCaptor.forClass(classOf[Seq[FeatureToggle]])
         verify(adminDataRepository, times(1)).setFeatureToggles(captor.capture())
         captor.getValue must contain(Enabled(toggleName))
@@ -79,22 +98,18 @@ class FeatureToggleServiceSpec
   }
 
   "When set fails in the repo returns a success result" in {
-    val adminDataRepository = mock[AdminDataRepository]
     val toggleName = arbitrary[FeatureToggleName].sample.value
-
-    val OUT = new FeatureToggleService(adminDataRepository, new FakeCache())
+    val OUT: FeatureToggleService = injector.instanceOf[FeatureToggleService]
 
     when(adminDataRepository.getFeatureToggles).thenReturn(Future.successful(Seq.empty))
-    when(adminDataRepository.setFeatureToggles(any())).thenReturn(Future.successful( ():Unit ))
-
-    whenReady(OUT.set(toggleName = toggleName, enabled = true)){
-      _ mustBe (():Unit)
+    when(adminDataRepository.setFeatureToggles(any())).thenReturn(Future.successful((): Unit))
+    whenReady(OUT.set(toggleName = toggleName, enabled = true)) {
+      _ mustBe ((): Unit)
     }
   }
 
   "When getAll is called returns all of the toggles from the repo" in {
-    val adminDataRepository = mock[AdminDataRepository]
-    val OUT = new FeatureToggleService(adminDataRepository, new FakeCache())
+    val OUT: FeatureToggleService = injector.instanceOf[FeatureToggleService]
 
     when(adminDataRepository.getFeatureToggles).thenReturn(Future.successful(Seq.empty))
 
@@ -104,16 +119,16 @@ class FeatureToggleServiceSpec
   }
 
   "When a toggle doesn't exist in the repo, return default" in {
-    val adminDataRepository = mock[AdminDataRepository]
     when(adminDataRepository.getFeatureToggles).thenReturn(Future.successful(Seq.empty))
-    val OUT = new FeatureToggleService(adminDataRepository, new FakeCache())
+
+    val OUT: FeatureToggleService = injector.instanceOf[FeatureToggleService]
     OUT.get(DummyToggle).futureValue mustBe Disabled(DummyToggle)
   }
 
   "When a toggle exists in the repo, override default" in {
-    val adminDataRepository = mock[AdminDataRepository]
     when(adminDataRepository.getFeatureToggles).thenReturn(Future.successful(Seq(Enabled(DummyToggle))))
-    val OUT = new FeatureToggleService(adminDataRepository, new FakeCache())
+
+    val OUT: FeatureToggleService = injector.instanceOf[FeatureToggleService]
     OUT.get(DummyToggle).futureValue mustBe Enabled(DummyToggle)
   }
 }

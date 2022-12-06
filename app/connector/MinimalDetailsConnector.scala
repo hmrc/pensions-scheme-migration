@@ -16,29 +16,22 @@
 
 package connector
 
-import com.google.inject.ImplementedBy
 import config.AppConfig
 import connector.utils.HttpResponseHelper
 import models.MinPSA
-import play.api.Logger
+import play.api.Logging
 import play.api.http.Status._
 import play.api.libs.json.{JsError, JsResultException, JsSuccess, Json}
+import uk.gov.hmrc.http.HttpReads.Implicits
 import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpException, HttpResponse}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
-import uk.gov.hmrc.http.HttpReads.Implicits
 
-@ImplementedBy(classOf[MinimalDetailsConnectorImpl])
-trait MinimalDetailsConnector {
-  def getPSADetails(psaId: String)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Either[HttpException, MinPSA]]
-}
 
 @Singleton
-class MinimalDetailsConnectorImpl @Inject()(http: HttpClient, config: AppConfig)
-  extends MinimalDetailsConnector with HttpResponseHelper {
-
-  private val logger = Logger(classOf[MinimalDetailsConnectorImpl])
+class MinimalDetailsConnector @Inject()(http: HttpClient, config: AppConfig)
+  extends Logging with HttpResponseHelper {
 
   private val delimitedErrorMsg: String = "DELIMITED_PSAID"
 

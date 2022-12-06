@@ -21,6 +21,7 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
 import utils.CountryOptions
+
 import scala.language.postfixOps
 
 class TrusteeDetailsTransformer @Inject()(addressTransformer: AddressTransformer, countryOptions: CountryOptions) extends JsonTransformer {
@@ -29,10 +30,10 @@ class TrusteeDetailsTransformer @Inject()(addressTransformer: AddressTransformer
   val userAnswersTrusteesReads: Reads[JsObject] = {
 
     val readsIndividualOrCompanyObject: Reads[JsObject] = {
-      val individualReads = (__ \ 'individualDetails).readNullable(userAnswersTrusteeIndividualReads)
+      val individualReads = (__ \ Symbol("individualDetails")).readNullable(userAnswersTrusteeIndividualReads)
       individualReads.flatMap {
         case None =>
-          (__ \ 'companyOrOrgDetails).readNullable(userAnswersTrusteeCompanyReads).map {
+          (__ \ Symbol("companyOrOrgDetails")).readNullable(userAnswersTrusteeCompanyReads).map {
             case None => Json.obj()
             case Some(jsObject) => jsObject
           }
@@ -42,30 +43,30 @@ class TrusteeDetailsTransformer @Inject()(addressTransformer: AddressTransformer
     }
 
     val trusteeReads: Reads[Seq[JsObject]] =
-      (__ \ 'schemeTrustees).readNullable(Reads.seq(readsIndividualOrCompanyObject)).map(_.getOrElse(Nil))
+      (__ \ Symbol("schemeTrustees")).readNullable(Reads.seq(readsIndividualOrCompanyObject)).map(_.getOrElse(Nil))
 
-    (__ \ 'items).readNullable(Reads.seq(trusteeReads)).flatMap {
-      case None => (__ \ 'trustees).json.put(Json.arr())
+    (__ \ Symbol("items")).readNullable(Reads.seq(trusteeReads)).flatMap {
+      case None => (__ \ Symbol("trustees")).json.put(Json.arr())
       case Some(items) =>
         val firstItem = Json.toJson(items.head)
-        (__ \ 'trustees).json.put(firstItem)
+        (__ \ Symbol("trustees")).json.put(firstItem)
     }
   }
 
   def userAnswersTrusteeIndividualReads: Reads[JsObject] =
-    (__ \ 'trusteeKind).json.put(JsString("individual")) and
+    (__ \ Symbol("trusteeKind")).json.put(JsString("individual")) and
       userAnswersIndividualDetailsReads("trusteeDetails") and
       userAnswersNinoReads and
-      addressTransformer.getAddress(__ \ 'address, __ \ 'correspAddrDetails, countryOptions) and
+      addressTransformer.getAddress(__ \ Symbol("address"), __ \ Symbol("correspAddrDetails"), countryOptions) and
       userAnswersContactDetailsReads reduce
 
   def userAnswersTrusteeCompanyReads: Reads[JsObject] =
-    (__ \ 'trusteeKind).json.put(JsString("company")) and
+    (__ \ Symbol("trusteeKind")).json.put(JsString("company")) and
       userAnswersCompanyDetailsReads and
       userAnswersVatReads and
       userAnswersPayeReads and
       userAnswersCrnReads and
-      addressTransformer.getAddress(__ \ 'address, __ \ 'correspAddrDetails, countryOptions) and
+      addressTransformer.getAddress(__ \ Symbol("address"), __ \ Symbol("correspAddrDetails"), countryOptions) and
       userAnswersContactDetailsReads reduce
 
 }

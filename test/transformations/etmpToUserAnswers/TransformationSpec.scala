@@ -20,14 +20,25 @@ import base.JsonFileReader
 import org.scalatest.OptionValues
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import play.api.{Configuration, Environment}
-import play.api.inject.Injector
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.inject.guice.GuiceApplicationBuilder
+import play.api.inject.{Injector, bind}
+import play.api.{Configuration, Environment}
+import repositories._
 import utils.{CountryOptions, PensionSchemeJsValueGenerators}
 
-trait TransformationSpec extends AnyWordSpec with Matchers with OptionValues with JsonFileReader with PensionSchemeJsValueGenerators {
+trait TransformationSpec extends AnyWordSpec with Matchers with OptionValues with JsonFileReader with PensionSchemeJsValueGenerators with MockitoSugar {
 
-  val injector: Injector = new GuiceApplicationBuilder().build().injector
+  val injector: Injector = new GuiceApplicationBuilder().overrides(
+    bind[AdminDataRepository].toInstance(mock[AdminDataRepository]),
+    bind[DataCacheRepository].toInstance(mock[DataCacheRepository]),
+    bind[ListOfLegacySchemesCacheRepository].toInstance(mock[ListOfLegacySchemesCacheRepository]),
+    bind[LockCacheRepository].toInstance(mock[LockCacheRepository]),
+    bind[RacDacRequestsQueueEventsLogRepository].toInstance(mock[RacDacRequestsQueueEventsLogRepository]),
+    bind[RacDacRequestsQueueRepository].toInstance(mock[RacDacRequestsQueueRepository]),
+    bind[SchemeDataCacheRepository].toInstance(mock[SchemeDataCacheRepository])
+  ).build().injector
+
   val config: Configuration = injector.instanceOf[Configuration]
   val environment: Environment = injector.instanceOf[Environment]
   val countryOptions: CountryOptions = injector.instanceOf[CountryOptions]

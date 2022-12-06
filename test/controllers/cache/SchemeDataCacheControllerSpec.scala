@@ -19,22 +19,24 @@ package controllers.cache
 import akka.util.ByteString
 import org.apache.commons.lang3.RandomUtils
 import org.mockito.ArgumentMatchers.{eq => eqTo, _}
-import org.scalatest.wordspec.AnyWordSpec
-import org.scalatest.matchers.must.Matchers
+import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfter
-import org.mockito.MockitoSugar
+import org.scalatest.matchers.must.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.mockito.MockitoSugar
+import play.api.Application
 import play.api.inject.bind
-import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import repositories.SchemeDataCacheRepository
+import repositories._
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.HeaderCarrier
 
 import scala.concurrent.Future
 
-class SchemeDataCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSugar with BeforeAndAfter {
+class SchemeDataCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSugar with BeforeAndAfter { // scalastyle:off magic.number
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
@@ -44,10 +46,24 @@ class SchemeDataCacheControllerSpec extends AnyWordSpec with Matchers with Mocki
   private val fakeRequest = FakeRequest()
   private val fakePostRequest = FakeRequest("POST", "/")
 
-  private val modules: Seq[GuiceableModule] = Seq(
+  val app: Application = new GuiceApplicationBuilder()
+    .configure(
+      conf = "auditing.enabled" -> false,
+      "metrics.enabled" -> false,
+      "metrics.jvm" -> false,
+      "run.mode" -> "Test"
+    ).overrides(
     bind[AuthConnector].toInstance(authConnector),
-    bind[SchemeDataCacheRepository].toInstance(repo)
-  )
+    bind[SchemeDataCacheRepository].toInstance(repo),
+    bind[AdminDataRepository].toInstance(mock[AdminDataRepository]),
+    bind[DataCacheRepository].toInstance(mock[DataCacheRepository]),
+    bind[ListOfLegacySchemesCacheRepository].toInstance(mock[ListOfLegacySchemesCacheRepository]),
+    bind[LockCacheRepository].toInstance(mock[LockCacheRepository]),
+    bind[RacDacRequestsQueueEventsLogRepository].toInstance(mock[RacDacRequestsQueueEventsLogRepository]),
+    bind[RacDacRequestsQueueRepository].toInstance(mock[RacDacRequestsQueueRepository])
+  ).build()
+
+  val controller: SchemeDataCacheController = app.injector.instanceOf[SchemeDataCacheController]
 
   before {
     reset(repo)
@@ -57,13 +73,6 @@ class SchemeDataCacheControllerSpec extends AnyWordSpec with Matchers with Mocki
   "SchemeDataCacheController" when {
     "calling get" must {
       "return OK with the data" in {
-        
-        val app = new GuiceApplicationBuilder()
-          .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
-          .overrides(modules: _*).build()
-        
-        val controller = app.injector.instanceOf[SchemeDataCacheController]
-        
         when(repo.get(eqTo(id))(any())) thenReturn Future.successful(Some(Json.obj("testId" -> "data")))
         when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
 
@@ -73,11 +82,6 @@ class SchemeDataCacheControllerSpec extends AnyWordSpec with Matchers with Mocki
       }
 
       "return NOT FOUND when the data doesn't exist" in {
-        val app = new GuiceApplicationBuilder()
-          .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
-          .overrides(modules: _*).build()
-        
-        val controller = app.injector.instanceOf[SchemeDataCacheController]
         when(repo.get(eqTo(id))(any())) thenReturn Future.successful(None)
         when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
 
@@ -86,11 +90,6 @@ class SchemeDataCacheControllerSpec extends AnyWordSpec with Matchers with Mocki
       }
 
       "throw an exception when the repository call fails" in {
-        val app = new GuiceApplicationBuilder()
-          .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
-          .overrides(modules: _*).build()
-        
-        val controller = app.injector.instanceOf[SchemeDataCacheController]
         when(repo.get(eqTo(id))(any())) thenReturn Future.failed(new Exception())
         when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
 
@@ -99,10 +98,6 @@ class SchemeDataCacheControllerSpec extends AnyWordSpec with Matchers with Mocki
       }
 
       "throw an exception when the call is not authorised" in {
-        val app = new GuiceApplicationBuilder()
-          .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
-          .overrides(modules: _*).build()
-        val controller = app.injector.instanceOf[SchemeDataCacheController]
         when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
 
         val result = controller.get(fakeRequest)
@@ -114,11 +109,6 @@ class SchemeDataCacheControllerSpec extends AnyWordSpec with Matchers with Mocki
     "calling save" must {
 
       "return OK when the data is saved successfully" in {
-        val app = new GuiceApplicationBuilder()
-          .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
-          .overrides(modules: _*).build()
-
-        val controller = app.injector.instanceOf[SchemeDataCacheController]
         when(repo.save(any(), any())(any())) thenReturn Future.successful(true)
         when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
 
@@ -127,11 +117,6 @@ class SchemeDataCacheControllerSpec extends AnyWordSpec with Matchers with Mocki
       }
 
       "return BAD REQUEST when the request body cannot be parsed" in {
-        val app = new GuiceApplicationBuilder()
-          .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
-          .overrides(modules: _*).build()
-
-        val controller = app.injector.instanceOf[SchemeDataCacheController]
         when(repo.save(any(), any())(any())) thenReturn Future.successful(true)
         when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
 
@@ -140,11 +125,6 @@ class SchemeDataCacheControllerSpec extends AnyWordSpec with Matchers with Mocki
       }
 
       "throw an exception when the call is not authorised" in {
-        val app = new GuiceApplicationBuilder()
-          .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
-          .overrides(modules: _*).build()
-
-        val controller = app.injector.instanceOf[SchemeDataCacheController]
         when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
 
         val result = controller.save(fakePostRequest.withJsonBody(Json.obj(fields = "value" -> "data")))
@@ -154,12 +134,6 @@ class SchemeDataCacheControllerSpec extends AnyWordSpec with Matchers with Mocki
 
     "calling remove" must {
       "return OK when the data is removed successfully" in {
-        val app = new GuiceApplicationBuilder()
-          .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
-          .overrides(modules: _*).build()
-
-        val controller = app.injector.instanceOf[SchemeDataCacheController]
-
         when(repo.remove(eqTo(id))(any())) thenReturn Future.successful(true)
         when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
 
@@ -168,11 +142,6 @@ class SchemeDataCacheControllerSpec extends AnyWordSpec with Matchers with Mocki
       }
 
       "throw an exception when the call is not authorised" in {
-        val app = new GuiceApplicationBuilder()
-          .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
-          .overrides(modules: _*).build()
-
-        val controller = app.injector.instanceOf[SchemeDataCacheController]
         when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
 
         val result = controller.remove(fakeRequest)

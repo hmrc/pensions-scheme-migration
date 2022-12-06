@@ -16,7 +16,7 @@
 
 package service
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorSystem, Cancellable}
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import models.racDac.WorkItemRequest
 import play.api.Logger
@@ -57,7 +57,7 @@ class RacDacBulkSubmissionPoller @Inject()(
 
 
 
-  val _ = {
+  val `_`: Cancellable = {
     object MyThread extends Runnable {
       def run(): Unit = {
         poller()

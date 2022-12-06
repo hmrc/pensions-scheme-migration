@@ -16,14 +16,16 @@
 
 package repositories
 
-import com.github.simplyscala.MongoEmbedDatabase
 import models.cache.{DataJson, MigrationLock}
 import org.joda.time.{DateTime, DateTimeZone}
-import org.mockito.{ArgumentMatchers, MockitoSugar}
+import org.mockito.ArgumentMatchers
+import org.mockito.Mockito.{reset, times, verify, when}
 import org.scalatest.RecoverMethods.recoverToExceptionIf
+import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatest.{BeforeAndAfter, BeforeAndAfterEach}
+import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, BeforeAndAfterEach}
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.Configuration
 import play.api.libs.json.Json
 import uk.gov.hmrc.mongo.MongoComponent
@@ -33,198 +35,202 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 
 
-class DataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with MongoEmbedDatabase with BeforeAndAfter with
-  BeforeAndAfterEach { // scalastyle:off magic.number
+class DataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with EmbeddedMongoDBSupport with BeforeAndAfter with
+  BeforeAndAfterAll with BeforeAndAfterEach with ScalaFutures { // scalastyle:off magic.number
 
   import DataCacheRepositorySpec._
   import repositories.DataCacheRepository.LockCouldNotBeSetException
 
-  override def beforeEach: Unit = {
-    super.beforeEach
-    reset(mockLockCacheRepository, mockConfiguration)
-    when(mockConfiguration.get[String](ArgumentMatchers.eq( "mongodb.migration-cache.data-cache.name"))(ArgumentMatchers.any()))
+  var dataCacheRepository: DataCacheRepository = _
+
+  override def beforeAll(): Unit = {
+    when(mockConfiguration.get[String](ArgumentMatchers.eq("mongodb.migration-cache.data-cache.name"))(ArgumentMatchers.any()))
       .thenReturn("migration-data")
-    when(mockConfiguration.get[Int](ArgumentMatchers.eq( "mongodb.migration-cache.data-cache.timeToLiveInDays"))(ArgumentMatchers.any()))
+    when(mockConfiguration.get[Int](ArgumentMatchers.eq("mongodb.migration-cache.data-cache.timeToLiveInDays"))(ArgumentMatchers.any()))
       .thenReturn(28)
+    initMongoDExecutable()
+    startMongoD()
+    dataCacheRepository = buildFormRepository(mongoHost, mongoPort)
+    super.beforeAll()
   }
 
-  withEmbedMongoFixture(port = 24680) { _ =>
+  override def beforeEach(): Unit = {
+    reset(mockLockCacheRepository)
+    reset(mockConfiguration)
+    super.beforeEach()
+  }
 
-    "get" must {
-      "get data from Mongo collection when present" in {
-        mongoCollectionDrop()
+  override def afterAll(): Unit =
+    stopMongoD()
 
-        when(mockLockCacheRepository.setLock(ArgumentMatchers.eq(migrationLock)))
-          .thenReturn(Future.successful(true))
+  "get" must {
+    "get data from Mongo collection when present" in {
 
-        when(mockLockCacheRepository.getLockByPstr(ArgumentMatchers.eq(pstr)))
-          .thenReturn(Future.successful(None))
+      when(mockLockCacheRepository.setLock(ArgumentMatchers.eq(migrationLock)))
+        .thenReturn(Future.successful(true))
 
-        val result = for {
-          _ <- repository.renewLockAndSave(migrationLock, data)
-          status <- repository.get(pstr)
-          allDocs <- repository.collection.find().toFuture()
-        } yield {
-          Tuple2(allDocs.size, status)
-        }
+      when(mockLockCacheRepository.getLockByPstr(ArgumentMatchers.eq(pstr)))
+        .thenReturn(Future.successful(None))
 
-        Await.result(result, Duration.Inf) match {
-          case Tuple2(totalDocs, optionJson) =>
-            optionJson.isDefined mustBe true
-            optionJson.map { jsValue =>
-              (jsValue \ "test").asOpt[String] mustBe Some("test")
-            }
-            totalDocs mustBe 1
-        }
+      val result = for {
+        _ <- dataCacheRepository.collection.drop().toFuture()
+        _ <- dataCacheRepository.renewLockAndSave(migrationLock, data)
+        status <- dataCacheRepository.get(pstr)
+        allDocs <- dataCacheRepository.collection.find().toFuture()
+      } yield {
+        Tuple2(allDocs.size, status)
       }
 
-      "return None from Mongo collection when not present" in {
-        mongoCollectionDrop()
+      Await.result(result, Duration.Inf) match {
+        case Tuple2(totalDocs, optionJson) =>
+          optionJson.isDefined mustBe true
+          optionJson.map { jsValue =>
+            (jsValue \ "test").asOpt[String] mustBe Some("test")
+          }
+          totalDocs mustBe 1
+      }
+    }
 
-        when(mockLockCacheRepository.setLock(ArgumentMatchers.eq(migrationLock)))
-          .thenReturn(Future.successful(true))
+    "return None from Mongo collection when not present" in {
 
-        when(mockLockCacheRepository.getLockByPstr(ArgumentMatchers.eq(pstr)))
-          .thenReturn(Future.successful(None))
+      when(mockLockCacheRepository.setLock(ArgumentMatchers.eq(migrationLock)))
+        .thenReturn(Future.successful(true))
 
-        val result = for {
-          status <- repository.get(pstr)
-          allDocs <- repository.collection.find().toFuture()
-        } yield {
-          Tuple2(allDocs.size, status)
-        }
+      when(mockLockCacheRepository.getLockByPstr(ArgumentMatchers.eq(pstr)))
+        .thenReturn(Future.successful(None))
 
-        Await.result(result, Duration.Inf) match {
-          case Tuple2(totalDocs, optionJson) =>
-            optionJson.isDefined mustBe false
-            totalDocs mustBe 0
-        }
+      val result = for {
+        _ <- dataCacheRepository.collection.drop().toFuture()
+        status <- dataCacheRepository.get(pstr)
+        allDocs <- dataCacheRepository.collection.find().toFuture()
+      } yield {
+        Tuple2(allDocs.size, status)
+      }
+
+      Await.result(result, Duration.Inf) match {
+        case Tuple2(totalDocs, optionJson) =>
+          optionJson.isDefined mustBe false
+          totalDocs mustBe 0
+      }
+    }
+  }
+
+
+  "renewLockAndSave" must {
+    "set lock in Mongo collection where there are no current locks" in {
+
+      when(mockLockCacheRepository.setLock(ArgumentMatchers.eq(migrationLock)))
+        .thenReturn(Future.successful(true))
+
+      when(mockLockCacheRepository.getLockByPstr(ArgumentMatchers.eq(pstr)))
+        .thenReturn(Future.successful(None))
+
+      val result = for {
+        _ <- dataCacheRepository.collection.drop().toFuture()
+        status <- dataCacheRepository.renewLockAndSave(migrationLock, data)
+        allDocs <- dataCacheRepository.collection.find().toFuture()
+      } yield {
+        Tuple2(allDocs.size, status)
+      }
+
+      Await.result(result, Duration.Inf) match {
+        case Tuple2(totalDocs, status) =>
+          status mustBe true
+          totalDocs mustBe 1
+          verify(mockLockCacheRepository, times(1)).setLock(migrationLock)
       }
     }
 
 
-    "renewLockAndSave" must {
-      "set lock in Mongo collection where there are no current locks" in {
-        mongoCollectionDrop()
+    "set lock in Mongo collection where there is current lock but it is locked for current pstr/ psa" in {
+      when(mockConfiguration.get[String](ArgumentMatchers.eq("mongodb.migration-cache.data-cache.name"))(ArgumentMatchers.any()))
+        .thenReturn("migration-data")
 
-        when(mockLockCacheRepository.setLock(ArgumentMatchers.eq(migrationLock)))
-          .thenReturn(Future.successful(true))
 
-        when(mockLockCacheRepository.getLockByPstr(ArgumentMatchers.eq(pstr)))
-          .thenReturn(Future.successful(None))
+      when(mockLockCacheRepository.setLock(ArgumentMatchers.eq(migrationLock)))
+        .thenReturn(Future.successful(true))
 
-        val result = for {
-          status <- repository.renewLockAndSave(migrationLock, data)
-          allDocs <- repository.collection.find().toFuture()
-        } yield {
-          Tuple2(allDocs.size, status)
-        }
+      when(mockLockCacheRepository.getLockByPstr(ArgumentMatchers.eq(pstr)))
+        .thenReturn(Future.successful(Some(migrationLock)))
 
-        Await.result(result, Duration.Inf) match {
-          case Tuple2(totalDocs, status) =>
-            status mustBe true
-            totalDocs mustBe 1
-            verify(mockLockCacheRepository, times(1)).setLock(migrationLock)
-        }
+      val result = for {
+        _ <- dataCacheRepository.collection.drop().toFuture()
+        status <- dataCacheRepository.renewLockAndSave(migrationLock, data)
+        allDocs <- dataCacheRepository.collection.find().toFuture()
+      } yield {
+        Tuple2(allDocs.size, status)
       }
 
-
-      "set lock in Mongo collection where there is current lock but it is locked for current pstr/ psa" in {
-        when(mockConfiguration.get[String](ArgumentMatchers.eq( "mongodb.migration-cache.data-cache.name"))(ArgumentMatchers.any()))
-          .thenReturn("migration-data")
-        mongoCollectionDrop()
-
-        when(mockLockCacheRepository.setLock(ArgumentMatchers.eq(migrationLock)))
-          .thenReturn(Future.successful(true))
-
-        when(mockLockCacheRepository.getLockByPstr(ArgumentMatchers.eq(pstr)))
-          .thenReturn(Future.successful(Some(migrationLock)))
-
-        val result = for {
-          status <- repository.renewLockAndSave(migrationLock, data)
-          allDocs <- repository.collection.find().toFuture()
-        } yield {
-          Tuple2(allDocs.size, status)
-        }
-
-        Await.result(result, Duration.Inf) match {
-          case Tuple2(totalDocs, status) =>
-            status mustBe true
-            totalDocs mustBe 1
-            verify(mockLockCacheRepository, times(1)).setLock(migrationLock)
-        }
-      }
-
-      "throw LockCouldNotBeSetException where there is current lock but it is locked for different pstr/ psa" in {
-        when(mockConfiguration.get[String](ArgumentMatchers.eq("mongodb.migration-cache.data-cache.name"))(ArgumentMatchers.any()))
-          .thenReturn("migration-data")
-        mongoCollectionDrop()
-
-        when(mockLockCacheRepository.setLock(ArgumentMatchers.eq(migrationLock)))
-          .thenReturn(Future.successful(true))
-
-        when(mockLockCacheRepository.getLockByPstr(ArgumentMatchers.eq(pstr)))
-          .thenReturn(Future.successful(Some(anotherMigrationLock)))
-
-        val result = for {
-          status <- repository.renewLockAndSave(migrationLock, data)
-        } yield {
-          status
-        }
-
-        recoverToExceptionIf[Exception] {
-          result
-        } map {
-          _.getMessage mustBe LockCouldNotBeSetException.getMessage
-        }
+      Await.result(result, Duration.Inf) match {
+        case Tuple2(totalDocs, status) =>
+          status mustBe true
+          totalDocs mustBe 1
+          verify(mockLockCacheRepository, times(1)).setLock(migrationLock)
       }
     }
 
-    "remove" must {
-      "remove lock from Mongo collection leaving other one" in {
-        mongoCollectionDrop()
+    "throw LockCouldNotBeSetException where there is current lock but it is locked for different pstr/ psa" in {
+      when(mockConfiguration.get[String](ArgumentMatchers.eq("mongodb.migration-cache.data-cache.name"))(ArgumentMatchers.any()))
+        .thenReturn("migration-data")
 
-        when(mockLockCacheRepository.releaseLockByPstr(ArgumentMatchers.eq(pstr)))
-          .thenReturn(Future.successful(true))
+      when(mockLockCacheRepository.setLock(ArgumentMatchers.eq(migrationLock)))
+        .thenReturn(Future.successful(true))
 
-        val endState = for {
-          _ <- repository.collection.insertMany(
-            seqExistingData
-          ).toFuture
+      when(mockLockCacheRepository.getLockByPstr(ArgumentMatchers.eq(pstr)))
+        .thenReturn(Future.successful(Some(anotherMigrationLock)))
 
-          response <- repository.remove(pstr)
-          firstRetrieved <- repository.get(pstr)
-          secondRetrieved <- repository.get(anotherPstr)
-        } yield {
-          Tuple3(response, firstRetrieved, secondRetrieved)
-        }
+      val result = for {
+        _ <- dataCacheRepository.collection.drop().toFuture()
+        status <- dataCacheRepository.renewLockAndSave(migrationLock, data)
+      } yield {
+        status
+      }
 
-        Await.result(endState, Duration.Inf) match { case Tuple3(response, migrationLock, anotherLock) =>
+      recoverToExceptionIf[Exception] {
+        result
+      } map {
+        _.getMessage mustBe LockCouldNotBeSetException.getMessage
+      }
+    }
+  }
+
+  "remove" must {
+    "remove lock from Mongo collection leaving other one" in {
+
+      when(mockLockCacheRepository.releaseLockByPstr(ArgumentMatchers.eq(pstr)))
+        .thenReturn(Future.successful(true))
+
+      val endState = for {
+        _ <- dataCacheRepository.collection.drop().toFuture()
+        _ <- dataCacheRepository.collection.insertMany(
+          seqExistingData
+        ).toFuture()
+
+        response <- dataCacheRepository.remove(pstr)
+        firstRetrieved <- dataCacheRepository.get(pstr)
+        secondRetrieved <- dataCacheRepository.get(anotherPstr)
+      } yield {
+        Tuple3(response, firstRetrieved, secondRetrieved)
+      }
+
+      Await.result(endState, Duration.Inf) match {
+        case Tuple3(response, migrationLock, anotherLock) =>
           migrationLock mustBe None
           anotherLock.isDefined mustBe true
           response mustBe true
-        }
       }
     }
-
   }
+
+
 }
 
-object DataCacheRepositorySpec extends AnyWordSpec with MockitoSugar {
+object DataCacheRepositorySpec extends MockitoSugar {
 
-  import scala.concurrent.ExecutionContext.Implicits._
 
   private val mockConfiguration = mock[Configuration]
-  private val databaseName = "pensions-scheme-migration"
-  private val mongoUri: String = s"mongodb://127.0.0.1:27017/$databaseName?heartbeatFrequencyMS=1000&rm.failover=default"
-  private val mongoComponent = MongoComponent(mongoUri)
-
-  private def mongoCollectionDrop(): Void = Await
-    .result(repository.collection.drop().toFuture(), Duration.Inf)
 
   private val mockLockCacheRepository = mock[LockCacheRepository]
-
-  private def repository = new DataCacheRepository(mockLockCacheRepository, mongoComponent, mockConfiguration)
 
   private val pstr = "pstr"
   private val credId = "credId"
@@ -253,8 +259,10 @@ object DataCacheRepositorySpec extends AnyWordSpec with MockitoSugar {
     )
   )
 
+  private def buildFormRepository(mongoHost: String, mongoPort: Int): DataCacheRepository = {
+    val databaseName = "pensions-scheme-migration"
+    val mongoUri = s"mongodb://$mongoHost:$mongoPort/$databaseName?heartbeatFrequencyMS=1000&rm.failover=default"
+    new DataCacheRepository(mockLockCacheRepository, MongoComponent(mongoUri), mockConfiguration)
+  }
 }
-
-
-
 

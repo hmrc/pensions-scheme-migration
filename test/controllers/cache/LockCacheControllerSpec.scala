@@ -18,16 +18,17 @@ package controllers.cache
 
 import models.cache.MigrationLock
 import org.mockito.ArgumentMatchers.{eq => eqTo, _}
-import org.mockito.MockitoSugar
+import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.inject.bind
 import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import repositories.LockCacheRepository
+import repositories._
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.HeaderCarrier
 
@@ -47,8 +48,24 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
 
   private val modules: Seq[GuiceableModule] = Seq(
     bind[AuthConnector].toInstance(authConnector),
-    bind[LockCacheRepository].toInstance(repo)
+    bind[LockCacheRepository].toInstance(repo),
+    bind[AdminDataRepository].toInstance(mock[AdminDataRepository]),
+    bind[DataCacheRepository].toInstance(mock[DataCacheRepository]),
+    bind[ListOfLegacySchemesCacheRepository].toInstance(mock[ListOfLegacySchemesCacheRepository]),
+    bind[RacDacRequestsQueueRepository].toInstance(mock[RacDacRequestsQueueRepository]),
+    bind[SchemeDataCacheRepository].toInstance(mock[SchemeDataCacheRepository]),
+    bind[RacDacRequestsQueueEventsLogRepository].toInstance(mock[RacDacRequestsQueueEventsLogRepository])
   )
+
+  private val app = new GuiceApplicationBuilder()
+    .configure(
+      conf = "auditing.enabled" -> false,
+      "metrics.enabled" -> false,
+      "metrics.jvm" -> false,
+      "run.mode" -> "Test"
+    ).overrides(modules: _*).build()
+
+  private val controller = app.injector.instanceOf[LockCacheController]
 
   before {
     reset(repo)
@@ -58,10 +75,6 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
   "LockCacheController" when {
     "calling getLockOnScheme" must {
       "return OK with the data" in {
-        val app = new GuiceApplicationBuilder()
-          .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
-          .overrides(modules: _*).build()
-        val controller = app.injector.instanceOf[LockCacheController]
         when(repo.getLockByPstr(eqTo(pstr))) thenReturn Future.successful(Some(lock))
         when(authConnector.authorise[Unit](any(), any())(any(), any())) thenReturn Future.successful(())
 
@@ -71,10 +84,6 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
       }
 
       "return NOT FOUND when the data doesn't exist" in {
-        val app = new GuiceApplicationBuilder()
-          .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
-          .overrides(modules: _*).build()
-        val controller = app.injector.instanceOf[LockCacheController]
         when(repo.getLockByPstr(eqTo(pstr))) thenReturn Future.successful(None)
         when(authConnector.authorise[Unit](any(), any())(any(), any())) thenReturn Future.successful(())
 
@@ -83,10 +92,6 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
       }
 
       "throw an exception when the repository call fails" in {
-        val app = new GuiceApplicationBuilder()
-          .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
-          .overrides(modules: _*).build()
-        val controller = app.injector.instanceOf[LockCacheController]
         when(repo.getLockByPstr(eqTo(pstr))) thenReturn Future.failed(new Exception())
         when(authConnector.authorise[Unit](any(), any())(any(), any())) thenReturn Future.successful(())
 
@@ -95,10 +100,6 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
       }
 
       "throw an exception when the call is not authorised" in {
-        val app = new GuiceApplicationBuilder()
-          .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
-          .overrides(modules: _*).build()
-        val controller = app.injector.instanceOf[LockCacheController]
         when(authConnector.authorise[Unit](any(), any())(any(), any())) thenReturn Future.failed(new Exception())
 
         val result = controller.getLockOnScheme(fakeRequest)
@@ -109,10 +110,6 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
 
     "calling getLock" must {
       "return OK with the data" in {
-        val app = new GuiceApplicationBuilder()
-          .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
-          .overrides(modules: _*).build()
-        val controller = app.injector.instanceOf[LockCacheController]
         when(repo.getLock(eqTo(lock))(any())) thenReturn Future.successful(Some(lock))
         when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
 
@@ -122,10 +119,6 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
       }
 
       "return NOT FOUND when the data doesn't exist" in {
-        val app = new GuiceApplicationBuilder()
-          .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
-          .overrides(modules: _*).build()
-        val controller = app.injector.instanceOf[LockCacheController]
         when(repo.getLock(eqTo(lock))(any())) thenReturn Future.successful(None)
         when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
 
@@ -134,10 +127,6 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
       }
 
       "throw an exception when the repository call fails" in {
-        val app = new GuiceApplicationBuilder()
-          .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
-          .overrides(modules: _*).build()
-        val controller = app.injector.instanceOf[LockCacheController]
         when(repo.getLock(eqTo(lock))(any())) thenReturn Future.failed(new Exception())
         when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
 
@@ -146,10 +135,6 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
       }
 
       "throw an exception when the call is not authorised" in {
-        val app = new GuiceApplicationBuilder()
-          .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
-          .overrides(modules: _*).build()
-        val controller = app.injector.instanceOf[LockCacheController]
         when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
 
         val result = controller.getLock(fakeRequest)
@@ -160,10 +145,6 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
 
     "calling getLockByUser" must {
       "return OK with the data" in {
-        val app = new GuiceApplicationBuilder()
-          .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
-          .overrides(modules: _*).build()
-        val controller = app.injector.instanceOf[LockCacheController]
         when(repo.getLockByCredId(eqTo(id))) thenReturn Future.successful(Some(lock))
         when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
 
@@ -173,10 +154,6 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
       }
 
       "return NOT FOUND when the data doesn't exist" in {
-        val app = new GuiceApplicationBuilder()
-          .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
-          .overrides(modules: _*).build()
-        val controller = app.injector.instanceOf[LockCacheController]
         when(repo.getLockByCredId(eqTo(id))) thenReturn Future.successful(None)
         when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
 
@@ -185,10 +162,6 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
       }
 
       "throw an exception when the repository call fails" in {
-        val app = new GuiceApplicationBuilder()
-          .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
-          .overrides(modules: _*).build()
-        val controller = app.injector.instanceOf[LockCacheController]
         when(repo.getLockByCredId(eqTo(id))) thenReturn Future.failed(new Exception())
         when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
 
@@ -197,10 +170,6 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
       }
 
       "throw an exception when the call is not authorised" in {
-        val app = new GuiceApplicationBuilder()
-          .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
-          .overrides(modules: _*).build()
-        val controller = app.injector.instanceOf[LockCacheController]
         when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
 
         val result = controller.getLockByUser(fakeRequest)
@@ -212,10 +181,6 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
     "calling save" must {
 
       "return OK when the data is saved successfully" in {
-        val app = new GuiceApplicationBuilder()
-          .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
-          .overrides(modules: _*).build()
-        val controller = app.injector.instanceOf[LockCacheController]
         when(repo.setLock(any())) thenReturn Future.successful(true)
         when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
 
@@ -224,10 +189,6 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
       }
 
       "throw an exception when the call is not authorised" in {
-        val app = new GuiceApplicationBuilder()
-          .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
-          .overrides(modules: _*).build()
-        val controller = app.injector.instanceOf[LockCacheController]
         when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
 
         val result = controller.lock(fakePostRequest)
@@ -237,10 +198,6 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
 
     "calling removeLockOnScheme" must {
       "return OK when the data is removed successfully" in {
-        val app = new GuiceApplicationBuilder()
-          .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
-          .overrides(modules: _*).build()
-        val controller = app.injector.instanceOf[LockCacheController]
         when(repo.releaseLockByPstr(eqTo(pstr))) thenReturn Future.successful(true)
         when(authConnector.authorise[Unit](any(), any())(any(), any())) thenReturn Future.successful(())
 
@@ -249,10 +206,6 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
       }
 
       "throw an exception when the call is not authorised" in {
-        val app = new GuiceApplicationBuilder()
-          .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
-          .overrides(modules: _*).build()
-        val controller = app.injector.instanceOf[LockCacheController]
         when(authConnector.authorise[Unit](any(), any())(any(), any())) thenReturn Future.failed(new Exception())
 
         val result = controller.removeLockOnScheme()(fakeRequest)
@@ -262,10 +215,6 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
 
     "calling removeLockByUser" must {
       "return OK when the data is removed successfully" in {
-        val app = new GuiceApplicationBuilder()
-          .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
-          .overrides(modules: _*).build()
-        val controller = app.injector.instanceOf[LockCacheController]
         when(repo.releaseLockByCredId(eqTo(id))) thenReturn Future.successful(true)
         when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
 
@@ -274,10 +223,6 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
       }
 
       "throw an exception when the call is not authorised" in {
-        val app = new GuiceApplicationBuilder()
-          .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
-          .overrides(modules: _*).build()
-        val controller = app.injector.instanceOf[LockCacheController]
         when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
 
         val result = controller.removeLockByUser()(fakeRequest)
@@ -287,10 +232,6 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
 
     "calling removeLock" must {
       "return OK when the data is removed successfully" in {
-        val app = new GuiceApplicationBuilder()
-          .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
-          .overrides(modules: _*).build()
-        val controller = app.injector.instanceOf[LockCacheController]
         when(repo.releaseLock(eqTo(lock))) thenReturn Future.successful(true)
         when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
 
@@ -299,10 +240,6 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
       }
 
       "throw an exception when the call is not authorised" in {
-        val app = new GuiceApplicationBuilder()
-          .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
-          .overrides(modules: _*).build()
-        val controller = app.injector.instanceOf[LockCacheController]
         when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
 
         val result = controller.removeLock()(fakeRequest)

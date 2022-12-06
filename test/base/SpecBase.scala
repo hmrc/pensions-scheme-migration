@@ -17,17 +17,41 @@
 package base
 
 import config.AppConfig
+import org.scalatestplus.mockito.MockitoSugar
 import org.scalatestplus.play.PlaySpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import play.api.Environment
-import play.api.inject.Injector
+import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
+import play.api.inject.{Injector, bind}
 import play.api.libs.json.Json
 import play.api.mvc.{AnyContentAsEmpty, ControllerComponents}
 import play.api.test.FakeRequest
+import play.api.{Application, Environment}
+import repositories._
 import uk.gov.hmrc.crypto.ApplicationCrypto
 
-trait SpecBase extends PlaySpec with GuiceOneAppPerSuite with JsonFileReader {
+trait SpecBase extends PlaySpec with GuiceOneAppPerSuite with JsonFileReader with MockitoSugar {
   def injector: Injector = app.injector
+
+  override def fakeApplication(): Application = GuiceApplicationBuilder()
+    .configure(
+      //turn off metrics
+      "metrics.jvm" -> false,
+      "metrics.enabled" -> false
+    )
+    .overrides(bindings: _*)
+    .build()
+
+  protected def bindings: Seq[GuiceableModule] = {
+    Seq(
+      bind[AdminDataRepository].toInstance(mock[AdminDataRepository]),
+      bind[DataCacheRepository].toInstance(mock[DataCacheRepository]),
+      bind[ListOfLegacySchemesCacheRepository].toInstance(mock[ListOfLegacySchemesCacheRepository]),
+      bind[LockCacheRepository].toInstance(mock[LockCacheRepository]),
+      bind[RacDacRequestsQueueEventsLogRepository].toInstance(mock[RacDacRequestsQueueEventsLogRepository]),
+      bind[RacDacRequestsQueueRepository].toInstance(mock[RacDacRequestsQueueRepository]),
+      bind[SchemeDataCacheRepository].toInstance(mock[SchemeDataCacheRepository])
+    )
+  }
 
   def environment: Environment = injector.instanceOf[Environment]
 
@@ -40,11 +64,11 @@ trait SpecBase extends PlaySpec with GuiceOneAppPerSuite with JsonFileReader {
   def controllerComponents: ControllerComponents = injector.instanceOf[ControllerComponents]
 
   protected def errorResponse(code: String): String = {
-      Json.stringify(
-        Json.obj(
-          "code" -> code,
-          "reason" -> s"Reason for $code"
-        )
+    Json.stringify(
+      Json.obj(
+        "code" -> code,
+        "reason" -> s"Reason for $code"
       )
-    }
+    )
+  }
 }

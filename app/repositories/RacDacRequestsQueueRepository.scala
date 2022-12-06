@@ -55,7 +55,7 @@ class RacDacRequestsQueueRepository @Inject()(configuration: Configuration, mong
 
   private val logger: Logger = Logger(classOf[RacDacRequestsQueueRepository])
 
-  override def now: Instant = Instant.now()
+  override def now(): Instant = Instant.now()
 
   override lazy val inProgressRetryAfter: Duration =
     Duration.ofMillis(configuration.get[Long]("racDacWorkItem.submission-poller.in-progress-retry-after"))
@@ -64,7 +64,7 @@ class RacDacRequestsQueueRepository @Inject()(configuration: Configuration, mong
   private lazy val ttl = servicesConfig.getDuration("racDacWorkItem.submission-poller.mongo.ttl").toSeconds
 
   def pushAll(racDacRequests: Seq[WorkItemRequest]): Future[Either[Exception, Seq[WorkItem[WorkItemRequest]]]] = {
-    pushNewBatch(racDacRequests, now, (_: WorkItemRequest) => ToDo).map(item => Right(item)).recover {
+    pushNewBatch(racDacRequests, now(), (_: WorkItemRequest) => ToDo).map(item => Right(item)).recover {
       case exception: Exception =>
         logger.error(s"Error occurred while pushing items to the queue: ${exception.getMessage}")
         Left(WorkItemProcessingException(s"push failed for request due to ${exception.getMessage}"))
@@ -72,7 +72,7 @@ class RacDacRequestsQueueRepository @Inject()(configuration: Configuration, mong
   }
 
   def push(racDacRequest: WorkItemRequest): Future[Either[Exception, WorkItem[WorkItemRequest]]] = {
-    pushNew(racDacRequest, now, (_: WorkItemRequest) => ToDo).map(item => Right(item)).recover {
+    pushNew(racDacRequest, now(), (_: WorkItemRequest) => ToDo).map(item => Right(item)).recover {
       case exception: Exception =>
         logger.error(s"Error occurred while pushing items to the queue: ${exception.getMessage}")
         Left(WorkItemProcessingException(s"push failed for request due to ${exception.getMessage}"))
@@ -80,14 +80,14 @@ class RacDacRequestsQueueRepository @Inject()(configuration: Configuration, mong
   }
 
   def pull: Future[Either[Exception, Option[WorkItem[WorkItemRequest]]]] =
-    pullOutstanding(failedBefore = now.minusMillis(retryPeriod), availableBefore = now)
+    pullOutstanding(failedBefore = now().minusMillis(retryPeriod), availableBefore = now())
       .map(workItem => Right(workItem)).recover {
       case exception: Exception => Left(WorkItemProcessingException(s"pull failed due to ${exception.getMessage}"))
     }
 
   def setProcessingStatus(id: ObjectId, status: ProcessingStatus
                          ): Future[Either[Exception, Boolean]] =
-    markAs(id, status, Some(now.plusMillis(retryPeriod)))
+    markAs(id, status, Some(now().plusMillis(retryPeriod)))
       .map(result => Right(result)).recover {
       case exception: Exception => Left(WorkItemProcessingException(s"setting processing status for $id failed due to ${exception.getMessage}"))
     }

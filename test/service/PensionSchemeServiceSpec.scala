@@ -17,17 +17,18 @@
 package service
 
 import audit._
-import base.SpecBase
 import connector.SchemeConnector
 import models.enumeration.SchemeType
 import models.userAnswersToEtmp.establisher.EstablisherDetails
 import models.userAnswersToEtmp.trustee.TrusteeDetails
 import models.userAnswersToEtmp.{CustomerAndSchemeDetails, PensionSchemeDeclaration, PensionsScheme, SchemeMigrationDetails}
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
-import org.mockito.MockitoSugar._
+import org.mockito.Mockito.{reset, times, verify, when}
 import org.scalatest.EitherValues
 import org.scalatest.flatspec.AsyncFlatSpec
+import org.scalatest.matchers.must.Matchers._
 import org.scalatest.matchers.should.Matchers
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status
 import play.api.libs.json._
 import play.api.mvc.AnyContentAsEmpty
@@ -42,6 +43,7 @@ class PensionSchemeServiceSpec
     with EitherValues {
 
   import PensionSchemeServiceSpec._
+
   val schemeSubscription: SchemeMigrationAuditEvent = SchemeMigrationAuditEvent(
     psaId = psaId,
     pstr = pstr,
@@ -57,7 +59,7 @@ class PensionSchemeServiceSpec
       thenReturn(Future.successful(Right(schemeRegistrationResponseJson)))
     pensionSchemeService.registerScheme(psaId, pensionsSchemeJson).map {
       response =>
-        val json = response.right.value
+        val json = response.value
         verify(schemeConnector, times(1)).registerScheme(any(), eqTo(regDataWithRacDacNode))(any())
         json.validate[SchemeRegistrationResponse] mustBe JsSuccess(schemeRegistrationResponse)
     }
@@ -68,9 +70,9 @@ class PensionSchemeServiceSpec
     when(schemeConnector.registerScheme(any(), any())(any())).
       thenReturn(Future.successful(Right(schemeRegistrationResponseJson)))
 
-    pensionSchemeService.registerRacDac(psaId, racDACPensionsSchemeJson)(implicitly,implicitly,Some(implicitly)).map {
+    pensionSchemeService.registerRacDac(psaId, racDACPensionsSchemeJson)(implicitly, implicitly, Some(implicitly)).map {
       response =>
-        val json = response.right.value
+        val json = response.value
         verify(schemeConnector, times(1)).registerScheme(any(), eqTo(racDacRegisterData))(any())
         json.validate[SchemeRegistrationResponse] mustBe JsSuccess(schemeRegistrationResponse)
     }
@@ -82,7 +84,7 @@ class PensionSchemeServiceSpec
       thenReturn(Future.successful(Right(schemeRegistrationResponseJson)))
     pensionSchemeService.registerScheme(psaId, pensionsSchemeJson).map {
       response =>
-        val json = response.right.value
+        val json = response.value
         val expected = schemeSubscription.copy(
           status = Status.OK,
           request = expectedJsonForAudit,
@@ -114,12 +116,12 @@ class PensionSchemeServiceSpec
     reset(schemeConnector)
     when(schemeConnector.registerScheme(any(), any())(any())).
       thenReturn(Future.successful(Right(schemeRegistrationResponseJson)))
-    pensionSchemeService.registerRacDac(psaId, racDACPensionsSchemeJson,true).map {
+    pensionSchemeService.registerRacDac(psaId, racDACPensionsSchemeJson, isBulk = true).map {
       response =>
-        val json = response.right.value
+        val json = response.value
         val expected = RacDacMigrationAuditEvent(
           psaId = psaId,
-          pstr=pstr,
+          pstr = pstr,
           status = Status.OK,
           request = racDacRegisterAuditData,
           response = Some(json)
@@ -133,13 +135,13 @@ class PensionSchemeServiceSpec
     when(schemeConnector.registerScheme(any(), any())(any())).
       thenReturn(Future.failed(new BadRequestException("bad request")))
 
-    pensionSchemeService.registerRacDac(psaId, racDACPensionsSchemeJson,true)
+    pensionSchemeService.registerRacDac(psaId, racDACPensionsSchemeJson, isBulk = true)
       .map(_ => fail("Expected failure"))
       .recover {
         case _: BadRequestException =>
           val expected = RacDacMigrationAuditEvent(
             psaId = psaId,
-            pstr=pstr,
+            pstr = pstr,
             status = Status.BAD_REQUEST,
             request = racDacRegisterAuditData,
             response = None
@@ -150,13 +152,13 @@ class PensionSchemeServiceSpec
 
 }
 
-object PensionSchemeServiceSpec extends SpecBase {
+object PensionSchemeServiceSpec extends MockitoSugar {
 
   private val schemeConnector: SchemeConnector = mock[SchemeConnector]
   private val auditService: StubSuccessfulAuditService = new StubSuccessfulAuditService()
 
   private val pensionSchemeService: PensionSchemeService = new PensionSchemeService(
-    schemeConnector,auditService, new SchemeAuditService
+    schemeConnector, auditService, new SchemeAuditService
   )
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
@@ -168,18 +170,18 @@ object PensionSchemeServiceSpec extends SpecBase {
   val pstr: String = "test-pstr"
 
   private val racDACPensionsSchemeJson: JsValue = Json.obj(
-      "schemeName" -> "test-scheme-name",
-      "policyNo" -> "121212",
-      "pstr" -> pstr,
-      "schemeOpenDate" -> "2012-02-20",
-      "relationshipStartDate" ->"2020-01-01"
+    "schemeName" -> "test-scheme-name",
+    "policyNo" -> "121212",
+    "pstr" -> pstr,
+    "schemeOpenDate" -> "2012-02-20",
+    "relationshipStartDate" -> "2020-01-01"
   )
 
-  val racDacRegisterData = Json.obj(
+  val racDacRegisterData: JsObject = Json.obj(
     "schemeMigrationDetails" -> Json.obj(
       "pstrOrTpssId" -> pstr,
       "registrationStartDate" -> "2012-02-20",
-      "psaRelationshipStartDate" -> "2020-01-01" ,
+      "psaRelationshipStartDate" -> "2020-01-01",
     ),
     "racdacScheme" -> true,
     "racdacSchemeDetails" -> Json.obj(
@@ -194,11 +196,11 @@ object PensionSchemeServiceSpec extends SpecBase {
     )
   )
 
-  val racDacRegisterAuditData = Json.obj(
+  val racDacRegisterAuditData: JsObject = Json.obj(
     "schemeMigrationDetails" -> Json.obj(
       "pstrOrTpssId" -> pstr,
       "registrationStartDate" -> "2012-02-20",
-      "psaRelationshipStartDate" -> "2020-01-01" ,
+      "psaRelationshipStartDate" -> "2020-01-01",
     ),
     "racdacScheme" -> true,
     "racdacSchemeDetails" -> Json.obj(
@@ -253,7 +255,7 @@ object PensionSchemeServiceSpec extends SpecBase {
     "membership" -> "opt1",
     "pstr" -> pstr,
     "schemeOpenDate" -> "2012-02-20",
-    "relationshipStartDate" ->"2020-01-01",
+    "relationshipStartDate" -> "2020-01-01",
     "currentMembers" -> "opt1",
     "futureMembers" -> "opt1",
     "investmentRegulated" -> false,
@@ -272,8 +274,8 @@ object PensionSchemeServiceSpec extends SpecBase {
           "lastName" -> "test-last-name"
         ),
         "dateOfBirth" -> "1969-07-20",
-          "email" -> "test-email-address",
-          "phone" -> "test-phone-number",
+        "email" -> "test-email-address",
+        "phone" -> "test-phone-number",
         "address" -> Json.obj(
           "addressLine1" -> "test-address-line-1",
           "country" -> "test-country"

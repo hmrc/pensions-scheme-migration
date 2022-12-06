@@ -20,9 +20,10 @@ import base.SpecBase
 import connector.SchemeConnector
 import models.Scheme
 import org.mockito.ArgumentMatchers.{any, eq => meq}
-import org.mockito.MockitoSugar
+import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.concurrent.{PatienceConfiguration, ScalaFutures}
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.{JsObject, JsResultException, JsValue, Json}
 import play.api.mvc.AnyContentAsJson
 import play.api.test.FakeRequest

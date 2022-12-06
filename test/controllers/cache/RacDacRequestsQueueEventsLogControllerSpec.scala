@@ -17,16 +17,18 @@
 package controllers.cache
 
 import org.mockito.ArgumentMatchers.{eq => eqTo, _}
-import org.mockito.MockitoSugar
+import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfter
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.mockito.MockitoSugar
+import play.api.Application
 import play.api.inject.bind
-import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
+import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
-import repositories.RacDacRequestsQueueEventsLogRepository
+import repositories._
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.{HeaderCarrier, HeaderNames}
 
@@ -36,15 +38,24 @@ class RacDacRequestsQueueEventsLogControllerSpec extends AnyWordSpec with Matche
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
 
-  private val repo = mock[RacDacRequestsQueueEventsLogRepository]
+  private val repo: RacDacRequestsQueueEventsLogRepository = mock[RacDacRequestsQueueEventsLogRepository]
   private val authConnector: AuthConnector = mock[AuthConnector]
   private val id = "id"
   private val fakeRequest = FakeRequest().withHeaders(HeaderNames.xSessionId -> "123")
 
-  private val modules: Seq[GuiceableModule] = Seq(
-    bind[AuthConnector].toInstance(authConnector),
-    bind[RacDacRequestsQueueEventsLogRepository].toInstance(repo)
-  )
+  private val app: Application = new GuiceApplicationBuilder()
+    .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
+    .overrides(bind[AuthConnector].toInstance(authConnector),
+      bind[RacDacRequestsQueueEventsLogRepository].toInstance(repo),
+      bind[AdminDataRepository].toInstance(mock[AdminDataRepository]),
+      bind[DataCacheRepository].toInstance(mock[DataCacheRepository]),
+      bind[ListOfLegacySchemesCacheRepository].toInstance(mock[ListOfLegacySchemesCacheRepository]),
+      bind[LockCacheRepository].toInstance(mock[LockCacheRepository]),
+      bind[RacDacRequestsQueueRepository].toInstance(mock[RacDacRequestsQueueRepository]),
+      bind[SchemeDataCacheRepository].toInstance(mock[SchemeDataCacheRepository]))
+    .build()
+
+  private val controller: RacDacRequestsQueueEventsLogController = app.injector.instanceOf[RacDacRequestsQueueEventsLogController]
 
   before {
     reset(repo)
@@ -54,12 +65,6 @@ class RacDacRequestsQueueEventsLogControllerSpec extends AnyWordSpec with Matche
   "RacDacRequestsQueueEventsLogController" when {
     "calling getStatus" must {
       "return OK when the status is OK" in {
-        val app = new GuiceApplicationBuilder()
-          .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
-          .overrides(modules: _*).build()
-
-        val controller = app.injector.instanceOf[RacDacRequestsQueueEventsLogController]
-
         when(repo.get(eqTo("123"))(any())) thenReturn Future.successful(Some(Json.obj("status" -> OK)))
         when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
 
@@ -68,12 +73,6 @@ class RacDacRequestsQueueEventsLogControllerSpec extends AnyWordSpec with Matche
       }
 
       "return 500 when the status is 500" in {
-        val app = new GuiceApplicationBuilder()
-          .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
-          .overrides(modules: _*).build()
-
-        val controller = app.injector.instanceOf[RacDacRequestsQueueEventsLogController]
-
         when(repo.get(eqTo("123"))(any())) thenReturn Future.successful(Some(Json.obj("status" -> INTERNAL_SERVER_ERROR)))
         when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
 
@@ -82,12 +81,6 @@ class RacDacRequestsQueueEventsLogControllerSpec extends AnyWordSpec with Matche
       }
 
       "return NOT FOUND when not present in repository" in {
-        val app = new GuiceApplicationBuilder()
-          .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
-          .overrides(modules: _*).build()
-
-        val controller = app.injector.instanceOf[RacDacRequestsQueueEventsLogController]
-
         when(repo.get(eqTo("123"))(any())) thenReturn Future.successful(None)
         when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
 

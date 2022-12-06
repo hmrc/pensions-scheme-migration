@@ -56,29 +56,29 @@ class PensionSchemeService @Inject()(schemeConnector: SchemeConnector,
 
             val auditRegisterData = {
               val pathToBoxFields = Seq(
-                (__ \ 'pensionSchemeDeclaration \ 'box6).json.prune,
-                (__ \ 'pensionSchemeDeclaration \ 'box7).json.prune,
-                (__ \ 'pensionSchemeDeclaration \ 'box8).json.prune,
-                (__ \ 'pensionSchemeDeclaration \ 'box10).json.prune,
-                (__ \ 'pensionSchemeDeclaration \ 'box11).json.prune)
+                (__ \ Symbol("pensionSchemeDeclaration") \ Symbol("box6")).json.prune,
+                (__ \ Symbol("pensionSchemeDeclaration") \ Symbol("box7")).json.prune,
+                (__ \ Symbol("pensionSchemeDeclaration") \ Symbol("box8")).json.prune,
+                (__ \ Symbol("pensionSchemeDeclaration") \ Symbol("box10")).json.prune,
+                (__ \ Symbol("pensionSchemeDeclaration") \ Symbol("box11")).json.prune)
 
               def pruneAll(jspaths: Seq[Reads[JsObject]], jsObject: JsObject): JsObject = {
-                jspaths.foldLeft(jsObject) {(act, path) => act.transform(path).asOpt.get}
+                jspaths.foldLeft(jsObject) { (act, path) => act.transform(path).asOpt.get }
               }
 
               pruneAll(pathToBoxFields, registerData)
             }
 
-            val pstr=validPensionsScheme.schemeMigrationDetails.pstrOrTpssId
+            val pstr = validPensionsScheme.schemeMigrationDetails.pstrOrTpssId
 
-            schemeAuditService.sendSchemeSubscriptionEvent(psaId,pstr, auditRegisterData)(auditService.sendEvent)
+            schemeAuditService.sendSchemeSubscriptionEvent(psaId, pstr, auditRegisterData)(auditService.sendEvent)
           }
       }
     )
   }
 
-  def registerRacDac(psaId: String, json: JsValue,isBulk:Boolean=false)
-                    (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext,request: Option[RequestHeader]=None):
+  def registerRacDac(psaId: String, json: JsValue, isBulk: Boolean = false)
+                    (implicit headerCarrier: HeaderCarrier, ec: ExecutionContext, request: Option[RequestHeader] = None):
   Future[Either[HttpException, JsValue]] = {
     json.validate[RACDACPensionsScheme](RACDACPensionsScheme.reads).fold(
       invalid = {
@@ -90,14 +90,14 @@ class PensionSchemeService @Inject()(schemeConnector: SchemeConnector,
       valid = {
         validRacDacPensionsScheme =>
           val registerData = Json.toJson(validRacDacPensionsScheme).as[JsObject]
-          val auditRegisterData = registerData.transform((__ \ 'racdacSchemeDeclaration).json.prune).asOpt.get
+          val auditRegisterData = registerData.transform((__ \ Symbol("racdacSchemeDeclaration")).json.prune).asOpt.get
 
           schemeConnector.registerScheme(psaId, registerData) andThen {
-            val pstr=validRacDacPensionsScheme.schemeMigrationDetails.pstrOrTpssId
-            if(isBulk) {
+            val pstr = validRacDacPensionsScheme.schemeMigrationDetails.pstrOrTpssId
+            if (isBulk) {
               schemeAuditService.sendRACDACSchemeSubscriptionEvent(psaId, pstr, auditRegisterData)(auditService.sendExplicitAudit)
-            }else{
-              implicit val requestHeader=request.get
+            } else {
+              implicit val requestHeader: RequestHeader = request.get
               schemeAuditService.sendRACDACSchemeSubscriptionEvent(psaId, pstr, auditRegisterData)(auditService.sendEvent)
             }
           }

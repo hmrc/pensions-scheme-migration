@@ -21,8 +21,7 @@ import play.api.libs.json._
 
 class TrusteeDetailsTransformerSpec extends TransformationSpec {
 
-  private val addressTransformer = new AddressTransformer
-  private def transformer = new TrusteeDetailsTransformer(addressTransformer, countryOptions)
+  private val transformer: TrusteeDetailsTransformer = injector.instanceOf[TrusteeDetailsTransformer]
 
   "An if payload containing trustee details" must {
     "have the individual details transformed correctly to valid user answers format" that {
@@ -40,15 +39,15 @@ class TrusteeDetailsTransformerSpec extends TransformationSpec {
       }
 
       s"has nino details in trustees array" in {
-          forAll(individualJsValueGen(isEstablisher = false)) {
-            individualDetails => {
-              val details = individualDetails._1
-              val result = details.transform(transformer.userAnswersNinoReads).get
+        forAll(individualJsValueGen(isEstablisher = false)) {
+          individualDetails => {
+            val details = individualDetails._1
+            val result = details.transform(transformer.userAnswersNinoReads).get
 
-              (result \ "nino" \ "value").asOpt[String] mustBe (details \ "nino").asOpt[String]
-              (result \ "noNinoReason").asOpt[String] mustBe (details \ "noNinoReason").asOpt[String]
-            }
+            (result \ "nino" \ "value").asOpt[String] mustBe (details \ "nino").asOpt[String]
+            (result \ "noNinoReason").asOpt[String] mustBe (details \ "noNinoReason").asOpt[String]
           }
+        }
       }
 
       s"has contact details in trustees array" in {
@@ -66,14 +65,14 @@ class TrusteeDetailsTransformerSpec extends TransformationSpec {
       }
 
       "has complete individual details" in {
-          forAll(individualJsValueGen(isEstablisher = false)) {
-            individualDetails => {
-              val (ifIndividualDetails, userAnswersIndividualDetails) = individualDetails
-              val result = ifIndividualDetails.transform(transformer.userAnswersTrusteeIndividualReads).get
+        forAll(individualJsValueGen(isEstablisher = false)) {
+          individualDetails => {
+            val (ifIndividualDetails, userAnswersIndividualDetails) = individualDetails
+            val result = ifIndividualDetails.transform(transformer.userAnswersTrusteeIndividualReads).get
 
-              result mustBe userAnswersIndividualDetails
-            }
+            result mustBe userAnswersIndividualDetails
           }
+        }
       }
     }
 
@@ -90,38 +89,38 @@ class TrusteeDetailsTransformerSpec extends TransformationSpec {
       }
 
       s"has vat details for company in trustees array" in {
-          forAll(companyJsValueGen(isEstablisher = true)) {
-            companyDetails => {
-              val details = companyDetails._1
-              val result = details.transform(transformer.userAnswersVatReads).get
+        forAll(companyJsValueGen(isEstablisher = true)) {
+          companyDetails => {
+            val details = companyDetails._1
+            val result = details.transform(transformer.userAnswersVatReads).get
 
-              (result \ "vat" \ "value").asOpt[String] mustBe (details \ "vatRegistrationNumber").asOpt[String]
-            }
+            (result \ "vat" \ "value").asOpt[String] mustBe (details \ "vatRegistrationNumber").asOpt[String]
           }
+        }
       }
 
       s"has paye details for company in trustees array" in {
-          forAll(companyJsValueGen(isEstablisher = true)) {
-            companyDetails => {
-              val details = companyDetails._1
-              val result = details.transform(transformer.userAnswersPayeReads).get
+        forAll(companyJsValueGen(isEstablisher = true)) {
+          companyDetails => {
+            val details = companyDetails._1
+            val result = details.transform(transformer.userAnswersPayeReads).get
 
-              (result \ "paye" \ "value").asOpt[String] mustBe (details \ "payeReference").asOpt[String]
-            }
+            (result \ "paye" \ "value").asOpt[String] mustBe (details \ "payeReference").asOpt[String]
           }
+        }
 
       }
 
       s"has crn details in trustees array" in {
-          forAll(companyJsValueGen(isEstablisher = false)) {
-            companyDetails => {
-              val details = companyDetails._1
-              val result = details.transform(transformer.userAnswersCrnReads).get
+        forAll(companyJsValueGen(isEstablisher = false)) {
+          companyDetails => {
+            val details = companyDetails._1
+            val result = details.transform(transformer.userAnswersCrnReads).get
 
-              (result \ "noCompanyNumberReason").asOpt[String] mustBe (details \ "noCrnReason").asOpt[String]
-              (result \ "companyNumber" \ "value").asOpt[String] mustBe (details \ "crnNumber").asOpt[String]
-            }
+            (result \ "noCompanyNumberReason").asOpt[String] mustBe (details \ "noCrnReason").asOpt[String]
+            (result \ "companyNumber" \ "value").asOpt[String] mustBe (details \ "crnNumber").asOpt[String]
           }
+        }
       }
 
       s"has contact details in trustees array" in {

@@ -19,9 +19,10 @@ package controllers
 import base.SpecBase
 import connector.LegacySchemeDetailsConnector
 import org.mockito.ArgumentMatchers.any
-import org.mockito.MockitoSugar
+import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.concurrent.{PatienceConfiguration, ScalaFutures}
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.{JsObject, JsValue, Json}
 import play.api.mvc.AnyContentAsEmpty
 import play.api.test.FakeRequest
@@ -65,14 +66,14 @@ class LegacySchemeDetailsControllerSpec
     "return OK when the scheme is registered successfully" in {
 
       val successResponse = userAnswersResponse
-      when(mockSchemeConnector.getSchemeDetails(any(), any())(any(), any(), any()))
+      when(mockSchemeConnector.getSchemeDetails(any(), any())(any(), any()))
         .thenReturn(Future.successful(Right(successResponse.as[JsObject])))
 
       val result = schemeDetailsController.getLegacySchemeDetails()(fakeRequest)
       ScalaFutures.whenReady(result) { _ =>
         status(result) mustBe OK
         contentAsJson(result) mustBe successResponse
-        verify(mockSchemeConnector, times(1)).getSchemeDetails(any(), any())(any(), any(), any())
+        verify(mockSchemeConnector, times(1)).getSchemeDetails(any(), any())(any(), any())
       }
     }
 
@@ -84,7 +85,7 @@ class LegacySchemeDetailsControllerSpec
       ScalaFutures.whenReady(result.failed) { e =>
         e mustBe a[BadRequestException]
         e.getMessage mustBe "Bad Request with missing parameters PSAId or PSTR"
-        verify(mockSchemeConnector, never).getSchemeDetails(any(), any())(any(), any(), any())
+        verify(mockSchemeConnector, never).getSchemeDetails(any(), any())(any(), any())
       }
     }
 
@@ -97,12 +98,12 @@ class LegacySchemeDetailsControllerSpec
       ScalaFutures.whenReady(result.failed) { e =>
         e mustBe a[BadRequestException]
         e.getMessage mustBe "Bad Request with missing parameters PSAId or PSTR"
-        verify(mockSchemeConnector, never).getSchemeDetails(any(), any())(any(), any(), any())
+        verify(mockSchemeConnector, never).getSchemeDetails(any(), any())(any(), any())
       }
     }
 
     "throw BadRequestException when bad request with INVALID_DATA returned from If" in {
-      when(mockSchemeConnector.getSchemeDetails(any(), any())(any(), any(), any()))
+      when(mockSchemeConnector.getSchemeDetails(any(), any())(any(), any()))
         .thenReturn(
           Future.failed(new BadRequestException(errorResponse("INVALID_DATA")))
         )
@@ -119,20 +120,20 @@ class LegacySchemeDetailsControllerSpec
         "code" -> "INVALID_PSAID",
         "reason" -> "Submission has not passed validation. Invalid parameter PSAID."
       )
-      when(mockSchemeConnector.getSchemeDetails(any(), any())(any(), any(), any()))
+      when(mockSchemeConnector.getSchemeDetails(any(), any())(any(), any()))
         .thenReturn(Future.failed(new BadRequestException(invalidPayload.toString())))
 
       val result = schemeDetailsController.getLegacySchemeDetails(fakeRequest)
       ScalaFutures.whenReady(result.failed) { e =>
         e mustBe a[BadRequestException]
         e.getMessage mustBe invalidPayload.toString()
-        verify(mockSchemeConnector, times(1)).getSchemeDetails(any(), any())(any(), any(), any())
+        verify(mockSchemeConnector, times(1)).getSchemeDetails(any(), any())(any(), any())
       }
     }
 
     "throw Upstream4xxResponse when UpStream4XXResponse returned from If" in {
 
-      when(mockSchemeConnector.getSchemeDetails(any(), any())(any(), any(), any())).thenReturn(
+      when(mockSchemeConnector.getSchemeDetails(any(), any())(any(), any())).thenReturn(
         Future.failed(UpstreamErrorResponse(errorResponse("NOT_FOUND"), NOT_FOUND, NOT_FOUND))
       )
 
@@ -145,7 +146,7 @@ class LegacySchemeDetailsControllerSpec
 
     "throw Upstream5xxResponse when UpStream5XXResponse with SERVICE_UNAVAILABLE returned from If" in {
 
-      when(mockSchemeConnector.getSchemeDetails(any(), any())(any(), any(), any()))
+      when(mockSchemeConnector.getSchemeDetails(any(), any())(any(), any()))
         .thenReturn(
           Future.failed(UpstreamErrorResponse(errorResponse("NOT_FOUND"), SERVICE_UNAVAILABLE, SERVICE_UNAVAILABLE))
         )
@@ -159,7 +160,7 @@ class LegacySchemeDetailsControllerSpec
 
     "throw Upstream5xxResponse when UpStream5XXResponse with INTERNAL_SERVER_ERROR returned from If" in {
 
-      when(mockSchemeConnector.getSchemeDetails(any(), any())(any(), any(), any()))
+      when(mockSchemeConnector.getSchemeDetails(any(), any())(any(), any()))
         .thenReturn(
           Future.failed(UpstreamErrorResponse(errorResponse("NOT_FOUND"), INTERNAL_SERVER_ERROR, INTERNAL_SERVER_ERROR))
         )
@@ -173,7 +174,7 @@ class LegacySchemeDetailsControllerSpec
 
     "throw generic exception when any other exception returned from If" in {
 
-      when(mockSchemeConnector.getSchemeDetails(any(), any())(any(), any(), any()))
+      when(mockSchemeConnector.getSchemeDetails(any(), any())(any(), any()))
         .thenReturn(Future.failed(new Exception("Generic Exception")))
 
       val result = schemeDetailsController.getLegacySchemeDetails()(fakeRequest)

@@ -20,10 +20,12 @@ import akka.actor.ActorSystem
 import akka.util.Timeout
 import models.racDac.{RacDacHeaders, RacDacRequest, WorkItemRequest}
 import org.bson.types.ObjectId
-import org.mockito.scalatest.MockitoSugar
+import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito._
 import org.scalatest.EitherValues
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.Json
 import play.api.test.Helpers.await
 import repositories.RacDacRequestsQueueRepository
@@ -36,7 +38,7 @@ import java.util.concurrent.TimeUnit
 import scala.concurrent.Future
 import scala.concurrent.duration.FiniteDuration
 
-class RacDacBulkSubmissionServiceSpec() extends AnyWordSpec with Matchers with MockitoSugar with EitherValues{
+class RacDacBulkSubmissionServiceSpec() extends AnyWordSpec with Matchers with MockitoSugar with EitherValues { // scalastyle:off magic.number
 
   implicit val timeout: Timeout = Timeout(FiniteDuration(5, TimeUnit.SECONDS))
 
@@ -49,7 +51,7 @@ class RacDacBulkSubmissionServiceSpec() extends AnyWordSpec with Matchers with M
   private val racDacBulkSubmissionService = new RacDacBulkSubmissionService(mockRacDacSubmissionRepo, mockPensionSchemeService)
 
   private val racDacRequest = WorkItemRequest("test psa id",
-    RacDacRequest("test rac dac", "123456","00615269RH","2012-02-20","2020-01-01"), RacDacHeaders(None, None))
+    RacDacRequest("test rac dac", "123456", "00615269RH", "2012-02-20", "2020-01-01"), RacDacHeaders(None, None))
 
   "RacDac Bulk Submission Service" when {
 
@@ -121,13 +123,13 @@ class RacDacBulkSubmissionServiceSpec() extends AnyWordSpec with Matchers with M
 
     "the submission poller pulls the work item" must {
       "submit the request to ETMP successfully" in {
-        when(mockPensionSchemeService.registerRacDac(any, any,any)(any, any,any)).thenReturn(Future(Right(Json.obj())))
+        when(mockPensionSchemeService.registerRacDac(any, any, any)(any, any, any)).thenReturn(Future(Right(Json.obj())))
         await(racDacBulkSubmissionService.submitToETMP(racDacRequest)) mustBe Right(Json.obj())
       }
 
       "failed submission to ETMP" in {
         val iException = new InternalServerException("Error")
-        when(mockPensionSchemeService.registerRacDac(any, any,any)(any, any,any)).thenReturn(Future(Left(iException)))
+        when(mockPensionSchemeService.registerRacDac(any, any, any)(any, any, any)).thenReturn(Future(Left(iException)))
         await(racDacBulkSubmissionService.submitToETMP(racDacRequest)) mustBe Left(iException)
       }
     }
