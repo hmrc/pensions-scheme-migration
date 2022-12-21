@@ -25,8 +25,7 @@ lazy val microservice = Project(appName, file("."))
 
   )
   .settings(resolvers ++= Seq(
-    Resolver.jcenterRepo,
-    Resolver.bintrayRepo("hmrc", "releases")
+    Resolver.jcenterRepo
   ))
   .settings(
     RoutesKeys.routesImport ++= Seq("models.enumeration.JourneyType"),
