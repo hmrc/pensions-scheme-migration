@@ -1,7 +1,5 @@
 resolvers += "HMRC-open-artefacts-maven" at "https://open.artefacts.tax.service.gov.uk/maven2"
 
-resolvers += Resolver.bintrayRepo("hmrc", "releases")
-
 resolvers += Resolver.url(
   name = "HMRC-open-artefacts-ivy",
   baseURL = url("https://open.artefacts.tax.service.gov.uk/ivy2")
