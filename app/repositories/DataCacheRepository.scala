@@ -30,8 +30,10 @@ import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
 import java.util.concurrent.TimeUnit
+import javax.inject.Singleton
 import scala.concurrent.{ExecutionContext, Future}
 
+@Singleton
 class DataCacheRepository @Inject()(
                                      lockCacheRepository: LockCacheRepository,
                                      mongoComponent: MongoComponent,

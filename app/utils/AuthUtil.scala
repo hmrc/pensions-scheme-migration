@@ -23,12 +23,12 @@ import uk.gov.hmrc.http.{HeaderCarrier, UnauthorizedException}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import javax.inject.Inject
-import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 
 class AuthUtil @Inject()(override val authConnector: AuthConnector,
                          cc: ControllerComponents
-                        )
+                        )(implicit val ec: ExecutionContext)
   extends BackendController(cc)
     with AuthorisedFunctions {
 
