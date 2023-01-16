@@ -22,7 +22,7 @@ import connector.utils.HttpResponseHelper
 import models.MigrationType.isRacDac
 import models.{ListOfLegacySchemes, MigrationType}
 import play.api.Logger
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{JsBoolean, JsObject, JsValue, Json}
 import play.api.mvc._
 import repositories.ListOfLegacySchemesCacheRepository
 import service.PensionSchemeService
@@ -77,7 +77,8 @@ class SchemeController @Inject()(
                 pensionSchemeService.registerScheme(psa, jsValue)
             }
             registerSchemeCall.map {
-              case Right(json) => Ok(json)
+              case Right(json: JsObject) => Ok(json)
+              case Right(_: JsBoolean) => NoContent
               case Left(e) => result(e)
             }
           case _ => Future.failed(new BadRequestException("Bad Request without PSAId or request body"))

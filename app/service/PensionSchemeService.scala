@@ -20,9 +20,10 @@ import audit.{AuditService, SchemeAuditService}
 import com.google.inject.{Inject, Singleton}
 import connector.SchemeConnector
 import models.userAnswersToEtmp.{PensionsScheme, RACDACPensionsScheme}
-import play.api.Logger
+import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc.RequestHeader
+import repositories.DeclarationLockRepository
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpException}
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -30,10 +31,9 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class PensionSchemeService @Inject()(schemeConnector: SchemeConnector,
                                      auditService: AuditService,
-                                     schemeAuditService: SchemeAuditService
-                                    ) {
-
-  private val logger = Logger(classOf[PensionSchemeService])
+                                     schemeAuditService: SchemeAuditService,
+                                     declarationLockRepository: DeclarationLockRepository
+                                    ) extends Logging {
 
   def registerScheme(psaId: String, json: JsValue)
                     (implicit ec: ExecutionContext,
@@ -50,28 +50,34 @@ class PensionSchemeService @Inject()(schemeConnector: SchemeConnector,
 
         validPensionsScheme =>
 
-
+          val pstr = validPensionsScheme.schemeMigrationDetails.pstrOrTpssId
           val registerData = Json.toJson(validPensionsScheme).as[JsObject]
-          schemeConnector.registerScheme(psaId, registerData) andThen {
 
-            val auditRegisterData = {
-              val pathToBoxFields = Seq(
-                (__ \ Symbol("pensionSchemeDeclaration") \ Symbol("box6")).json.prune,
-                (__ \ Symbol("pensionSchemeDeclaration") \ Symbol("box7")).json.prune,
-                (__ \ Symbol("pensionSchemeDeclaration") \ Symbol("box8")).json.prune,
-                (__ \ Symbol("pensionSchemeDeclaration") \ Symbol("box10")).json.prune,
-                (__ \ Symbol("pensionSchemeDeclaration") \ Symbol("box11")).json.prune)
+          declarationLockRepository.insertLockData(pstr, psaId).flatMap { isAvailable =>
 
-              def pruneAll(jspaths: Seq[Reads[JsObject]], jsObject: JsObject): JsObject = {
-                jspaths.foldLeft(jsObject) { (act, path) => act.transform(path).asOpt.get }
+            if (isAvailable) {
+              schemeConnector.registerScheme(psaId, registerData) andThen {
+
+                val auditRegisterData = {
+                  val pathToBoxFields = Seq(
+                    (__ \ Symbol("pensionSchemeDeclaration") \ Symbol("box6")).json.prune,
+                    (__ \ Symbol("pensionSchemeDeclaration") \ Symbol("box7")).json.prune,
+                    (__ \ Symbol("pensionSchemeDeclaration") \ Symbol("box8")).json.prune,
+                    (__ \ Symbol("pensionSchemeDeclaration") \ Symbol("box10")).json.prune,
+                    (__ \ Symbol("pensionSchemeDeclaration") \ Symbol("box11")).json.prune)
+
+                  def pruneAll(jspaths: Seq[Reads[JsObject]], jsObject: JsObject): JsObject = {
+                    jspaths.foldLeft(jsObject) { (act, path) => act.transform(path).asOpt.get }
+                  }
+
+                  pruneAll(pathToBoxFields, registerData)
+                }
+
+                schemeAuditService.sendSchemeSubscriptionEvent(psaId, pstr, auditRegisterData)(auditService.sendEvent)
               }
-
-              pruneAll(pathToBoxFields, registerData)
+            } else {
+              Future(Right(JsBoolean(false)))
             }
-
-            val pstr = validPensionsScheme.schemeMigrationDetails.pstrOrTpssId
-
-            schemeAuditService.sendSchemeSubscriptionEvent(psaId, pstr, auditRegisterData)(auditService.sendEvent)
           }
       }
     )
