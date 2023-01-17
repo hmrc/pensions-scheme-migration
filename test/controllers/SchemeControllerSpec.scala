@@ -24,7 +24,7 @@ import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.concurrent.{PatienceConfiguration, ScalaFutures}
 import org.scalatestplus.mockito.MockitoSugar
-import play.api.libs.json.{JsObject, JsResultException, JsValue, Json}
+import play.api.libs.json._
 import play.api.mvc.AnyContentAsJson
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
@@ -175,6 +175,17 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
   "registerScheme" must {
 
     def fakeRequest(data: JsValue): FakeRequest[AnyContentAsJson] = FakeRequest("POST", "/").withJsonBody(data).withHeaders(("psaId", "A2000001"))
+
+    val validData = readJsonFromFile("/data/validSchemeRegistrationRequest.json")
+    "return No_Content when the scheme is already registered  by the user within the TTL" in {
+      when(mockPensionSchemeService.registerScheme(any(), any())(any(), any())).thenReturn(
+        Future.successful(Right(JsBoolean(false))))
+
+      val result = schemeController.registerScheme(Scheme)(fakeRequest(validData))
+      ScalaFutures.whenReady(result) { _ =>
+        status(result) mustBe NO_CONTENT
+      }
+    }
 
     "return OK when the scheme is registered successfully" in {
       val validData = readJsonFromFile("/data/validSchemeRegistrationRequest.json")

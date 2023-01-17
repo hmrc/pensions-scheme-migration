@@ -23,16 +23,17 @@ import models.userAnswersToEtmp.establisher.EstablisherDetails
 import models.userAnswersToEtmp.trustee.TrusteeDetails
 import models.userAnswersToEtmp.{CustomerAndSchemeDetails, PensionSchemeDeclaration, PensionsScheme, SchemeMigrationDetails}
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
-import org.mockito.Mockito.{reset, times, verify, when}
-import org.scalatest.EitherValues
+import org.mockito.Mockito._
 import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.must.Matchers._
 import org.scalatest.matchers.should.Matchers
+import org.scalatest.{BeforeAndAfterEach, EitherValues}
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status
 import play.api.libs.json._
 import play.api.mvc.AnyContentAsEmpty
 import play.api.test.FakeRequest
+import repositories.DeclarationLockRepository
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier}
 
 import scala.concurrent.Future
@@ -40,7 +41,8 @@ import scala.concurrent.Future
 class PensionSchemeServiceSpec
   extends AsyncFlatSpec
     with Matchers
-    with EitherValues {
+    with EitherValues
+    with BeforeAndAfterEach {
 
   import PensionSchemeServiceSpec._
 
@@ -52,21 +54,40 @@ class PensionSchemeServiceSpec
     response = None
   )
 
-  "registerScheme" must "return the result of submitting a pensions scheme " in {
+  override protected def beforeEach(): Unit = {
     reset(schemeConnector)
+    reset(declarationLockRepository)
+    super.beforeEach()
+  }
+
+  "registerScheme" must "return the result of false when declaration has already done with same psaId and pstr " in {
+    val regDataWithRacDacNode = schemeJsValue.as[JsObject]
+    when(declarationLockRepository.insertLockData(any(), any())).
+      thenReturn(Future.successful(false))
+    pensionSchemeService.registerScheme(psaId, pensionsSchemeJson).map {
+      response =>
+        verify(schemeConnector, never()).registerScheme(any(), eqTo(regDataWithRacDacNode))(any())
+        verify(declarationLockRepository, times(1)).insertLockData(any(), any())
+        response mustBe Right(JsBoolean(false))
+    }
+  }
+
+  "registerScheme" must "return the result of submitting a pensions scheme " in {
     val regDataWithRacDacNode = schemeJsValue.as[JsObject]
     when(schemeConnector.registerScheme(any(), any())(any())).
       thenReturn(Future.successful(Right(schemeRegistrationResponseJson)))
+    when(declarationLockRepository.insertLockData(any(), any())).
+      thenReturn(Future.successful(true))
     pensionSchemeService.registerScheme(psaId, pensionsSchemeJson).map {
       response =>
         val json = response.value
         verify(schemeConnector, times(1)).registerScheme(any(), eqTo(regDataWithRacDacNode))(any())
+        verify(declarationLockRepository, times(1)).insertLockData(any(), any())
         json.validate[SchemeRegistrationResponse] mustBe JsSuccess(schemeRegistrationResponse)
     }
   }
 
   "registerScheme" must "return the result of submitting a RAC/DAC pensions scheme" in {
-    reset(schemeConnector)
     when(schemeConnector.registerScheme(any(), any())(any())).
       thenReturn(Future.successful(Right(schemeRegistrationResponseJson)))
 
@@ -79,9 +100,10 @@ class PensionSchemeServiceSpec
   }
 
   "register scheme" must "send a SchemeMigrationAudit event following a successful submission" in {
-    reset(schemeConnector)
     when(schemeConnector.registerScheme(any(), any())(any())).
       thenReturn(Future.successful(Right(schemeRegistrationResponseJson)))
+    when(declarationLockRepository.insertLockData(any(), any())).
+      thenReturn(Future.successful(true))
     pensionSchemeService.registerScheme(psaId, pensionsSchemeJson).map {
       response =>
         val json = response.value
@@ -95,9 +117,10 @@ class PensionSchemeServiceSpec
   }
 
   it must "send a SchemeMigrationAudit event following an unsuccessful submission" in {
-    reset(schemeConnector)
     when(schemeConnector.registerScheme(any(), any())(any())).
       thenReturn(Future.failed(new BadRequestException("bad request")))
+    when(declarationLockRepository.insertLockData(any(), any())).
+      thenReturn(Future.successful(true))
 
     pensionSchemeService.registerScheme(psaId, pensionsSchemeJson)
       .map(_ => fail("Expected failure"))
@@ -113,7 +136,6 @@ class PensionSchemeServiceSpec
   }
 
   "register RAC DAC scheme" must "send a RacDacMigrationAuditEvent event following a successful submission" in {
-    reset(schemeConnector)
     when(schemeConnector.registerScheme(any(), any())(any())).
       thenReturn(Future.successful(Right(schemeRegistrationResponseJson)))
     pensionSchemeService.registerRacDac(psaId, racDACPensionsSchemeJson, isBulk = true).map {
@@ -131,7 +153,6 @@ class PensionSchemeServiceSpec
   }
 
   it must "send a RacDacMigrationAuditEvent event following an unsuccessful submission" in {
-    reset(schemeConnector)
     when(schemeConnector.registerScheme(any(), any())(any())).
       thenReturn(Future.failed(new BadRequestException("bad request")))
 
@@ -155,10 +176,11 @@ class PensionSchemeServiceSpec
 object PensionSchemeServiceSpec extends MockitoSugar {
 
   private val schemeConnector: SchemeConnector = mock[SchemeConnector]
+  private val declarationLockRepository: DeclarationLockRepository = mock[DeclarationLockRepository]
   private val auditService: StubSuccessfulAuditService = new StubSuccessfulAuditService()
 
   private val pensionSchemeService: PensionSchemeService = new PensionSchemeService(
-    schemeConnector, auditService, new SchemeAuditService
+    schemeConnector, auditService, new SchemeAuditService, declarationLockRepository
   )
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
