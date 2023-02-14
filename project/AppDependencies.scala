@@ -2,10 +2,10 @@ import play.sbt.PlayImport._
 import sbt._
 
 object AppDependencies {
-
+  private val playVersion = "7.13.0"
   val compile = Seq(
     ws,
-    "uk.gov.hmrc"                   %% "bootstrap-backend-play-28"         % "7.13.0",
+    "uk.gov.hmrc"                   %% "bootstrap-backend-play-28"         % playVersion,
     "uk.gov.hmrc.mongo"             %% "hmrc-mongo-work-item-repo-play-28" % "0.74.0",
     "uk.gov.hmrc"                   %% "domain"                            % "8.1.0-play-28",
     "com.typesafe.play"             %% "play-json-joda"                    % "2.9.4",
@@ -18,7 +18,7 @@ object AppDependencies {
   val AkkaVersion = "2.6.14"
 
   val test = Seq(
-    "uk.gov.hmrc"             %% "bootstrap-test-play-28"       % "7.13.0",
+    "uk.gov.hmrc"             %% "bootstrap-test-play-28"       % playVersion,
     "uk.gov.hmrc.mongo"       %% "hmrc-mongo-test-play-28"      % "0.74.0",
     "com.vladsch.flexmark"    %  "flexmark-all"                 % "0.64.0",
     "de.flapdoodle.embed"     %  "de.flapdoodle.embed.mongo"    % "3.5.3",
