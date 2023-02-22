@@ -17,7 +17,7 @@
 package controllers.cache
 
 import javax.inject.Inject
-import models.FeatureToggleName
+import models.{FeatureToggleName, ToggleDetails}
 import play.api.libs.json.{JsBoolean, Json}
 import play.api.mvc.{AbstractController, Action, AnyContent, ControllerComponents}
 import services.FeatureToggleService
@@ -53,6 +53,40 @@ class FeatureToggleController @Inject()(
           featureToggleService.set(toggleName, enabled).map(_ => NoContent)
         case _ =>
           Future.successful(BadRequest)
+      }
+    }
+  }
+
+
+  def upsertFeatureToggle: Action[AnyContent] = Action.async {
+    request => {
+      request.body.asJson match {
+        case Some(body) =>
+          val toggleData = body.as[ToggleDetails]
+          featureToggleService.upsertFeatureToggle(toggleData).map(_ => NoContent)
+        case None =>
+          Future.successful(NotFound)
+      }
+    }
+  }
+
+  def deleteToggle(toggleName: String): Action[AnyContent] = Action.async { _ => {
+    featureToggleService.deleteToggle(toggleName).map(_ => NoContent)
+  }
+  }
+
+  def getToggle(toggleName: String): Action[AnyContent] = Action.async { _ => {
+    featureToggleService.getToggle(toggleName) map {
+      case Some(toggle) => Ok(Json.toJson(toggle))
+      case _ => NoContent
+    }
+  }
+  }
+
+  def getAllFeatureToggles: Action[AnyContent] = Action.async { _ =>
+    featureToggleService.getAllFeatureToggles map {
+      seqToggles => {
+        Ok(Json.toJson(seqToggles))
       }
     }
   }
