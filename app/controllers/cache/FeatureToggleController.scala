@@ -65,7 +65,7 @@ class FeatureToggleController @Inject()(
           val toggleData = body.as[ToggleDetails]
           featureToggleService.upsertFeatureToggle(toggleData).map(_ => NoContent)
         case None =>
-          Future.successful(NotFound)
+          Future.successful(BadRequest)
       }
     }
   }
