@@ -16,7 +16,7 @@
 
 package service
 
-import akka.actor.{ActorSystem, Cancellable}
+import org.apache.pekko.actor.{ActorSystem, Cancellable}
 import com.google.inject.{ImplementedBy, Inject, Singleton}
 import models.racDac.WorkItemRequest
 import play.api.Logger

@@ -17,7 +17,6 @@
 package repositories
 
 import models.cache.{DataJson, MigrationLock}
-import org.joda.time.{DateTime, DateTimeZone}
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito.{reset, times, verify, when}
 import org.scalatest.RecoverMethods.recoverToExceptionIf
@@ -30,6 +29,7 @@ import play.api.Configuration
 import play.api.libs.json.Json
 import uk.gov.hmrc.mongo.MongoComponent
 
+import java.time.{LocalDateTime, ZoneId}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
@@ -248,14 +248,14 @@ object DataCacheRepositorySpec extends MockitoSugar {
     DataJson(
       pstr = pstr,
       data = data,
-      lastUpdated = DateTime.now(DateTimeZone.UTC),
-      expireAt = DateTime.now(DateTimeZone.UTC).plusSeconds(60)
+      lastUpdated = LocalDateTime.now(ZoneId.of("UTC")),
+      expireAt = LocalDateTime.now(ZoneId.of("UTC")).plusSeconds(60)
     ),
     DataJson(
       pstr = anotherPstr,
       data = data,
-      lastUpdated = DateTime.now(DateTimeZone.UTC),
-      expireAt = DateTime.now(DateTimeZone.UTC).plusSeconds(60)
+      lastUpdated = LocalDateTime.now(ZoneId.of("UTC")),
+      expireAt = LocalDateTime.now(ZoneId.of("UTC")).plusSeconds(60)
     )
   )
 
