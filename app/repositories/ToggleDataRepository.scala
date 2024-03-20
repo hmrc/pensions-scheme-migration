@@ -78,7 +78,7 @@ class ToggleDataRepository @Inject()(
   }
 
   def getAllFeatureToggles: Future[Seq[ToggleDetails]] = {
-    collection.find[JsValue].toFuture().map {
+    collection.find[JsValue]().toFuture().map {
       seqJsValue =>
         seqJsValue map {
           jsVal => (jsVal \ "data").asOpt[ToggleDetails]

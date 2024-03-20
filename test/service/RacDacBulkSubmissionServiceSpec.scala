@@ -16,8 +16,8 @@
 
 package service
 
-import akka.actor.ActorSystem
-import akka.util.Timeout
+import org.apache.pekko.actor.ActorSystem
+import org.apache.pekko.util.Timeout
 import models.racDac.{RacDacHeaders, RacDacRequest, WorkItemRequest}
 import org.bson.types.ObjectId
 import org.mockito.ArgumentMatchers.any

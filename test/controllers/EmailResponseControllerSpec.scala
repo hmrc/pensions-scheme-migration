@@ -20,13 +20,14 @@ import audit.{AuditService, EmailAuditEvent, StubSuccessfulAuditService}
 import base.SpecBase
 import models._
 import models.enumeration.JourneyType
-import org.joda.time.DateTime
 import play.api.inject.bind
 import play.api.inject.guice.GuiceableModule
 import play.api.libs.json.{JsObject, Json}
 import play.api.test.Helpers._
 import uk.gov.hmrc.crypto.{ApplicationCrypto, PlainText}
 import uk.gov.hmrc.domain.PsaId
+
+import java.time.LocalDateTime
 
 class EmailResponseControllerSpec extends SpecBase {
 
@@ -96,7 +97,7 @@ object EmailResponseControllerSpec {
 
   val psa: PsaId = PsaId("A7654321")
   val pstr = "A0000030"
-  val emailEvents: EmailEvents = EmailEvents(Seq(EmailEvent(Sent, DateTime.now()), EmailEvent(Delivered, DateTime.now()), EmailEvent(Opened, DateTime.now())))
+  val emailEvents: EmailEvents = EmailEvents(Seq(EmailEvent(Sent, LocalDateTime.now()), EmailEvent(Delivered, LocalDateTime.now()), EmailEvent(Opened, LocalDateTime.now())))
 
   val fakeAuditService = new StubSuccessfulAuditService()
 

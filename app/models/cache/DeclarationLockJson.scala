@@ -16,13 +16,12 @@
 
 package models.cache
 
-import org.joda.time.DateTime
-import play.api.libs.json.{Format, Json, OFormat}
-import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
+import play.api.libs.json.{Json, OFormat}
 
-case class DeclarationLockJson(pstr: String, psaId: String, expireAt: DateTime)
+import java.time.LocalDateTime
+
+case class DeclarationLockJson(pstr: String, psaId: String, expireAt: LocalDateTime)
 
 object DeclarationLockJson {
-  implicit val dateFormats: Format[DateTime] = MongoJodaFormats.dateTimeFormat
   implicit val format: OFormat[DeclarationLockJson] = Json.format[DeclarationLockJson]
 }

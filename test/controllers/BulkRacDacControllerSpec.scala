@@ -16,7 +16,7 @@
 
 package controllers
 
-import akka.actor.ActorSystem
+import org.apache.pekko.actor.ActorSystem
 import audit.{AuditService, EmailRequestAuditEvent, RacDacBulkMigrationTriggerAuditEvent}
 import base.SpecBase
 import config.AppConfig

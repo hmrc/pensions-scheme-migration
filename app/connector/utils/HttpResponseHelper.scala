@@ -16,7 +16,7 @@
 
 package connector.utils
 
-import akka.util.ByteString
+import org.apache.pekko.util.ByteString
 import play.api.http.HttpEntity
 import play.api.http.Status._
 import play.api.libs.json.JsResultException
