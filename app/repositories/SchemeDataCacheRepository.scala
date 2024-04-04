@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,13 +18,12 @@ package repositories
 
 import com.google.inject.Inject
 import com.mongodb.client.model.FindOneAndUpdateOptions
-import org.joda.time.{DateTime, DateTimeZone}
+import java.time.{LocalDateTime, ZoneId}
 import org.mongodb.scala.model.Updates.set
 import org.mongodb.scala.model._
 import play.api.libs.json._
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
 import java.util.concurrent.TimeUnit
@@ -53,12 +52,10 @@ class SchemeDataCacheRepository @Inject()(mongoComponent: MongoComponent,
 
   import SchemeDataCacheRepository._
 
-  implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
-
-  private def expireInSeconds: DateTime = DateTime.now(DateTimeZone.UTC)
+  private def expireInSeconds: LocalDateTime = LocalDateTime.now(ZoneId.of("UTC"))
     .toLocalDate
     .plusDays(configuration.get[Int](path = "mongodb.migration-cache.scheme-data-cache.timeToLiveInDays") + 1)
-    .toDateTimeAtStartOfDay()
+    .atStartOfDay()
 
   def save(id: String, userData: JsValue)(implicit ec: ExecutionContext): Future[Boolean] = {
     logger.debug("Calling Save in Scheme Data Cache")
@@ -70,7 +67,7 @@ class SchemeDataCacheRepository @Inject()(mongoComponent: MongoComponent,
       update = Updates.combine(
         set(idKey, id),
         set(dataKey, Codecs.toBson(userData)),
-        set(lastUpdatedKey, Codecs.toBson(DateTime.now(DateTimeZone.UTC))),
+        set(lastUpdatedKey, Codecs.toBson(LocalDateTime.now(ZoneId.of("UTC")))),
         set(expireAtKey, Codecs.toBson(expireInSeconds))
       ),
       upsertOptions

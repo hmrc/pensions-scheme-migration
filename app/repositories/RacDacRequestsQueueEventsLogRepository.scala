@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,8 +24,8 @@ import org.mongodb.scala.model._
 import play.api.libs.json._
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
+import java.time.{LocalDateTime, ZoneId}
 
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
@@ -54,9 +54,7 @@ class RacDacRequestsQueueEventsLogRepository @Inject()(mongoComponent: MongoComp
 
   import RacDacRequestsQueueEventsLogRepository._
 
-  implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
-
-  private def expireInSeconds: DateTime = DateTime.now(DateTimeZone.UTC).
+  private def expireInSeconds: LocalDateTime = LocalDateTime.now(ZoneId.of("UTC")).
     plusSeconds(configuration.get[Int](path = "mongodb.migration-cache.rac-dac-requests-queue-events-log.timeToLiveInSeconds"))
 
   def save(id: String, userData: JsValue)(implicit ec: ExecutionContext): Future[Boolean] = {
@@ -68,7 +66,7 @@ class RacDacRequestsQueueEventsLogRepository @Inject()(mongoComponent: MongoComp
       update = Updates.combine(
         set(idKey, id),
         set(dataKey, Codecs.toBson(userData)),
-        set(lastUpdatedKey, Codecs.toBson(DateTime.now(DateTimeZone.UTC))),
+        set(lastUpdatedKey, Codecs.toBson(LocalDateTime.now(ZoneId.of("UTC")))),
         set(expireAtKey, Codecs.toBson(expireInSeconds))
       ),
       upsertOptions

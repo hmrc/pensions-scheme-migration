@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,12 @@
 
 package models.cache
 
-import org.joda.time.DateTime
-import play.api.libs.json.{Format, JsValue, Json, OFormat}
-import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
+import play.api.libs.json.{JsValue, Json, OFormat}
+import java.time.LocalDateTime
 
-case class DataJson(pstr: String, data: JsValue, lastUpdated: DateTime, expireAt: DateTime)
+
+case class DataJson(pstr: String, data: JsValue, lastUpdated: LocalDateTime, expireAt: LocalDateTime)
 
 object DataJson {
-  implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
   implicit val format: OFormat[DataJson] = Json.format[DataJson]
 }

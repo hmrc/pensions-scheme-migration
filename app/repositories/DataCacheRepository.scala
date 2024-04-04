@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,16 +19,15 @@ package repositories
 import com.google.inject.Inject
 import com.mongodb.client.model.FindOneAndUpdateOptions
 import models.cache.{DataJson, MigrationLock}
-import org.joda.time.{DateTime, DateTimeZone}
 import org.mongodb.scala.model.Updates.set
 import org.mongodb.scala.model._
 import play.api.libs.json._
 import play.api.{Configuration, Logging}
 import repositories.DataCacheRepository.{AlreadyLockedException, LockCouldNotBeSetException}
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
-
+import java.time.temporal.ChronoUnit
+import java.time.{LocalDateTime, ZoneId, ZoneOffset}
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 import scala.concurrent.{ExecutionContext, Future}
@@ -60,13 +59,12 @@ class DataCacheRepository @Inject()(
   private val expireAtKey = "expireAt"
   private val lastUpdatedKey = "lastUpdated"
 
-  private def expireInSeconds: DateTime = DateTime.now(DateTimeZone.UTC)
+  private def expireInSeconds: LocalDateTime = LocalDateTime.now(ZoneId.of("UTC"))
     .toLocalDate
     .plusDays(configuration.get[Int](path = "mongodb.migration-cache.data-cache.timeToLiveInDays") + 1)
-    .toDateTimeAtStartOfDay()
+    .atStartOfDay()
 
   def renewLockAndSave(lock: MigrationLock, userData: JsValue)(implicit ec: ExecutionContext): Future[Boolean] = {
-    implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
 
     val upsertOptions = new FindOneAndUpdateOptions().upsert(true)
     logger.debug("Calling Save in Migration Data Cache")
@@ -78,7 +76,7 @@ class DataCacheRepository @Inject()(
           update = Updates.combine(
             set(pstrKey, Codecs.toBson(lock.pstr)),
             set(dataKey, Codecs.toBson(userData)),
-            set(lastUpdatedKey, Codecs.toBson(DateTime.now(DateTimeZone.UTC))),
+            set(lastUpdatedKey, Codecs.toBson(LocalDateTime.now(ZoneId.of("UTC")))),
             set(expireAtKey, Codecs.toBson(expireInSeconds))
           ),
           upsertOptions
@@ -105,7 +103,7 @@ class DataCacheRepository @Inject()(
       .map {
         _.map { dataJson =>
           dataJson.data.as[JsObject] ++
-            Json.obj("expireAt" -> JsNumber(dataJson.expireAt.minusDays(1).getMillis))
+            Json.obj("expireAt" -> JsNumber(dataJson.expireAt.toInstant(ZoneOffset.UTC).minus(1, ChronoUnit.DAYS).toEpochMilli))
         }
       }
   }

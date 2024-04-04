@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,11 +21,11 @@ import com.mongodb.client.model.FindOneAndUpdateOptions
 import org.joda.time.{DateTime, DateTimeZone}
 import org.mongodb.scala.model.Updates.set
 import org.mongodb.scala.model._
-import play.api.libs.json.{Format, JsObject, JsValue}
+import play.api.libs.json.{JsObject, JsValue}
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
+import java.time.{LocalDateTime, ZoneId}
 
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
@@ -53,8 +53,6 @@ class ListOfLegacySchemesCacheRepository@Inject()(
     )
   ) with Logging {
 
-  implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
-
   import ListOfLegacySchemesCacheRepository._
 
   def upsert(id: String, data: JsValue)(implicit ec: ExecutionContext): Future[Boolean] = {
@@ -65,7 +63,7 @@ class ListOfLegacySchemesCacheRepository@Inject()(
       update = Updates.combine(
         set(idKey, id),
         set(dataKey, Codecs.toBson(data)),
-        set(lastUpdatedKey, Codecs.toBson(DateTime.now(DateTimeZone.UTC)))
+        set(lastUpdatedKey, Codecs.toBson(LocalDateTime.now(ZoneId.of("UTC"))))
       ),
       upsertOptions
     ).toFuture().map(_ => true)
@@ -79,12 +77,12 @@ class ListOfLegacySchemesCacheRepository@Inject()(
       .map { _.flatMap { dataJson => (dataJson \ "data").asOpt[JsObject]}}
   }
 
-  def getLastUpdated(id: String)(implicit ec: ExecutionContext): Future[Option[DateTime]] = {
+  def getLastUpdated(id: String)(implicit ec: ExecutionContext): Future[Option[LocalDateTime]] = {
     collection.find(
       filter = Filters.eq(idKey, id)
     ).toFuture()
       .map(_.headOption)
-      .map { _.flatMap { dataJson => (dataJson \ "lastUpdated").asOpt[DateTime]}}
+      .map { _.flatMap { dataJson => (dataJson \ "lastUpdated").asOpt[LocalDateTime]}}
   }
 
   def remove(id: String)(implicit ec: ExecutionContext): Future[Boolean] = {
