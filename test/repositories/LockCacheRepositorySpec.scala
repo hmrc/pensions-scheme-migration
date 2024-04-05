@@ -29,7 +29,7 @@ import play.api.Configuration
 import play.api.libs.json.Json
 import uk.gov.hmrc.mongo.MongoComponent
 
-import java.time.{LocalDateTime, ZoneId}
+import java.time.{Instant, LocalDateTime, ZoneId}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 
@@ -197,15 +197,15 @@ object LockCacheRepositorySpec extends MockitoSugar {
       pstr = pstr,
       credId = credId,
       data = Json.toJson(MigrationLock(pstr, credId, psaId)),
-      lastUpdated = LocalDateTime.now(ZoneId.of("UTC")),
-      expireAt = LocalDateTime.now(ZoneId.of("UTC")).plusSeconds(60)
+      lastUpdated = Instant.now(),
+      expireAt = Instant.now().plusSeconds(60)
     ),
     LockJson(
       pstr = anotherPstr,
       credId = anotherCredId,
       data = Json.toJson(MigrationLock(anotherPstr, anotherCredId, anotherPsaId)),
-      lastUpdated = LocalDateTime.now(ZoneId.of("UTC")),
-      expireAt = LocalDateTime.now(ZoneId.of("UTC")).plusSeconds(60)
+      lastUpdated = Instant.now(),
+      expireAt = Instant.now().plusSeconds(60)
     )
   )
 

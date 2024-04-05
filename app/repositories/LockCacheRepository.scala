@@ -25,9 +25,11 @@ import org.mongodb.scala.model._
 import play.api.libs.json._
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
-import java.time.{LocalDateTime, ZoneId}
+import java.time.temporal.ChronoUnit
+import java.time.{Instant, LocalDateTime, ZoneId, ZoneOffset}
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 import scala.concurrent.{ExecutionContext, Future}
@@ -57,8 +59,8 @@ class LockCacheRepository @Inject()(
     )
   ) with Logging {
 
-  private def expireInSeconds: LocalDateTime = LocalDateTime.now(ZoneId.of("UTC")).
-    plusSeconds(configuration.get[Int](path = "mongodb.migration-cache.lock-cache.timeToLiveInSeconds"))
+  private def expireInSeconds: Instant = LocalDateTime.now(ZoneId.of("UTC")).toInstant(ZoneOffset.UTC)
+    .plus(configuration.get[Int](path = "mongodb.migration-cache.lock-cache.timeToLiveInSeconds"), ChronoUnit.SECONDS)
 
   private lazy val documentExistsErrorCode = 11000
 
@@ -82,8 +84,8 @@ class LockCacheRepository @Inject()(
         set(pstrKey, Codecs.toBson(lock.pstr)),
         set(credIdKey, Codecs.toBson(lock.credId)),
         set(dataKey, Codecs.toBson(data)),
-        set(lastUpdatedKey, Codecs.toBson(LocalDateTime.now(ZoneId.of("UTC")))),
-        set(expireAtKey, Codecs.toBson(expireInSeconds))
+        set(lastUpdatedKey, Instant.now()),
+        set(expireAtKey, expireInSeconds)
       ),
       upsertOptions
     ).toFuture().map { _ => true }

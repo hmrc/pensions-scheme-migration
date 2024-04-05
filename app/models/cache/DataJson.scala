@@ -16,12 +16,14 @@
 
 package models.cache
 
-import play.api.libs.json.{JsValue, Json, OFormat}
+import play.api.libs.json.{Format, JsValue, Json, OFormat}
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
-import java.time.LocalDateTime
+import java.time.Instant
 
-case class DataJson(pstr: String, data: JsValue, lastUpdated: LocalDateTime, expireAt: LocalDateTime)
+case class DataJson(pstr: String, data: JsValue, lastUpdated: Instant, expireAt: Instant)
 
 object DataJson {
+  implicit val dateFormat: Format[Instant] = MongoJavatimeFormats.instantFormat
   implicit val format: OFormat[DataJson] = Json.format[DataJson]
 }

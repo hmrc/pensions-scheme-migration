@@ -27,7 +27,7 @@ import play.api.Configuration
 import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.mongo.MongoComponent
 
-import java.time.{LocalDateTime, ZoneId}
+import java.time.{Instant, LocalDateTime, ZoneId}
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
@@ -170,13 +170,13 @@ object SchemeDataCacheRepositorySpec extends MockitoSugar {
   private val item1 = Json.obj(
     idKey -> id1,
     dataKey -> data1,
-    lastUpdatedKey -> LocalDateTime.now(ZoneId.of("UTC"))
+    lastUpdatedKey -> Instant.now()
   )
 
   private val item2 = Json.obj(
     idKey -> id2,
     dataKey -> data2,
-    lastUpdatedKey -> LocalDateTime.now(ZoneId.of("UTC"))
+    lastUpdatedKey -> Instant.now()
   )
 
   private val seqExistingData: Seq[JsObject] = Seq(

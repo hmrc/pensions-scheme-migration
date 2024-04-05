@@ -27,7 +27,7 @@ import play.api.test.Helpers._
 import uk.gov.hmrc.crypto.{ApplicationCrypto, PlainText}
 import uk.gov.hmrc.domain.PsaId
 
-import java.time.LocalDateTime
+import java.time.Instant
 
 class EmailResponseControllerSpec extends SpecBase {
 
@@ -97,7 +97,7 @@ object EmailResponseControllerSpec {
 
   val psa: PsaId = PsaId("A7654321")
   val pstr = "A0000030"
-  val emailEvents: EmailEvents = EmailEvents(Seq(EmailEvent(Sent, LocalDateTime.now()), EmailEvent(Delivered, LocalDateTime.now()), EmailEvent(Opened, LocalDateTime.now())))
+  val emailEvents: EmailEvents = EmailEvents(Seq(EmailEvent(Sent, Instant.now()), EmailEvent(Delivered, Instant.now()), EmailEvent(Opened, Instant.now())))
 
   val fakeAuditService = new StubSuccessfulAuditService()
 

@@ -25,10 +25,11 @@ import play.api.libs.json._
 import play.api.{Configuration, Logging}
 import repositories.DataCacheRepository.{AlreadyLockedException, LockCouldNotBeSetException}
 import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
 import java.time.temporal.ChronoUnit
-import java.time.{LocalDateTime, ZoneId, ZoneOffset}
+import java.time.{Instant, LocalDate, ZoneId}
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 import scala.concurrent.{ExecutionContext, Future}
@@ -60,10 +61,8 @@ class DataCacheRepository @Inject()(
   private val expireAtKey = "expireAt"
   private val lastUpdatedKey = "lastUpdated"
 
-  private def expireInSeconds: LocalDateTime = LocalDateTime.now(ZoneId.of("UTC"))
-    .toLocalDate
-    .plusDays(configuration.get[Int](path = "mongodb.migration-cache.data-cache.timeToLiveInDays") + 1)
-    .atStartOfDay()
+  private def expireInSeconds: Instant = LocalDate.now().atStartOfDay(ZoneId.of("UTC")).toInstant
+    .plus(configuration.get[Int](path = "mongodb.migration-cache.data-cache.timeToLiveInDays") + 1, ChronoUnit.DAYS)
 
   def renewLockAndSave(lock: MigrationLock, userData: JsValue)(implicit ec: ExecutionContext): Future[Boolean] = {
 
@@ -77,8 +76,8 @@ class DataCacheRepository @Inject()(
           update = Updates.combine(
             set(pstrKey, Codecs.toBson(lock.pstr)),
             set(dataKey, Codecs.toBson(userData)),
-            set(lastUpdatedKey, Codecs.toBson(LocalDateTime.now(ZoneId.of("UTC")))),
-            set(expireAtKey, Codecs.toBson(expireInSeconds))
+            set(lastUpdatedKey, Instant.now()),
+            set(expireAtKey, expireInSeconds)
           ),
           upsertOptions
         ).toFuture().map(_ => true)
@@ -104,7 +103,7 @@ class DataCacheRepository @Inject()(
       .map {
         _.map { dataJson =>
           dataJson.data.as[JsObject] ++
-            Json.obj("expireAt" -> JsNumber(dataJson.expireAt.toInstant(ZoneOffset.UTC).minus(1, ChronoUnit.DAYS).toEpochMilli))
+            Json.obj("expireAt" -> JsNumber(dataJson.expireAt.minus(1, ChronoUnit.DAYS).toEpochMilli))
         }
       }
   }

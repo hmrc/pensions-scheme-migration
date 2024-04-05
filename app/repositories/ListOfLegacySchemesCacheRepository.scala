@@ -23,9 +23,10 @@ import org.mongodb.scala.model._
 import play.api.libs.json.{JsObject, JsValue}
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
-import java.time.{LocalDateTime, ZoneId}
+import java.time.{Instant, ZoneId}
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 import scala.concurrent.{ExecutionContext, Future}
@@ -63,7 +64,7 @@ class ListOfLegacySchemesCacheRepository@Inject()(
       update = Updates.combine(
         set(idKey, id),
         set(dataKey, Codecs.toBson(data)),
-        set(lastUpdatedKey, Codecs.toBson(LocalDateTime.now(ZoneId.of("UTC"))))
+        set(lastUpdatedKey, Instant.now())
       ),
       upsertOptions
     ).toFuture().map(_ => true)
@@ -77,12 +78,12 @@ class ListOfLegacySchemesCacheRepository@Inject()(
       .map { _.flatMap { dataJson => (dataJson \ "data").asOpt[JsObject]}}
   }
 
-  def getLastUpdated(id: String)(implicit ec: ExecutionContext): Future[Option[LocalDateTime]] = {
+  def getLastUpdated(id: String)(implicit ec: ExecutionContext): Future[Option[Instant]] = {
     collection.find(
       filter = Filters.eq(idKey, id)
     ).toFuture()
       .map(_.headOption)
-      .map { _.flatMap { dataJson => (dataJson \ "lastUpdated").asOpt[LocalDateTime]}}
+      .map { _.flatMap { dataJson => (dataJson \ "lastUpdated").asOpt[Instant]}}
   }
 
   def remove(id: String)(implicit ec: ExecutionContext): Future[Boolean] = {

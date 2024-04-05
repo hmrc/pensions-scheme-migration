@@ -23,9 +23,11 @@ import org.mongodb.scala.model._
 import play.api.libs.json._
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.mongo.MongoComponent
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
-import java.time.{LocalDateTime, ZoneId}
+import java.time.temporal.ChronoUnit
+import java.time.{Instant, LocalDate, ZoneId, ZoneOffset}
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 import scala.concurrent.{ExecutionContext, Future}
@@ -52,10 +54,8 @@ class SchemeDataCacheRepository @Inject()(mongoComponent: MongoComponent,
 
   import SchemeDataCacheRepository._
 
-  private def expireInSeconds: LocalDateTime = LocalDateTime.now(ZoneId.of("UTC"))
-    .toLocalDate
-    .plusDays(configuration.get[Int](path = "mongodb.migration-cache.scheme-data-cache.timeToLiveInDays") + 1)
-    .atStartOfDay()
+  private def expireInSeconds: Instant = LocalDate.now(ZoneId.of("UTC")).atStartOfDay().toInstant(ZoneOffset.UTC)
+    .plus(configuration.get[Int](path = "mongodb.migration-cache.scheme-data-cache.timeToLiveInDays") + 1, ChronoUnit.DAYS)
 
   def save(id: String, userData: JsValue)(implicit ec: ExecutionContext): Future[Boolean] = {
     logger.debug("Calling Save in Scheme Data Cache")
@@ -67,8 +67,8 @@ class SchemeDataCacheRepository @Inject()(mongoComponent: MongoComponent,
       update = Updates.combine(
         set(idKey, id),
         set(dataKey, Codecs.toBson(userData)),
-        set(lastUpdatedKey, Codecs.toBson(LocalDateTime.now(ZoneId.of("UTC")))),
-        set(expireAtKey, Codecs.toBson(expireInSeconds))
+        set(lastUpdatedKey, Instant.now()),
+        set(expireAtKey, expireInSeconds)
       ),
       upsertOptions
     ).toFuture().map(_ => true)

@@ -29,7 +29,7 @@ import play.api.Configuration
 import play.api.libs.json.Json
 import uk.gov.hmrc.mongo.MongoComponent
 
-import java.time.{LocalDateTime, ZoneId}
+import java.time.{Instant, LocalDateTime, ZoneId}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
@@ -248,14 +248,14 @@ object DataCacheRepositorySpec extends MockitoSugar {
     DataJson(
       pstr = pstr,
       data = data,
-      lastUpdated = LocalDateTime.now(ZoneId.of("UTC")),
-      expireAt = LocalDateTime.now(ZoneId.of("UTC")).plusSeconds(60)
+      lastUpdated = Instant.now(),
+      expireAt = Instant.now().plusSeconds(60)
     ),
     DataJson(
       pstr = anotherPstr,
       data = data,
-      lastUpdated = LocalDateTime.now(ZoneId.of("UTC")),
-      expireAt = LocalDateTime.now(ZoneId.of("UTC")).plusSeconds(60)
+      lastUpdated = Instant.now(),
+      expireAt = Instant.now().plusSeconds(60)
     )
   )
 
