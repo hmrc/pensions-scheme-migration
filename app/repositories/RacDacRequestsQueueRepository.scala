@@ -40,7 +40,7 @@ class RacDacRequestsQueueRepository @Inject()(configuration: Configuration, mong
     workItemFields = WorkItemFields.default
   ) {
 
-  override def ensureIndexes: Future[Seq[String]] = {
+  override def ensureIndexes(): Future[Seq[String]] = {
     val extraIndexes: Seq[IndexModel] = Seq(
       IndexModel(Indexes.ascending("item.psaId"), IndexOptions().name("psaIdIdx").background(true)),
       IndexModel(

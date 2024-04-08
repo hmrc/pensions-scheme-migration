@@ -18,15 +18,16 @@ package repositories
 
 import com.google.inject.Inject
 import com.mongodb.client.model.FindOneAndUpdateOptions
-import org.joda.time.{DateTime, DateTimeZone}
 import org.mongodb.scala.model.Updates.set
 import org.mongodb.scala.model._
 import play.api.libs.json._
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
+import java.time.temporal.ChronoUnit
+import java.time.{Instant, LocalDateTime, ZoneId, ZoneOffset}
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 import scala.concurrent.{ExecutionContext, Future}
@@ -54,10 +55,8 @@ class RacDacRequestsQueueEventsLogRepository @Inject()(mongoComponent: MongoComp
 
   import RacDacRequestsQueueEventsLogRepository._
 
-  implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
-
-  private def expireInSeconds: DateTime = DateTime.now(DateTimeZone.UTC).
-    plusSeconds(configuration.get[Int](path = "mongodb.migration-cache.rac-dac-requests-queue-events-log.timeToLiveInSeconds"))
+  private def expireInSeconds: Instant = LocalDateTime.now(ZoneId.of("UTC")).toInstant(ZoneOffset.UTC)
+    .plus(configuration.get[Int](path = "mongodb.migration-cache.rac-dac-requests-queue-events-log.timeToLiveInSeconds"), ChronoUnit.SECONDS)
 
   def save(id: String, userData: JsValue)(implicit ec: ExecutionContext): Future[Boolean] = {
     logger.debug("Calling Save in RacDacRequestsQueueEventsLogRepository")
@@ -68,8 +67,8 @@ class RacDacRequestsQueueEventsLogRepository @Inject()(mongoComponent: MongoComp
       update = Updates.combine(
         set(idKey, id),
         set(dataKey, Codecs.toBson(userData)),
-        set(lastUpdatedKey, Codecs.toBson(DateTime.now(DateTimeZone.UTC))),
-        set(expireAtKey, Codecs.toBson(expireInSeconds))
+        set(lastUpdatedKey, Instant.now()),
+        set(expireAtKey, expireInSeconds)
       ),
       upsertOptions
     ).toFuture().map(_ => true)

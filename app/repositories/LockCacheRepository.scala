@@ -19,16 +19,17 @@ package repositories
 import com.google.inject.Inject
 import com.mongodb.client.model.FindOneAndUpdateOptions
 import models.cache.{LockJson, MigrationLock}
-import org.joda.time.{DateTime, DateTimeZone}
 import org.mongodb.scala.MongoCommandException
 import org.mongodb.scala.model.Updates.set
 import org.mongodb.scala.model._
 import play.api.libs.json._
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
+import java.time.temporal.ChronoUnit
+import java.time.{Instant, LocalDateTime, ZoneId, ZoneOffset}
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 import scala.concurrent.{ExecutionContext, Future}
@@ -58,8 +59,8 @@ class LockCacheRepository @Inject()(
     )
   ) with Logging {
 
-  private def expireInSeconds: DateTime = DateTime.now(DateTimeZone.UTC).
-    plusSeconds(configuration.get[Int](path = "mongodb.migration-cache.lock-cache.timeToLiveInSeconds"))
+  private def expireInSeconds: Instant = LocalDateTime.now(ZoneId.of("UTC")).toInstant(ZoneOffset.UTC)
+    .plus(configuration.get[Int](path = "mongodb.migration-cache.lock-cache.timeToLiveInSeconds"), ChronoUnit.SECONDS)
 
   private lazy val documentExistsErrorCode = 11000
 
@@ -71,7 +72,6 @@ class LockCacheRepository @Inject()(
   private val lastUpdatedKey = "lastUpdated"
 
   def setLock(lock: MigrationLock): Future[Boolean] = {
-    implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
     val upsertOptions = new FindOneAndUpdateOptions().upsert(true)
 
     val data: JsValue = Json.toJson(MigrationLock(lock.pstr, lock.credId, lock.psaId))
@@ -84,8 +84,8 @@ class LockCacheRepository @Inject()(
         set(pstrKey, Codecs.toBson(lock.pstr)),
         set(credIdKey, Codecs.toBson(lock.credId)),
         set(dataKey, Codecs.toBson(data)),
-        set(lastUpdatedKey, Codecs.toBson(DateTime.now(DateTimeZone.UTC))),
-        set(expireAtKey, Codecs.toBson(expireInSeconds))
+        set(lastUpdatedKey, Instant.now()),
+        set(expireAtKey, expireInSeconds)
       ),
       upsertOptions
     ).toFuture().map { _ => true }

@@ -16,7 +16,6 @@
 
 package repositories
 
-import org.joda.time.{DateTime, DateTimeZone}
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito.{reset, when}
 import org.scalatest.concurrent.ScalaFutures
@@ -25,10 +24,10 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.Configuration
-import play.api.libs.json.{Format, JsObject, Json}
+import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
 
+import java.time.Instant
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
@@ -159,8 +158,6 @@ class RacDacRequestsQueueEventsLogRepositorySpec extends AnyWordSpec with Mockit
 
 
 object RacDacRequestsQueueEventsLogRepositorySpec extends MockitoSugar {
-  implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
-
   private val mockConfiguration = mock[Configuration]
 
   private val idKey = "id"
@@ -176,13 +173,13 @@ object RacDacRequestsQueueEventsLogRepositorySpec extends MockitoSugar {
   private val item1 = Json.obj(
     idKey -> id1,
     dataKey -> data1,
-    lastUpdatedKey -> DateTime.now(DateTimeZone.UTC)
+    lastUpdatedKey -> Instant.now()
   )
 
   private val item2 = Json.obj(
     idKey -> id2,
     dataKey -> data2,
-    lastUpdatedKey -> DateTime.now(DateTimeZone.UTC)
+    lastUpdatedKey -> Instant.now()
   )
 
   private val seqExistingData: Seq[JsObject] = Seq(

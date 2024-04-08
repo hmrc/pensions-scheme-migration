@@ -16,13 +16,14 @@
 
 package models.cache
 
-import org.joda.time.DateTime
 import play.api.libs.json.{Format, JsValue, Json, OFormat}
-import uk.gov.hmrc.mongo.play.json.formats.MongoJodaFormats
+import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
-case class DataJson(pstr: String, data: JsValue, lastUpdated: DateTime, expireAt: DateTime)
+import java.time.Instant
+
+case class DataJson(pstr: String, data: JsValue, lastUpdated: Instant, expireAt: Instant)
 
 object DataJson {
-  implicit val dateFormat: Format[DateTime] = MongoJodaFormats.dateTimeFormat
+  implicit val dateFormat: Format[Instant] = MongoJavatimeFormats.instantFormat
   implicit val format: OFormat[DataJson] = Json.format[DataJson]
 }
