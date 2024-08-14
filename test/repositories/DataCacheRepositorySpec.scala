@@ -212,9 +212,9 @@ class DataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
       }
 
       Await.result(endState, Duration.Inf) match {
-        case Tuple3(response, migrationLock, anotherLock) =>
-          migrationLock mustBe None
-          anotherLock.isDefined mustBe true
+        case Tuple3(response, firstRetrieved, secondRetrieved) =>
+          firstRetrieved mustBe None
+          secondRetrieved.isDefined mustBe true
           response mustBe true
       }
     }
