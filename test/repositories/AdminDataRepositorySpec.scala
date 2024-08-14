@@ -33,7 +33,7 @@ import uk.gov.hmrc.mongo.MongoComponent
 import scala.concurrent.ExecutionContext.Implicits.global
 
 
-class AdminDataRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with EmbeddedMongoDBSupport with BeforeAndAfter with
+class AdminDataRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with BeforeAndAfter with
   BeforeAndAfterAll with ScalaFutures { // scalastyle:off magic.number
 
   override implicit val patienceConfig: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(1, Millis))
@@ -42,16 +42,15 @@ class AdminDataRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
 
   var adminDataRepository: AdminDataRepository = _
 
+  val mongoHost = "localhost"
+  var mongoPort: Int = 27017
+
   override def beforeAll(): Unit = {
     when(mockAppConfig.get[String](path = "mongodb.migration-cache.admin-data.name")).thenReturn("admin-data")
-    initMongoDExecutable()
-    startMongoD()
     adminDataRepository = buildFormRepository(mongoHost, mongoPort)
     super.beforeAll()
   }
 
-  override def afterAll(): Unit =
-    stopMongoD()
 
   "getFeatureToggle" must {
     "get FeatureToggles from Mongo collection" in {

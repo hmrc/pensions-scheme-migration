@@ -33,13 +33,14 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 
 
-class RacDacRequestsQueueEventsLogRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with EmbeddedMongoDBSupport with BeforeAndAfter with
+class RacDacRequestsQueueEventsLogRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with BeforeAndAfter with
   BeforeAndAfterAll with BeforeAndAfterEach with ScalaFutures { // scalastyle:off magic.number
 
   import RacDacRequestsQueueEventsLogRepositorySpec._
 
   var racDacRequestsQueueEventsLogRepository: RacDacRequestsQueueEventsLogRepository = _
-
+  val mongoHost = "localhost"
+  var mongoPort: Int = 27017
   override def beforeAll(): Unit = {
     when(mockConfiguration.get[String](ArgumentMatchers.eq("mongodb.migration-cache.rac-dac-requests-queue-events-log.name"))(ArgumentMatchers.any()))
       .thenReturn("rac-dac-requests-queue-events-log")
@@ -47,14 +48,11 @@ class RacDacRequestsQueueEventsLogRepositorySpec extends AnyWordSpec with Mockit
       (ArgumentMatchers.any()))
       .thenReturn(3600)
 
-    initMongoDExecutable()
-    startMongoD()
+
     racDacRequestsQueueEventsLogRepository = buildFormRepository(mongoHost, mongoPort)
     super.beforeAll()
   }
 
-  override def afterAll(): Unit =
-    stopMongoD()
 
   override def beforeEach(): Unit = {
     reset(mockConfiguration)

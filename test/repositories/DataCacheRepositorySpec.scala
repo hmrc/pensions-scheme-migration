@@ -35,21 +35,21 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
 
 
-class DataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with EmbeddedMongoDBSupport with BeforeAndAfter with
+class DataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with BeforeAndAfter with
   BeforeAndAfterAll with BeforeAndAfterEach with ScalaFutures { // scalastyle:off magic.number
 
   import DataCacheRepositorySpec._
   import repositories.DataCacheRepository.LockCouldNotBeSetException
 
   var dataCacheRepository: DataCacheRepository = _
+  val mongoHost = "localhost"
+  var mongoPort: Int = 27017
 
   override def beforeAll(): Unit = {
     when(mockConfiguration.get[String](ArgumentMatchers.eq("mongodb.migration-cache.data-cache.name"))(ArgumentMatchers.any()))
       .thenReturn("migration-data")
     when(mockConfiguration.get[Int](ArgumentMatchers.eq("mongodb.migration-cache.data-cache.timeToLiveInDays"))(ArgumentMatchers.any()))
       .thenReturn(28)
-    initMongoDExecutable()
-    startMongoD()
     dataCacheRepository = buildFormRepository(mongoHost, mongoPort)
     super.beforeAll()
   }
@@ -60,8 +60,6 @@ class DataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
     super.beforeEach()
   }
 
-  override def afterAll(): Unit =
-    stopMongoD()
 
   "get" must {
     "get data from Mongo collection when present" in {

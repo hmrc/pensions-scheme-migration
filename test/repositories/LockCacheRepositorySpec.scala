@@ -33,7 +33,7 @@ import java.time.{Instant, LocalDateTime, ZoneId}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 
-class LockCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with EmbeddedMongoDBSupport with BeforeAndAfter with
+class LockCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with BeforeAndAfter with
   BeforeAndAfterAll with BeforeAndAfterEach with ScalaFutures { // scalastyle:off magic.number
 
   override implicit val patienceConfig: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(1, Millis))
@@ -41,21 +41,18 @@ class LockCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
   import LockCacheRepositorySpec._
 
   var lockCacheRepository: LockCacheRepository = _
-
+  val mongoHost = "localhost"
+  var mongoPort: Int = 27017
   override def beforeAll(): Unit = {
 
     when(mockConfiguration.get[String](ArgumentMatchers.eq("mongodb.migration-cache.lock-cache.name"))(ArgumentMatchers.any()))
       .thenReturn("migration-lock")
     when(mockConfiguration.get[Int](ArgumentMatchers.eq("mongodb.migration-cache.lock-cache.timeToLiveInSeconds"))(ArgumentMatchers.any()))
       .thenReturn(900)
-    initMongoDExecutable()
-    startMongoD()
+
     lockCacheRepository = buildFormRepository(mongoHost, mongoPort)
     super.beforeAll()
   }
-
-  override def afterAll(): Unit =
-    stopMongoD()
 
   override def beforeEach(): Unit = {
     reset(mockConfiguration)
