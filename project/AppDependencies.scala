@@ -23,7 +23,7 @@ object AppDependencies {
     "uk.gov.hmrc"             %% "bootstrap-test-play-30"       % bootstrapVersion,
     "uk.gov.hmrc.mongo"       %% "hmrc-mongo-test-play-30"      % hmrcMongoVersion,
     "com.vladsch.flexmark"    %  "flexmark-all"                 % "0.64.8",
-    "de.flapdoodle.embed"     %  "de.flapdoodle.embed.mongo"    % "3.5.3",
+    "de.flapdoodle.embed"     %  "de.flapdoodle.embed.mongo"    % "4.13.0",
     "org.scalatestplus"       %% "scalacheck-1-17"              % "3.2.17.0",
     "org.scalatestplus"       %% "mockito-4-6"                  % "3.2.15.0",
     "org.scalatestplus.play"  %% "scalatestplus-play"           % "7.0.1",
