@@ -205,13 +205,15 @@ class DataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
         ).toFuture()
 
         response <- dataCacheRepository.remove(pstr)
+        firstRetrieved <- dataCacheRepository.get(pstr)
         secondRetrieved <- dataCacheRepository.get(anotherPstr)
       } yield {
-        Tuple2(response, secondRetrieved)
+        Tuple3(response, firstRetrieved, secondRetrieved)
       }
 
       Await.result(endState, Duration.Inf) match {
-        case Tuple2(response, secondRetrieved) =>
+        case Tuple3(response, firstRetrieved, secondRetrieved) =>
+          firstRetrieved mustBe None
           secondRetrieved.isDefined mustBe true
           response mustBe true
       }
