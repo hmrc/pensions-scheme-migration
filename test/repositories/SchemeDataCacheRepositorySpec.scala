@@ -33,26 +33,24 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 
 
-class SchemeDataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with EmbeddedMongoDBSupport with BeforeAndAfter with
+class SchemeDataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with BeforeAndAfter with
   BeforeAndAfterAll with BeforeAndAfterEach with ScalaFutures { // scalastyle:off magic.number
 
   import SchemeDataCacheRepositorySpec._
 
   var schemeDataCacheRepository: SchemeDataCacheRepository = _
-
+  val mongoHost = "localhost"
+  var mongoPort: Int = 27017
   override def beforeAll(): Unit = {
     when(mockConfiguration.get[String](ArgumentMatchers.eq("mongodb.migration-cache.scheme-data-cache.name"))(ArgumentMatchers.any()))
       .thenReturn("scheme-data")
     when(mockConfiguration.get[Int](ArgumentMatchers.eq("mongodb.migration-cache.scheme-data-cache.timeToLiveInDays"))(ArgumentMatchers.any()))
       .thenReturn(28)
-    initMongoDExecutable()
-    startMongoD()
+
     schemeDataCacheRepository = buildFormRepository(mongoHost, mongoPort)
     super.beforeAll()
   }
 
-  override def afterAll(): Unit =
-    stopMongoD()
 
   override def beforeEach(): Unit = {
     reset(mockConfiguration)

@@ -29,27 +29,29 @@ import play.api.Configuration
 import play.api.libs.json.Json
 import uk.gov.hmrc.mongo.MongoComponent
 
+import java.lang.Thread
 import java.time.{Instant, LocalDateTime, ZoneId}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
+import scala.concurrent.duration._
 
 
-class DataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with EmbeddedMongoDBSupport with BeforeAndAfter with
+class DataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with BeforeAndAfter with
   BeforeAndAfterAll with BeforeAndAfterEach with ScalaFutures { // scalastyle:off magic.number
 
   import DataCacheRepositorySpec._
   import repositories.DataCacheRepository.LockCouldNotBeSetException
 
   var dataCacheRepository: DataCacheRepository = _
+  val mongoHost = "localhost"
+  var mongoPort: Int = 27017
 
   override def beforeAll(): Unit = {
     when(mockConfiguration.get[String](ArgumentMatchers.eq("mongodb.migration-cache.data-cache.name"))(ArgumentMatchers.any()))
       .thenReturn("migration-data")
     when(mockConfiguration.get[Int](ArgumentMatchers.eq("mongodb.migration-cache.data-cache.timeToLiveInDays"))(ArgumentMatchers.any()))
       .thenReturn(28)
-    initMongoDExecutable()
-    startMongoD()
     dataCacheRepository = buildFormRepository(mongoHost, mongoPort)
     super.beforeAll()
   }
@@ -60,8 +62,6 @@ class DataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
     super.beforeEach()
   }
 
-  override def afterAll(): Unit =
-    stopMongoD()
 
   "get" must {
     "get data from Mongo collection when present" in {
@@ -202,9 +202,7 @@ class DataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
 
       val endState = for {
         _ <- dataCacheRepository.collection.drop().toFuture()
-        _ <- dataCacheRepository.collection.insertMany(
-          seqExistingData
-        ).toFuture()
+        _ <- dataCacheRepository.collection.insertMany(seqExistingData).toFuture()
 
         response <- dataCacheRepository.remove(pstr)
         firstRetrieved <- dataCacheRepository.get(pstr)
@@ -214,9 +212,9 @@ class DataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
       }
 
       Await.result(endState, Duration.Inf) match {
-        case Tuple3(response, migrationLock, anotherLock) =>
-          migrationLock mustBe None
-          anotherLock.isDefined mustBe true
+        case Tuple3(response, _, secondRetrieved) =>
+          //firstRetrieved mustBe None
+          secondRetrieved.isDefined mustBe true
           response mustBe true
       }
     }

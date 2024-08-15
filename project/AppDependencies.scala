@@ -3,10 +3,12 @@ import sbt._
 
 object AppDependencies {
   private val bootstrapVersion = "8.5.0"
+  private val hmrcMongoVersion = "2.1.0"
+
   val compile = Seq(
     ws,
     "uk.gov.hmrc"                   %% "bootstrap-backend-play-30"         % bootstrapVersion,
-    "uk.gov.hmrc.mongo"             %% "hmrc-mongo-work-item-repo-play-30" % "1.7.0",
+    "uk.gov.hmrc.mongo"             %% "hmrc-mongo-work-item-repo-play-30" % hmrcMongoVersion,
     "uk.gov.hmrc"                   %% "domain"                            % "8.1.0-play-28",
     "com.typesafe.play"             %% "play-json-joda"                    % "2.10.4",
     "com.typesafe.play"             %% "play-json"                         % "2.10.4",
@@ -19,9 +21,8 @@ object AppDependencies {
 
   val test = Seq(
     "uk.gov.hmrc"             %% "bootstrap-test-play-30"       % bootstrapVersion,
-    "uk.gov.hmrc.mongo"       %% "hmrc-mongo-test-play-30"      % "1.7.0",
+    "uk.gov.hmrc.mongo"       %% "hmrc-mongo-test-play-30"      % hmrcMongoVersion,
     "com.vladsch.flexmark"    %  "flexmark-all"                 % "0.64.8",
-    "de.flapdoodle.embed"     %  "de.flapdoodle.embed.mongo"    % "3.5.3",
     "org.scalatestplus"       %% "scalacheck-1-17"              % "3.2.17.0",
     "org.scalatestplus"       %% "mockito-4-6"                  % "3.2.15.0",
     "org.scalatestplus.play"  %% "scalatestplus-play"           % "7.0.1",

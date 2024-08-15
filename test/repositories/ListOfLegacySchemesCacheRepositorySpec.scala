@@ -33,11 +33,12 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 
 
-class ListOfLegacySchemesCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with EmbeddedMongoDBSupport with BeforeAndAfter with
+class ListOfLegacySchemesCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with BeforeAndAfter with
   BeforeAndAfterAll with BeforeAndAfterEach with ScalaFutures { // scalastyle:off magic.number
 
   import ListOfLegacySchemesCacheRepositorySpec._
-
+  val mongoHost = "localhost"
+  var mongoPort: Int = 27017
   var listOfLegacySchemesCacheRepository: ListOfLegacySchemesCacheRepository = _
 
   override def beforeAll(): Unit = {
@@ -46,14 +47,10 @@ class ListOfLegacySchemesCacheRepositorySpec extends AnyWordSpec with MockitoSug
     when(mockConfiguration.get[Int](ArgumentMatchers.eq("mongodb.migration-cache.list-of-legacy-schemes.timeToLiveInSeconds"))(ArgumentMatchers.any()))
       .thenReturn(7200)
 
-    initMongoDExecutable()
-    startMongoD()
+
     listOfLegacySchemesCacheRepository = buildFormRepository(mongoHost, mongoPort)
     super.beforeAll()
   }
-
-  override def afterAll(): Unit =
-    stopMongoD()
 
   override def beforeEach(): Unit = {
     reset(mockConfiguration)
