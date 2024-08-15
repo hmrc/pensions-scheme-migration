@@ -29,10 +29,12 @@ import play.api.Configuration
 import play.api.libs.json.Json
 import uk.gov.hmrc.mongo.MongoComponent
 
+import java.lang.Thread
 import java.time.{Instant, LocalDateTime, ZoneId}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 import scala.concurrent.{Await, Future}
+import scala.concurrent.duration._
 
 
 class DataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with BeforeAndAfter with
@@ -200,11 +202,10 @@ class DataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
 
       val endState = for {
         _ <- dataCacheRepository.collection.drop().toFuture()
-        _ <- dataCacheRepository.collection.insertMany(
-          seqExistingData
-        ).toFuture()
+        _ <- dataCacheRepository.collection.insertMany(seqExistingData).toFuture()
 
         response <- dataCacheRepository.remove(pstr)
+        _ = Thread.sleep(2000L)
         firstRetrieved <- dataCacheRepository.get(pstr)
         secondRetrieved <- dataCacheRepository.get(anotherPstr)
       } yield {
