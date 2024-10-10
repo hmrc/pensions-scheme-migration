@@ -39,7 +39,6 @@ lazy val microservice = Project(appName, file("."))
   )
   .settings(
     RoutesKeys.routesImport ++= Seq(
-      "models.FeatureToggleName",
       "models.MigrationType"
     )
   )
