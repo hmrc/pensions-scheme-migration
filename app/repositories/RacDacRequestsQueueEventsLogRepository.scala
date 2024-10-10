@@ -87,7 +87,7 @@ class RacDacRequestsQueueEventsLogRepository @Inject()(mongoComponent: MongoComp
   }
 
   def remove(id: String)(implicit ec: ExecutionContext): Future[Boolean] = {
-    logger.warn(s"Removing row from collection rac dac requests queue events log repository")
+    logger.info(s"Removing row from collection rac dac requests queue events log repository")
     collection.deleteOne(
       filter = Filters.eq(idKey, id)
     ).toFuture().map(_ => true)

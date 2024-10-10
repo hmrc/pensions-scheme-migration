@@ -87,7 +87,7 @@ class ListOfLegacySchemesCacheRepository@Inject()(
   }
 
   def remove(id: String)(implicit ec: ExecutionContext): Future[Boolean] = {
-    logger.warn(s"Removing row from list of legacy schemes collection externalId:$id")
+    logger.info(s"Removing row from list of legacy schemes collection externalId:$id")
     collection.deleteOne(
       filter = Filters.eq(idKey, id)
     ).toFuture().map( _ => true)
