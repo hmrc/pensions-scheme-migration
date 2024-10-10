@@ -86,7 +86,7 @@ class SchemeDataCacheRepository @Inject()(mongoComponent: MongoComponent,
   }
 
   def remove(id: String)(implicit ec: ExecutionContext): Future[Boolean] = {
-    logger.warn(s"Removing row from collection scheme data cache")
+    logger.info(s"Removing row from collection scheme data cache")
     collection.deleteOne(
       filter = Filters.eq(idKey, id)
     ).toFuture().map(_ => true)

@@ -109,7 +109,7 @@ class DataCacheRepository @Inject()(
   }
 
   def remove(pstr: String)(implicit ec: ExecutionContext): Future[Boolean] = {
-    logger.warn(s"Removing row from data cache collection - pstr: $pstr")
+    logger.info(s"Removing row from data cache collection - pstr: $pstr")
     collection.deleteOne(
       filter = Filters.eq(pstrKey, pstr)
     ).toFuture().flatMap { _ =>
