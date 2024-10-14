@@ -17,10 +17,11 @@
 package utils
 
 import models.enumeration.{SchemeMembers, SchemeType}
-import org.joda.time.LocalDate
 import org.scalacheck.Gen
 import play.api.libs.json.Reads._
 import play.api.libs.json.{JsObject, Json}
+
+import java.time.LocalDate
 
 trait PensionSchemeJsValueGenerators extends PensionSchemeGenerators {
 

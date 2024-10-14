@@ -22,8 +22,7 @@ import org.mongodb.scala.MongoWriteException
 import org.mongodb.scala.model._
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
-import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
+import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
 import java.time.temporal.ChronoUnit
 import java.time.{Instant, LocalDateTime, ZoneId, ZoneOffset}

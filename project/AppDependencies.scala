@@ -10,7 +10,6 @@ object AppDependencies {
     "uk.gov.hmrc"                   %% "bootstrap-backend-play-30"         % bootstrapVersion,
     "uk.gov.hmrc.mongo"             %% "hmrc-mongo-work-item-repo-play-30" % hmrcMongoVersion,
     "uk.gov.hmrc"                   %% "domain"                            % "8.1.0-play-28",
-    "com.typesafe.play"             %% "play-json-joda"                    % "2.10.4",
     "com.typesafe.play"             %% "play-json"                         % "2.10.4",
     "com.networknt"                 %  "json-schema-validator"             % "1.0.76",
     "com.fasterxml.jackson.module"  %% "jackson-module-scala"              % "2.17.0",
