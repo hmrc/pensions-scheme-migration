@@ -25,7 +25,6 @@ import play.api.libs.json._
 import play.api.{Configuration, Logging}
 import repositories.DataCacheRepository.{AlreadyLockedException, LockCouldNotBeSetException}
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
 import java.time.temporal.ChronoUnit
