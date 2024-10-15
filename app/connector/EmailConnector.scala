@@ -23,7 +23,8 @@ import play.api.Logging
 import play.api.http.Status._
 import play.api.libs.json.{JsValue, Json}
 import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpResponse}
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.{HeaderCarrier, HttpResponse, StringContextOps}
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -36,7 +37,7 @@ case object EmailNotSent extends EmailStatus
 
 
 @Singleton
-class EmailConnector @Inject()(http: HttpClient, config: AppConfig) extends Logging {
+class EmailConnector @Inject()(http: HttpClientV2, config: AppConfig) extends Logging {
 
   lazy val postUrl: String = s"${config.emailApiUrl}/hmrc/email"
 
@@ -52,7 +53,7 @@ class EmailConnector @Inject()(http: HttpClient, config: AppConfig) extends Logg
     val jsonData = Json.toJson(sendEmailReq)
     logger.debug(s"Data to email: $jsonData for email address $emailAddress")
 
-    http.POST[JsValue, HttpResponse](postUrl, jsonData).map { response =>
+    http.post(url"$postUrl").withBody(jsonData).execute[HttpResponse].map { response =>
       response.status match {
         case ACCEPTED =>
           logger.info("Email sent successfully.")

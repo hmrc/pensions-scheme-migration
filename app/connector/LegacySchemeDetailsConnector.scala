@@ -25,14 +25,14 @@ import play.api.http.Status._
 import play.api.libs.json._
 import play.api.mvc.RequestHeader
 import transformations.etmpToUserAnswers.PsaSchemeDetailsTransformer
-import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.http.{HttpClient, _}
+import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.client.HttpClientV2
 
 import scala.concurrent.{ExecutionContext, Future}
 
 
 class LegacySchemeDetailsConnector @Inject()(
-                                              http: HttpClient,
+                                              http: HttpClientV2,
                                               config: AppConfig,
                                               auditService: AuditService,
                                               schemeSubscriptionDetailsTransformer: PsaSchemeDetailsTransformer,
@@ -50,7 +50,7 @@ class LegacySchemeDetailsConnector @Inject()(
 
     logger.debug(s"Calling get scheme details API on IF with url $url and hc $hc")
 
-    http.GET[HttpResponse](url)(implicitly, hc, implicitly).map(response =>
+    http.get(url"$url")(hc).execute[HttpResponse].map(response =>
       handleSchemeDetailsResponse(response, url)
     ) andThen
       schemeAuditService.sendSchemeDetailsEvent(psaId, pstr)(auditService.sendEvent)
