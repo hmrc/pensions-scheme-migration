@@ -184,7 +184,8 @@ class LegacySchemeDetailsConnectorSpec
     } map { response =>
       response.statusCode shouldBe UNPROCESSABLE_ENTITY
       val responseString =
-        "GET of 'http://localhost:62159/pension-schemes/schemes/20010010AA/GetSchemeDetails?psaId=psa-id' returned 422. Response body: 'UNPROCESSABLE_ENTITY'"
+        s"GET of 'http://localhost:${server.port()}/pension-schemes/schemes/20010010AA/GetSchemeDetails?psaId=psa-id' " +
+          s"returned 422. Response body: 'UNPROCESSABLE_ENTITY'"
       val expectedAuditEvent = LegacySchemeDetailsAuditEvent(psaId, pstr, UNPROCESSABLE_ENTITY, responseString)
       captor.getValue shouldBe expectedAuditEvent
     }
