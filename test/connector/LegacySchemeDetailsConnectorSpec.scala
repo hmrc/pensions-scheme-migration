@@ -33,7 +33,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.RequestHeader
 import play.api.test.FakeRequest
 import repositories._
-import uk.gov.hmrc.http.{BadRequestException, UpstreamErrorResponse}
+import uk.gov.hmrc.http.{BadRequestException, NotFoundException, UpstreamErrorResponse}
 
 
 class LegacySchemeDetailsConnectorSpec
@@ -131,7 +131,7 @@ class LegacySchemeDetailsConnectorSpec
     }
   }
 
-  it should "throw Upstream4XX for Not Found - 404" in {
+  it should "throw NotFoundException on 404 response" in {
     val captor = ArgumentCaptor.forClass(classOf[LegacySchemeDetailsAuditEvent])
     doNothing().when(mockAuditService).sendEvent(captor.capture())(any(), any())
     server.stubFor(
@@ -141,10 +141,10 @@ class LegacySchemeDetailsConnectorSpec
             .withBody(errorResponse("NOT_FOUND"))
         )
     )
-    recoverToExceptionIf[UpstreamErrorResponse] {
+    recoverToExceptionIf[NotFoundException] {
       connector.getSchemeDetails(psaId, pstr)
     } map {
-      _.statusCode shouldBe NOT_FOUND
+      _.responseCode shouldBe NOT_FOUND
     }
   }
 
@@ -175,13 +175,17 @@ class LegacySchemeDetailsConnectorSpec
         .willReturn(
           badRequestEntity
             .withHeader("Content-Type", "application/json")
-            .withBody(errorResponse("UNPROCESSABLE_ENTITY"))
+            .withBody("UNPROCESSABLE_ENTITY")
         )
     )
 
-    connector.getSchemeDetails(psaId, pstr).map { response =>
-      response.left.value.responseCode shouldBe UNPROCESSABLE_ENTITY
-      val expectedAuditEvent = LegacySchemeDetailsAuditEvent(psaId, pstr, UNPROCESSABLE_ENTITY, errorResponse("UNPROCESSABLE_ENTITY"))
+    recoverToExceptionIf[UpstreamErrorResponse] {
+      connector.getSchemeDetails(psaId, pstr)
+    } map { response =>
+      response.statusCode shouldBe UNPROCESSABLE_ENTITY
+      val responseString =
+        "GET of 'http://localhost:62159/pension-schemes/schemes/20010010AA/GetSchemeDetails?psaId=psa-id' returned 422. Response body: 'UNPROCESSABLE_ENTITY'"
+      val expectedAuditEvent = LegacySchemeDetailsAuditEvent(psaId, pstr, UNPROCESSABLE_ENTITY, responseString)
       captor.getValue shouldBe expectedAuditEvent
     }
   }
