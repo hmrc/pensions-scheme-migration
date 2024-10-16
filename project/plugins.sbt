@@ -1,4 +1,5 @@
-resolvers += "HMRC-open-artefacts-maven" at "https://open.artefacts.tax.service.gov.uk/maven2"
+resolvers += MavenRepository("HMRC-open-artefacts-maven2", "https://open.artefacts.tax.service.gov.uk/maven2")
+
 
 resolvers += Resolver.url(
   name = "HMRC-open-artefacts-ivy",

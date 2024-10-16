@@ -22,22 +22,22 @@ import models.MinPSA
 import play.api.Logging
 import play.api.http.Status._
 import play.api.libs.json.{JsError, JsResultException, JsSuccess, Json}
-import uk.gov.hmrc.http.HttpReads.Implicits
-import uk.gov.hmrc.http.{HeaderCarrier, HttpClient, HttpException, HttpResponse}
+import uk.gov.hmrc.http.client.HttpClientV2
+import uk.gov.hmrc.http.{HeaderCarrier, HttpException, HttpResponse, StringContextOps}
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 
 @Singleton
-class MinimalDetailsConnector @Inject()(http: HttpClient, config: AppConfig)
+class MinimalDetailsConnector @Inject()(http: HttpClientV2, config: AppConfig)
   extends Logging with HttpResponseHelper {
 
   private val delimitedErrorMsg: String = "DELIMITED_PSAID"
 
   def getPSADetails(psaId: String)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Either[HttpException, MinPSA]] = {
     val url = config.getPSAMinDetails
-    http.GET[HttpResponse](url)(Implicits.readRaw, hc.withExtraHeaders("psaId" -> psaId), implicitly).map { response =>
+    http.get(url"$url")(hc.withExtraHeaders("psaId" -> psaId)).execute[HttpResponse].map { response =>
       handleSchemeDetailsResponse(response, url)
     }
   }
