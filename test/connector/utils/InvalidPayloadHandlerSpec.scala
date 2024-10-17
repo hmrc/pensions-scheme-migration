@@ -124,7 +124,7 @@ class InvalidPayloadHandlerSpec extends AnyFlatSpec with Matchers {
 
     val json = Json.obj()
 
-    val expected = ValidationFailure("required", "$.test", None)
+    val expected = ValidationFailure("required", "$: required property 'test' not found", None)
 
     val logger = testFixture().handler
     val actual = logger.getFailures(requiredSchema, json)
