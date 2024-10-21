@@ -131,7 +131,7 @@ class LegacySchemeDetailsConnectorSpec
     }
   }
 
-  it should "throw NotFoundException on 404 response" in {
+  it should "throw Upstream4xx on 404 response" in {
     val captor = ArgumentCaptor.forClass(classOf[LegacySchemeDetailsAuditEvent])
     doNothing().when(mockAuditService).sendEvent(captor.capture())(any(), any())
     server.stubFor(
@@ -141,10 +141,10 @@ class LegacySchemeDetailsConnectorSpec
             .withBody(errorResponse("NOT_FOUND"))
         )
     )
-    recoverToExceptionIf[NotFoundException] {
+    recoverToExceptionIf[UpstreamErrorResponse] {
       connector.getSchemeDetails(psaId, pstr)
     } map {
-      _.responseCode shouldBe NOT_FOUND
+      _.statusCode shouldBe NOT_FOUND
     }
   }
 
@@ -179,14 +179,9 @@ class LegacySchemeDetailsConnectorSpec
         )
     )
 
-    recoverToExceptionIf[UpstreamErrorResponse] {
-      connector.getSchemeDetails(psaId, pstr)
-    } map { response =>
-      response.statusCode shouldBe UNPROCESSABLE_ENTITY
-      val responseString =
-        s"GET of 'http://localhost:${server.port()}/pension-schemes/schemes/20010010AA/GetSchemeDetails?psaId=psa-id' " +
-          s"returned 422. Response body: 'UNPROCESSABLE_ENTITY'"
-      val expectedAuditEvent = LegacySchemeDetailsAuditEvent(psaId, pstr, UNPROCESSABLE_ENTITY, responseString)
+    connector.getSchemeDetails(psaId, pstr).map { response =>
+      response.left.value.responseCode shouldBe UNPROCESSABLE_ENTITY
+      val expectedAuditEvent = LegacySchemeDetailsAuditEvent(psaId, pstr, UNPROCESSABLE_ENTITY, "UNPROCESSABLE_ENTITY")
       captor.getValue shouldBe expectedAuditEvent
     }
   }
