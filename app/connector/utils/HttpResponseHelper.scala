@@ -78,6 +78,7 @@ trait HttpResponseHelper extends HttpErrorFunctions {
           Future.failed(throwAppropriateException(e))
         case UpstreamErrorResponse.Upstream5xxResponse(e) =>
           Future.failed(e)
+        case e => Future.failed(e)
       }
     case e: Exception =>
       Future.failed(new Exception(e.getMessage))
