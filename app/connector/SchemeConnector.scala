@@ -84,7 +84,9 @@ class SchemeConnector @Inject()(
         "/resources/schemas/schemeSubscriptionIF.json")
     logger.debug(s"[Register-Migration-Scheme--Outgoing-Payload] - ${registerData.toString()}")
 
-    http.post(url"$url")(hc).withBody(registerData).execute[HttpResponse].map { response =>
+    http.post(url"$url")(hc)
+      .setHeader(headerUtils.integrationFrameworkHeader: _*)
+      .withBody(registerData).execute[HttpResponse].map { response =>
       response.status match {
         case OK =>
           Right(response.json)

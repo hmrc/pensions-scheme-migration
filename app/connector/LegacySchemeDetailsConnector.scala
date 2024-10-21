@@ -51,7 +51,9 @@ class LegacySchemeDetailsConnector @Inject()(
 
     logger.debug(s"Calling get scheme details API on IF with url $url and hc $hc")
 
-    http.get(url"$url")(hc).execute[HttpResponse].map(response =>
+    http.get(url"$url")(hc)
+      .setHeader(headerUtils.integrationFrameworkHeader: _*)
+      .execute[HttpResponse].map(response =>
       handleSchemeDetailsResponse(response, url)
     ) andThen
       schemeAuditService.sendSchemeDetailsEvent(psaId, pstr)(auditService.sendEvent)
