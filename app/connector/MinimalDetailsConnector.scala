@@ -37,7 +37,10 @@ class MinimalDetailsConnector @Inject()(http: HttpClientV2, config: AppConfig)
 
   def getPSADetails(psaId: String)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Either[HttpException, MinPSA]] = {
     val url = config.getPSAMinDetails
-    http.get(url"$url")(hc.withExtraHeaders("psaId" -> psaId)).execute[HttpResponse].map { response =>
+    val headers: Seq[(String, String)] = Seq(("psaId", psaId))
+    http.get(url"$url")(hc)
+      .setHeader(headers: _*)
+      .execute[HttpResponse].map { response =>
       handleSchemeDetailsResponse(response, url)
     }
   }

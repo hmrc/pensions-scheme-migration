@@ -4,7 +4,6 @@ import sbt._
 object AppDependencies {
   private val bootstrapVersion = "9.5.0"
   private val hmrcMongoVersion = "2.2.0"
-  private val httpVerbsVersion = "15.1.0"
 
   val compile = Seq(
     ws,
@@ -14,7 +13,6 @@ object AppDependencies {
     "com.typesafe.play"             %% "play-json"                         % "2.10.5",
     "com.networknt"                 %  "json-schema-validator"             % "1.5.1",
     "com.fasterxml.jackson.module"  %% "jackson-module-scala"              % "2.17.2",
-    "uk.gov.hmrc"                   %% "http-verbs-play-30"                % httpVerbsVersion,
     ehcache
   )
 
@@ -28,7 +26,6 @@ object AppDependencies {
     "org.scalatestplus"       %% "mockito-4-6"                  % "3.2.15.0",
     "org.scalatestplus.play"  %% "scalatestplus-play"           % "7.0.1",
     "org.scalatest"           %% "scalatest"                    % "3.2.19",
-    "org.pegdown"             %  "pegdown"                      % "1.6.0",
-    "uk.gov.hmrc"             %% "http-verbs-test-play-30"      % httpVerbsVersion,
+    "org.pegdown"             %  "pegdown"                      % "1.6.0"
   ).map(_ % "test")
 }
