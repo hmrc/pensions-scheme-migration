@@ -33,7 +33,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.RequestHeader
 import play.api.test.FakeRequest
 import repositories._
-import uk.gov.hmrc.http.{BadRequestException, UpstreamErrorResponse}
+import uk.gov.hmrc.http.{BadRequestException, NotFoundException, UpstreamErrorResponse}
 
 
 class LegacySchemeDetailsConnectorSpec
@@ -131,7 +131,7 @@ class LegacySchemeDetailsConnectorSpec
     }
   }
 
-  it should "throw Upstream4XX for Not Found - 404" in {
+  it should "throw Upstream4xx on 404 response" in {
     val captor = ArgumentCaptor.forClass(classOf[LegacySchemeDetailsAuditEvent])
     doNothing().when(mockAuditService).sendEvent(captor.capture())(any(), any())
     server.stubFor(
@@ -175,13 +175,13 @@ class LegacySchemeDetailsConnectorSpec
         .willReturn(
           badRequestEntity
             .withHeader("Content-Type", "application/json")
-            .withBody(errorResponse("UNPROCESSABLE_ENTITY"))
+            .withBody("UNPROCESSABLE_ENTITY")
         )
     )
 
     connector.getSchemeDetails(psaId, pstr).map { response =>
       response.left.value.responseCode shouldBe UNPROCESSABLE_ENTITY
-      val expectedAuditEvent = LegacySchemeDetailsAuditEvent(psaId, pstr, UNPROCESSABLE_ENTITY, errorResponse("UNPROCESSABLE_ENTITY"))
+      val expectedAuditEvent = LegacySchemeDetailsAuditEvent(psaId, pstr, UNPROCESSABLE_ENTITY, "UNPROCESSABLE_ENTITY")
       captor.getValue shouldBe expectedAuditEvent
     }
   }

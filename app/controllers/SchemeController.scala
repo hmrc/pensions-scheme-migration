@@ -79,6 +79,7 @@ class SchemeController @Inject()(
             registerSchemeCall.map {
               case Right(json: JsObject) => Ok(json)
               case Right(_: JsBoolean) => NoContent
+              case Right(_) => throw new RuntimeException("Unexpected json type")
               case Left(e) => result(e)
             }
           case _ => Future.failed(new BadRequestException("Bad Request without PSAId or request body"))

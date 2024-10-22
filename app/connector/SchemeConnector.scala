@@ -25,12 +25,13 @@ import play.api.http.Status._
 import play.api.libs.json._
 import play.api.mvc.RequestHeader
 import uk.gov.hmrc.http.HttpReads.Implicits._
-import uk.gov.hmrc.http.{HttpClient, _}
+import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.client.HttpClientV2
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class SchemeConnector @Inject()(
-                              http: HttpClient,
+                              http: HttpClientV2,
                               config: AppConfig,
                               invalidPayloadHandler: InvalidPayloadHandler,
                               headerUtils: HeaderUtils,
@@ -52,11 +53,7 @@ class SchemeConnector @Inject()(
       headerUtils.integrationFrameworkHeader)
     logger.debug(s"Calling migration list of schemes API on IF with url $listOfSchemesUrl")
 
-    http.GET[HttpResponse](listOfSchemesUrl)(
-      implicitly[HttpReads[HttpResponse]],
-      implicitly[HeaderCarrier](hc),
-      implicitly[ExecutionContext]
-    ).map { response =>
+    http.get(url"$listOfSchemesUrl").execute[HttpResponse].map { response =>
       response.status match {
         case OK =>
           val totalResults = (response.json \ "totalResults").asOpt[Int].getOrElse(0)
@@ -87,12 +84,9 @@ class SchemeConnector @Inject()(
         "/resources/schemas/schemeSubscriptionIF.json")
     logger.debug(s"[Register-Migration-Scheme--Outgoing-Payload] - ${registerData.toString()}")
 
-    http.POST[JsValue, HttpResponse](url, registerData)(
-    implicitly[Writes[JsValue]],
-    implicitly[HttpReads[HttpResponse]],
-    implicitly[HeaderCarrier](hc),
-    implicitly[ExecutionContext])
-    .map { response =>
+    http.post(url"$url")(hc)
+      .setHeader(headerUtils.integrationFrameworkHeader: _*)
+      .withBody(registerData).execute[HttpResponse].map { response =>
       response.status match {
         case OK =>
           Right(response.json)
