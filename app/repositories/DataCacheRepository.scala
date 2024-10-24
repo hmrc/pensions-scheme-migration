@@ -18,6 +18,7 @@ package repositories
 
 import com.google.inject.Inject
 import com.mongodb.client.model.FindOneAndUpdateOptions
+import crypto.DataEncryptor
 import models.cache.{DataJson, MigrationLock}
 import org.mongodb.scala.model.Updates.set
 import org.mongodb.scala.model._
@@ -37,7 +38,8 @@ import scala.concurrent.{ExecutionContext, Future}
 class DataCacheRepository @Inject()(
                                      lockCacheRepository: LockCacheRepository,
                                      mongoComponent: MongoComponent,
-                                     configuration: Configuration
+                                     configuration: Configuration,
+                                     cipher: DataEncryptor
                                    )(implicit val ec: ExecutionContext)
   extends PlayMongoRepository[DataJson](
     collectionName = configuration.get[String](path = "mongodb.migration-cache.data-cache.name"),
@@ -46,7 +48,7 @@ class DataCacheRepository @Inject()(
     indexes = Seq(
       IndexModel(
         keys = Indexes.ascending("pstr"),
-        indexOptions = IndexOptions().name("pstr").unique(true)
+        indexOptions = IndexOptions().name("pstr").unique(true).background(true)
       ),
       IndexModel(
         keys = Indexes.ascending("expireAt"),
@@ -74,7 +76,7 @@ class DataCacheRepository @Inject()(
           filter = Filters.eq(pstrKey, lock.pstr),
           update = Updates.combine(
             set(pstrKey, Codecs.toBson(lock.pstr)),
-            set(dataKey, Codecs.toBson(userData)),
+            set(dataKey, Codecs.toBson(cipher.encrypt(lock.pstr, userData))),
             set(lastUpdatedKey, Instant.now()),
             set(expireAtKey, expireInSeconds)
           ),
@@ -101,7 +103,7 @@ class DataCacheRepository @Inject()(
       .map(_.headOption)
       .map {
         _.map { dataJson =>
-          dataJson.data.as[JsObject] ++
+          cipher.decrypt(pstr, dataJson.data).as[JsObject] ++
             Json.obj("expireAt" -> JsNumber(dataJson.expireAt.minus(1, ChronoUnit.DAYS).toEpochMilli))
         }
       }

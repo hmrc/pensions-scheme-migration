@@ -16,6 +16,7 @@
 
 package repositories
 
+import crypto.DataEncryptor
 import org.mockito.ArgumentMatchers
 import org.mockito.Mockito.{reset, when}
 import org.scalatest.concurrent.ScalaFutures
@@ -24,7 +25,10 @@ import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.{BeforeAndAfter, BeforeAndAfterAll, BeforeAndAfterEach}
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.Configuration
+import play.api.inject.bind
+import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.libs.json.{JsObject, Json}
+import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.mongo.MongoComponent
 
 import java.time.Instant
@@ -41,6 +45,32 @@ class SchemeDataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with M
   var schemeDataCacheRepository: SchemeDataCacheRepository = _
   val mongoHost = "localhost"
   var mongoPort: Int = 27017
+
+  private val modules: Seq[GuiceableModule] = Seq(
+    bind[AuthConnector].toInstance(mock[AuthConnector]),
+    bind[LockCacheRepository].toInstance(mock[LockCacheRepository]),
+    bind[AdminDataRepository].toInstance(mock[AdminDataRepository]),
+    bind[DataCacheRepository].toInstance(mock[DataCacheRepository]),
+    bind[ListOfLegacySchemesCacheRepository].toInstance(mock[ListOfLegacySchemesCacheRepository]),
+    bind[RacDacRequestsQueueRepository].toInstance(mock[RacDacRequestsQueueRepository]),
+    bind[SchemeDataCacheRepository].toInstance(mock[SchemeDataCacheRepository]),
+    bind[RacDacRequestsQueueEventsLogRepository].toInstance(mock[RacDacRequestsQueueEventsLogRepository])
+  )
+
+  private val app = new GuiceApplicationBuilder()
+    .configure(
+      conf = "auditing.enabled" -> false,
+      "metrics.enabled" -> false,
+      "metrics.jvm" -> false,
+      "run.mode" -> "Test"
+    ).overrides(modules: _*).build()
+
+  private def buildFormRepository(mongoHost: String, mongoPort: Int): SchemeDataCacheRepository = {
+    val databaseName = "pensions-scheme-migration"
+    val mongoUri = s"mongodb://$mongoHost:$mongoPort/$databaseName?heartbeatFrequencyMS=1000&rm.failover=default"
+    new SchemeDataCacheRepository(MongoComponent(mongoUri), mockConfiguration, app.injector.instanceOf[DataEncryptor])
+  }
+
   override def beforeAll(): Unit = {
     when(mockConfiguration.get[String](ArgumentMatchers.eq("mongodb.migration-cache.scheme-data-cache.name"))(ArgumentMatchers.any()))
       .thenReturn("scheme-data")
@@ -55,6 +85,11 @@ class SchemeDataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with M
   override def beforeEach(): Unit = {
     reset(mockConfiguration)
     super.beforeEach()
+  }
+
+  override def afterAll(): Unit = {
+    app.stop()
+    super.afterAll()
   }
 
   "get" must {
@@ -180,12 +215,6 @@ object SchemeDataCacheRepositorySpec extends MockitoSugar {
   private val seqExistingData: Seq[JsObject] = Seq(
     item1, item2
   )
-
-  private def buildFormRepository(mongoHost: String, mongoPort: Int): SchemeDataCacheRepository = {
-    val databaseName = "pensions-scheme-migration"
-    val mongoUri = s"mongodb://$mongoHost:$mongoPort/$databaseName?heartbeatFrequencyMS=1000&rm.failover=default"
-    new SchemeDataCacheRepository(MongoComponent(mongoUri), mockConfiguration)
-  }
 }
 
 

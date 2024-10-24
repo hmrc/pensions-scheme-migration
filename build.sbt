@@ -1,6 +1,5 @@
 import play.sbt.routes.RoutesKeys
 import scoverage.ScoverageKeys
-import uk.gov.hmrc.DefaultBuildSettings.integrationTestSettings
 
 val appName = "pensions-scheme-migration"
 
@@ -15,8 +14,6 @@ lazy val microservice = Project(appName, file("."))
     scalaVersion                     := "2.13.12",
     libraryDependencies              ++= AppDependencies.compile ++ AppDependencies.test
   )
-  .configs(IntegrationTest)
-  .settings(integrationTestSettings(): _*)
   .settings(
     Test / fork := true,
     Test / javaOptions += "-Dconfig.file=" + Option(System.getProperty("conf/test.application.conf")).getOrElse("conf/test.application.conf")
