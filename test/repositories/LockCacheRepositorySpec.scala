@@ -30,7 +30,9 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.mongo.MongoComponent
 
 import java.time.Instant
+import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.DurationInt
 
 
 class LockCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with BeforeAndAfter with
@@ -40,17 +42,29 @@ class LockCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
 
   import LockCacheRepositorySpec._
 
-  var lockCacheRepository: LockCacheRepository = _
-  val mongoHost = "localhost"
-  var mongoPort: Int = 27017
+  private var lockCacheRepository: LockCacheRepository = _
+  private val mongoHost = "localhost"
+  private val mongoPort: Int = 27017
+  private val databaseName = "pensions-scheme-migration"
+  private val mongoUri = s"mongodb://$mongoHost:$mongoPort/$databaseName?heartbeatFrequencyMS=1000&rm.failover=default"
+
+  private def dropCollection() = {
+    val component = MongoComponent(mongoUri)
+    component.database.getCollection("migration-lock").drop().toFuture()
+  }
+
+  private def buildFormRepository(): LockCacheRepository = {
+    new LockCacheRepository(MongoComponent(mongoUri), mockConfiguration)
+  }
   override def beforeAll(): Unit = {
 
     when(mockConfiguration.get[String](ArgumentMatchers.eq("mongodb.migration-cache.lock-cache.name"))(ArgumentMatchers.any()))
       .thenReturn("migration-lock")
     when(mockConfiguration.get[Int](ArgumentMatchers.eq("mongodb.migration-cache.lock-cache.timeToLiveInSeconds"))(ArgumentMatchers.any()))
       .thenReturn(900)
-
-    lockCacheRepository = buildFormRepository(mongoHost, mongoPort)
+    lockCacheRepository = Await.result(dropCollection().map { _ =>
+      buildFormRepository()
+    }, 2.seconds)
     super.beforeAll()
   }
 
@@ -205,11 +219,5 @@ object LockCacheRepositorySpec extends MockitoSugar {
       expireAt = Instant.now().plusSeconds(60)
     )
   )
-
-  private def buildFormRepository(mongoHost: String, mongoPort: Int): LockCacheRepository = {
-    val databaseName = "pensions-scheme-migration"
-    val mongoUri = s"mongodb://$mongoHost:$mongoPort/$databaseName?heartbeatFrequencyMS=1000&rm.failover=default"
-    new LockCacheRepository(MongoComponent(mongoUri), mockConfiguration)
-  }
 }
 

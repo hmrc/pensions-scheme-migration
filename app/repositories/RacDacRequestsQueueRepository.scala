@@ -17,7 +17,8 @@
 package repositories
 
 import com.google.inject.{Inject, Singleton}
-import models.racDac.WorkItemRequest
+import crypto.DataEncryptor
+import models.racDac.{EncryptedWorkItemRequest, WorkItemRequest}
 import org.bson.types.ObjectId
 import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes}
 import play.api.{Configuration, Logger}
@@ -31,12 +32,15 @@ import java.util.concurrent.TimeUnit
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class RacDacRequestsQueueRepository @Inject()(configuration: Configuration, mongoComponent: MongoComponent, servicesConfig: ServicesConfig)
+class RacDacRequestsQueueRepository @Inject()(configuration: Configuration,
+                                              mongoComponent: MongoComponent,
+                                              servicesConfig: ServicesConfig,
+                                              dataEncryptor: DataEncryptor)
                                              (implicit val ec: ExecutionContext) extends
-  WorkItemRepository[WorkItemRequest](
+  WorkItemRepository[EncryptedWorkItemRequest](
     collectionName = configuration.get[String](path = "mongodb.migration-cache.racDac-work-item-queue.name"),
     mongoComponent = mongoComponent,
-    itemFormat = WorkItemRequest.workItemRequestFormat,
+    itemFormat = implicitly,
     workItemFields = WorkItemFields.default
   ) {
 
@@ -63,16 +67,16 @@ class RacDacRequestsQueueRepository @Inject()(configuration: Configuration, mong
 
   private lazy val ttl = servicesConfig.getDuration("racDacWorkItem.submission-poller.mongo.ttl").toSeconds
 
-  def pushAll(racDacRequests: Seq[WorkItemRequest]): Future[Either[Exception, Seq[WorkItem[WorkItemRequest]]]] = {
-    pushNewBatch(racDacRequests, now(), (_: WorkItemRequest) => ToDo).map(item => Right(item)).recover {
+  def pushAll(racDacRequests: Seq[WorkItemRequest]): Future[Either[Exception, Seq[WorkItem[EncryptedWorkItemRequest]]]] = {
+    pushNewBatch(racDacRequests.map(_.encrypt(dataEncryptor)), now(), (_: EncryptedWorkItemRequest) => ToDo).map(item => Right(item)).recover {
       case exception: Exception =>
         logger.error(s"Error occurred while pushing items to the queue: ${exception.getMessage}")
         Left(WorkItemProcessingException(s"push failed for request due to ${exception.getMessage}"))
     }
   }
 
-  def push(racDacRequest: WorkItemRequest): Future[Either[Exception, WorkItem[WorkItemRequest]]] = {
-    pushNew(racDacRequest, now(), (_: WorkItemRequest) => ToDo).map(item => Right(item)).recover {
+  def push(racDacRequest: WorkItemRequest): Future[Either[Exception, WorkItem[EncryptedWorkItemRequest]]] = {
+    pushNew(racDacRequest.encrypt(dataEncryptor), now(), (_: EncryptedWorkItemRequest) => ToDo).map(item => Right(item)).recover {
       case exception: Exception =>
         logger.error(s"Error occurred while pushing items to the queue: ${exception.getMessage}")
         Left(WorkItemProcessingException(s"push failed for request due to ${exception.getMessage}"))
@@ -81,7 +85,13 @@ class RacDacRequestsQueueRepository @Inject()(configuration: Configuration, mong
 
   def pull: Future[Either[Exception, Option[WorkItem[WorkItemRequest]]]] =
     pullOutstanding(failedBefore = now().minusMillis(retryPeriod), availableBefore = now())
-      .map(workItem => Right(workItem)).recover {
+      .map({ workItem =>
+        Right(
+          workItem.map({ workItem =>
+            workItem.copy(item = workItem.item.decrypt(dataEncryptor))
+          })
+        )
+      }).recover {
       case exception: Exception => Left(WorkItemProcessingException(s"pull failed due to ${exception.getMessage}"))
     }
 
@@ -129,9 +139,9 @@ class RacDacRequestsQueueRepository @Inject()(configuration: Configuration, mong
   def deleteAll(psaId: String): Future[Either[Exception, Boolean]] = {
     collection.deleteOne(
       filter = Filters.eq("item.psaId", psaId)
-    ).toFuture().recover {
+    ).toFuture().map(_ => Right(true)).recover {
       case exception: Exception => Left(WorkItemProcessingException(s"deleting all requests failed due to ${exception.getMessage}"))
-    }.map(_ => Right(true))
+    }
   }
 
   case class WorkItemProcessingException(message: String) extends Exception(message)

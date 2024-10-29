@@ -16,7 +16,8 @@
 
 package models.racDac
 
-import play.api.libs.json.{Json, OFormat}
+import crypto.DataEncryptor
+import play.api.libs.json.{JsValue, Json, OFormat}
 import uk.gov.hmrc.http.{HeaderCarrier, RequestId, SessionId}
 
 case class RacDacHeaders(requestId: Option[String], sessionId: Option[String]) {
@@ -29,7 +30,7 @@ object RacDacHeaders {
   def apply(hc: HeaderCarrier): RacDacHeaders = new RacDacHeaders(hc.requestId.map(_.value), hc.sessionId.map(_.value))
 }
 
-case class RacDacRequest(schemeName: String, policyNumber: String,pstr: String,declarationDate: String,schemeOpenDate: String)
+case class RacDacRequest(schemeName: String, policyNumber: String, pstr: String,declarationDate: String,schemeOpenDate: String)
 
 object RacDacRequest {
   implicit val requestFormat: OFormat[RacDacRequest] = Json.format
@@ -39,10 +40,33 @@ case class WorkItemRequest(
                             psaId: String,
                             request: RacDacRequest,
                             headers: RacDacHeaders
-                          )
+                          ) {
+  def encrypt(dataEncryptor: DataEncryptor): EncryptedWorkItemRequest = {
+    EncryptedWorkItemRequest(
+      psaId,
+      dataEncryptor.encrypt(psaId, Json.toJson(request)),
+      headers
+    )
+  }
+}
 
 object WorkItemRequest {
-
   implicit val workItemRequestFormat: OFormat[WorkItemRequest] = Json.format[WorkItemRequest]
 }
 
+case class EncryptedWorkItemRequest(
+                                   psaId: String,
+                                   request: JsValue,
+                                   headers: RacDacHeaders
+                                   ) {
+  def decrypt(dataEncryptor: DataEncryptor): WorkItemRequest = {
+    val req = request.asOpt[RacDacRequest].getOrElse(
+        dataEncryptor.decrypt(psaId, request).as[RacDacRequest]
+    )
+    WorkItemRequest(psaId, req, headers)
+  }
+}
+
+object EncryptedWorkItemRequest {
+  implicit val format: OFormat[EncryptedWorkItemRequest] = Json.format[EncryptedWorkItemRequest]
+}
