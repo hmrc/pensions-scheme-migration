@@ -17,103 +17,79 @@
 package controllers.cache
 
 import com.google.inject.Inject
+import controllers.actions.{AuthAction, AuthRequest}
 import models.cache.MigrationLock
 import play.api.libs.json.Json
 import play.api.mvc._
 import repositories.LockCacheRepository
-import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
-import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier}
+import uk.gov.hmrc.http.BadRequestException
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class LockCacheController @Inject()(repository: LockCacheRepository,
                                     val authConnector: AuthConnector,
-                                    cc: ControllerComponents
+                                    cc: ControllerComponents,
+                                    authAction: AuthAction
                                    )(implicit ec: ExecutionContext) extends BackendController(cc) with AuthorisedFunctions {
 
-  def lock: Action[AnyContent] = Action.async {
+  private def getPstr(implicit req: AuthRequest[_]) = req.headers.get("pstr").getOrElse(throw MissingHeadersException)
+
+  def lock: Action[AnyContent] = authAction.async {
     implicit request =>
-      withLock { lock =>
-        repository.setLock(lock).map{
-          case true => Ok
-          case false => Conflict
-        }
+      repository.setLock(lock).map{
+        case true => Ok
+        case false => Conflict
       }
   }
 
-  def getLock: Action[AnyContent] = Action.async {
+  def getLock: Action[AnyContent] = authAction.async {
     implicit request =>
-      withLock { lock =>
-        repository.getLock(lock)
-          .map {
-            case Some(migrationLock) => Ok(Json.toJson(migrationLock))
-            case None => NotFound
+      repository.getLock(lock)
+        .map {
+          case Some(migrationLock) => Ok(Json.toJson(migrationLock))
+          case None => NotFound
+        }
+  }
+
+  def getLockOnScheme: Action[AnyContent] = authAction.async {
+    implicit request =>
+      request.headers.get("pstr") match {
+        case Some(pstr) =>
+          repository.getLockByPstr(pstr).flatMap {
+            case Some(migrationLock) => Future.successful(Ok(Json.toJson(migrationLock)))
+            case None => Future.successful(NotFound)
           }
+        case _ => Future.failed(new BadRequestException("Bad Request without pstr"))
       }
   }
 
-  def getLockOnScheme: Action[AnyContent] = Action.async {
+  def getLockByUser: Action[AnyContent] = authAction.async {
     implicit request =>
-      authorised() {
-        request.headers.get("pstr") match {
-          case Some(pstr) =>
-            repository.getLockByPstr(pstr).flatMap {
-              case Some(migrationLock) => Future.successful(Ok(Json.toJson(migrationLock)))
-              case None => Future.successful(NotFound)
-            }
-          case _ => Future.failed(new BadRequestException("Bad Request without pstr"))
-        }
+      repository.getLockByCredId(request.externalId).map {
+        case Some(migrationLock) => Ok(Json.toJson(migrationLock))
+        case None => NotFound
       }
   }
 
-  def getLockByUser: Action[AnyContent] = Action.async {
-    implicit request =>
-      authorised().retrieve(Retrievals.externalId) {
-        case Some(id) =>
-          repository.getLockByCredId(id).map {
-            case Some(migrationLock) => Ok(Json.toJson(migrationLock))
-            case None => NotFound
-          }
-        case _ => Future.failed(CredIdNotFoundFromAuth())
-      }
+  def removeLock(): Action[AnyContent] = authAction.async { implicit request =>
+      repository.releaseLock(lock).map(_ => Ok)
   }
 
-  def removeLock(): Action[AnyContent] = Action.async {
-    implicit request =>
-      withLock { lock =>
-        repository.releaseLock(lock).map(_ => Ok)
-      }
-  }
-
-  def removeLockOnScheme(): Action[AnyContent] = Action.async {
-    implicit request =>
-      authorised() {
-        request.headers.get("pstr") match {
-          case Some(pstr) => repository.releaseLockByPstr(pstr).map(_ => Ok)
-          case _ => Future.failed(new BadRequestException("Bad Request without pstr"))
-        }
-      }
-  }
-
-  def removeLockByUser(): Action[AnyContent] = Action.async {
-    implicit request =>
-      authorised().retrieve(Retrievals.externalId) {
-        case Some(id) => repository.releaseLockByCredId(id).map(_ => Ok)
-        case _ => Future.failed(CredIdNotFoundFromAuth())
-      }
-  }
-
-  private def withLock(block: MigrationLock => Future[Result])
-                      (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] =
-    authorised().retrieve(Retrievals.externalId) {
-      case Some(id) =>
-        val pstr = request.headers.get("pstr").getOrElse(throw MissingHeadersException)
-        val psaId = request.headers.get("psaId").getOrElse(throw MissingHeadersException)
-        block(MigrationLock(pstr, id, psaId))
-      case _ =>
-        Future.failed(CredIdNotFoundFromAuth())
+  def removeLockOnScheme(): Action[AnyContent] = authAction.async { implicit request =>
+    request.headers.get("pstr") match {
+      case Some(pstr) => repository.releaseLockByPstr(pstr).map(_ => Ok)
+      case _ => Future.failed(new BadRequestException("Bad Request without pstr"))
     }
+  }
+
+  def removeLockByUser(): Action[AnyContent] = authAction.async { implicit request =>
+    repository.releaseLockByCredId(request.externalId).map(_ => Ok)
+  }
+
+  private def lock(implicit request: AuthRequest[AnyContent]) = {
+    MigrationLock(getPstr, request.externalId, request.psaId)
+  }
 
 }

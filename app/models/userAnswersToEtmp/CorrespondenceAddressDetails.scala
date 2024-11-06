@@ -16,7 +16,7 @@
 
 package models.userAnswersToEtmp
 
-import play.api.libs.json.{Format, _}
+import play.api.libs.json._
 
 case class CorrespondenceAddressDetails(addressDetails: Address)
 

@@ -16,12 +16,12 @@
 
 package controllers.cache
 
-import javax.inject.Inject
 import models.{FeatureToggleName, ToggleDetails}
 import play.api.libs.json.{JsBoolean, Json}
 import play.api.mvc.{AbstractController, Action, AnyContent, ControllerComponents}
 import services.FeatureToggleService
 
+import javax.inject.Inject
 import scala.concurrent.{ExecutionContext, Future}
 
 class FeatureToggleController @Inject()(

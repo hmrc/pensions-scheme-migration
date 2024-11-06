@@ -17,47 +17,32 @@
 package controllers.cache
 
 import com.google.inject.Inject
-import models.racDac.SessionIdNotFound
+import controllers.actions.AuthAction
 import play.api.mvc._
 import repositories.RacDacRequestsQueueEventsLogRepository
-import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
-import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import scala.concurrent.{ExecutionContext, Future}
+import scala.concurrent.ExecutionContext
 
 class RacDacRequestsQueueEventsLogController @Inject()(repository: RacDacRequestsQueueEventsLogRepository,
                                                        val authConnector: AuthConnector,
-                                                       cc: ControllerComponents
+                                                       cc: ControllerComponents,
+                                                       authAction: AuthAction
                                    )(implicit ec: ExecutionContext) extends BackendController(cc) with AuthorisedFunctions {
-  def getStatus: Action[AnyContent] = Action.async {
+  def getStatus: Action[AnyContent] = authAction.async {
     implicit request =>
-      withId { id =>
-        repository.get(id)
-          .map {
-            case Some(jsValue) =>
-              (jsValue \ "status").asOpt[Int] match {
-                case Some(status) =>
+      repository.get(request.externalId)
+        .map {
+          case Some(jsValue) =>
+            (jsValue \ "status").asOpt[Int] match {
+              case Some(status) =>
 
-                  Results.Status(status)
-                case _ => NotFound
-              }
-            case None => NotFound
-          }
-      }
-  }
-
-  private def withId(block: (String) => Future[Result])
-                      (implicit hc: HeaderCarrier): Future[Result] = {
-    authorised().retrieve(Retrievals.externalId) {
-      case Some(_) =>
-        hc.sessionId match {
-          case Some(sessionId) => block(sessionId.value)
-          case _ => Future.failed(SessionIdNotFound())
+                Results.Status(status)
+              case _ => NotFound
+            }
+          case None => NotFound
         }
-      case _ => Future.failed(CredIdNotFoundFromAuth())
-    }
   }
 }
 
