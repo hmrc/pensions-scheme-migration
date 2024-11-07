@@ -18,12 +18,13 @@ package controllers.cache
 
 import com.google.inject.Inject
 import controllers.actions.AuthAction
+import models.racDac.SessionIdNotFound
 import play.api.mvc._
 import repositories.RacDacRequestsQueueEventsLogRepository
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{ExecutionContext, Future}
 
 class RacDacRequestsQueueEventsLogController @Inject()(repository: RacDacRequestsQueueEventsLogRepository,
                                                        val authConnector: AuthConnector,
@@ -32,17 +33,22 @@ class RacDacRequestsQueueEventsLogController @Inject()(repository: RacDacRequest
                                    )(implicit ec: ExecutionContext) extends BackendController(cc) with AuthorisedFunctions {
   def getStatus: Action[AnyContent] = authAction.async {
     implicit request =>
-      repository.get(request.externalId)
-        .map {
-          case Some(jsValue) =>
-            (jsValue \ "status").asOpt[Int] match {
-              case Some(status) =>
+      hc.sessionId match {
+        case Some(sessionId) =>
+          repository.get(sessionId.value)
+            .map {
+              case Some(jsValue) =>
+                (jsValue \ "status").asOpt[Int] match {
+                  case Some(status) =>
 
-                Results.Status(status)
-              case _ => NotFound
+                    Results.Status(status)
+                  case _ => NotFound
+                }
+              case None => NotFound
             }
-          case None => NotFound
-        }
+        case _ => Future.failed(SessionIdNotFound())
+      }
+
   }
 }
 
