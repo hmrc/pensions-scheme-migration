@@ -17,66 +17,50 @@
 package controllers.cache
 
 import com.google.inject.Inject
+import controllers.actions.{AuthAction, AuthRequest}
 import models.cache.MigrationLock
 import play.api.libs.json.Json
 import play.api.mvc._
 import repositories.DataCacheRepository
-import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
-import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, UnauthorizedException}
+import uk.gov.hmrc.http.{BadRequestException, UnauthorizedException}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class DataCacheController @Inject()(repository: DataCacheRepository,
                                     val authConnector: AuthConnector,
-                                    cc: ControllerComponents
+                                    cc: ControllerComponents,
+                                    authAction: AuthAction
                                    )(implicit ec: ExecutionContext) extends BackendController(cc) with AuthorisedFunctions {
 
-  def save: Action[AnyContent] = Action.async {
+  def save: Action[AnyContent] = authAction.async {
     implicit request =>
-      withPstr { (pstr, id) =>
-        val psaId = request.headers.get("psaId").getOrElse(throw MissingHeadersException)
-        val lock = MigrationLock(pstr, id, psaId)
-        request.body.asJson.map { jsValue =>
-          repository.renewLockAndSave(lock, jsValue).map(_ => Ok)
-        } getOrElse Future.successful(BadRequest)
-      }
+      val psaId = request.headers.get("psaId").getOrElse(throw MissingHeadersException)
+      val lock = MigrationLock(pstr, request.externalId, psaId)
+      request.body.asJson.map { jsValue =>
+        repository.renewLockAndSave(lock, jsValue).map(_ => Ok)
+      } getOrElse Future.successful(BadRequest)
   }
 
-  def get: Action[AnyContent] = Action.async {
+  def get: Action[AnyContent] = authAction.async {
     implicit request =>
-      withPstr { (pstr, _) =>
-        repository.get(pstr)
-          .map {
-            case Some(migrationData) => Ok(Json.toJson(migrationData))
-            case None => NotFound
-          }
-      }
+      repository.get(pstr)
+        .map {
+          case Some(migrationData) => Ok(Json.toJson(migrationData))
+          case None => NotFound
+        }
   }
 
-  def remove: Action[AnyContent] = Action.async {
+  def remove: Action[AnyContent] = authAction.async {
     implicit request =>
-      withPstr { (pstr, _) =>
-        repository.remove(pstr).map(_ => Ok)
-      }
+      repository.remove(pstr).map(_ => Ok)
   }
 
-  private def withPstr(block: (String, String) => Future[Result])
-                      (implicit hc: HeaderCarrier, request: Request[AnyContent]): Future[Result] = {
-    authorised().retrieve(Retrievals.externalId) {
-      case Some(id) => block(pstr, id)
-      case _ => Future.failed(CredIdNotFoundFromAuth())
-    }
-  }
-
-  private def pstr(implicit request: Request[_]): String = request.headers.get("pstr").getOrElse(throw MissingHeadersException)
+  private def pstr(implicit request: AuthRequest[_]): String = request.headers.get("pstr").getOrElse(throw MissingHeadersException)
 }
 
 
 case object MissingHeadersException extends BadRequestException("Missing pstr from headers")
-
-case class CredIdNotFoundFromAuth(msg: String = "Not Authorised - Unable to retrieve credentials - externalId")
-  extends UnauthorizedException(msg)
 
 

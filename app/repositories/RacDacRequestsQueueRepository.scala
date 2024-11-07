@@ -129,9 +129,9 @@ class RacDacRequestsQueueRepository @Inject()(configuration: Configuration, mong
   def deleteAll(psaId: String): Future[Either[Exception, Boolean]] = {
     collection.deleteOne(
       filter = Filters.eq("item.psaId", psaId)
-    ).toFuture().recover {
+    ).toFuture().map(_ => Right(true)).recover {
       case exception: Exception => Left(WorkItemProcessingException(s"deleting all requests failed due to ${exception.getMessage}"))
-    }.map(_ => Right(true))
+    }
   }
 
   case class WorkItemProcessingException(message: String) extends Exception(message)

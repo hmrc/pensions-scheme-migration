@@ -31,6 +31,7 @@ import play.api.test.Helpers._
 import repositories._
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.HeaderCarrier
+import utils.AuthUtils
 
 import scala.concurrent.Future
 
@@ -39,12 +40,12 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
 
   private val repo = mock[LockCacheRepository]
   private val authConnector: AuthConnector = mock[AuthConnector]
-  private val id = "id"
+  private val id = AuthUtils.id
   private val pstr = "pstr"
-  private val psaId = "A2222222"
+  private val psaId = AuthUtils.psaId
   private val lock: MigrationLock = MigrationLock(pstr, id, psaId)
-  private val fakeRequest = FakeRequest().withHeaders("pstr" -> pstr, "psaId" -> psaId)
-  private val fakePostRequest = FakeRequest("POST", "/").withHeaders("pstr" -> pstr, "psaId" -> psaId)
+  private val fakeRequest = FakeRequest().withHeaders("pstr" -> pstr)
+  private val fakePostRequest = FakeRequest("POST", "/").withHeaders("pstr" -> pstr)
 
   private val modules: Seq[GuiceableModule] = Seq(
     bind[AuthConnector].toInstance(authConnector),
@@ -68,15 +69,14 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
   private val controller = app.injector.instanceOf[LockCacheController]
 
   before {
-    reset(repo)
-    reset(authConnector)
+    reset(repo, authConnector)
   }
 
   "LockCacheController" when {
     "calling getLockOnScheme" must {
       "return OK with the data" in {
         when(repo.getLockByPstr(eqTo(pstr))) thenReturn Future.successful(Some(lock))
-        when(authConnector.authorise[Unit](any(), any())(any(), any())) thenReturn Future.successful(())
+        AuthUtils.authStub(authConnector)
 
         val result = controller.getLockOnScheme(fakeRequest)
         status(result) mustEqual OK
@@ -85,7 +85,7 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
 
       "return NOT FOUND when the data doesn't exist" in {
         when(repo.getLockByPstr(eqTo(pstr))) thenReturn Future.successful(None)
-        when(authConnector.authorise[Unit](any(), any())(any(), any())) thenReturn Future.successful(())
+        AuthUtils.authStub(authConnector)
 
         val result = controller.getLockOnScheme(fakeRequest)
         status(result) mustEqual NOT_FOUND
@@ -93,14 +93,14 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
 
       "throw an exception when the repository call fails" in {
         when(repo.getLockByPstr(eqTo(pstr))) thenReturn Future.failed(new Exception())
-        when(authConnector.authorise[Unit](any(), any())(any(), any())) thenReturn Future.successful(())
+        AuthUtils.authStub(authConnector)
 
         val result = controller.getLockOnScheme(fakeRequest)
         an[Exception] must be thrownBy status(result)
       }
 
       "throw an exception when the call is not authorised" in {
-        when(authConnector.authorise[Unit](any(), any())(any(), any())) thenReturn Future.failed(new Exception())
+        AuthUtils.failedAuthStub(authConnector)
 
         val result = controller.getLockOnScheme(fakeRequest)
         an[Exception] must be thrownBy status(result)
@@ -111,7 +111,7 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
     "calling getLock" must {
       "return OK with the data" in {
         when(repo.getLock(eqTo(lock))(any())) thenReturn Future.successful(Some(lock))
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
+        AuthUtils.authStub(authConnector)
 
         val result = controller.getLock(fakeRequest)
         status(result) mustEqual OK
@@ -120,7 +120,7 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
 
       "return NOT FOUND when the data doesn't exist" in {
         when(repo.getLock(eqTo(lock))(any())) thenReturn Future.successful(None)
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
+        AuthUtils.authStub(authConnector)
 
         val result = controller.getLock(fakeRequest)
         status(result) mustEqual NOT_FOUND
@@ -128,17 +128,10 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
 
       "throw an exception when the repository call fails" in {
         when(repo.getLock(eqTo(lock))(any())) thenReturn Future.failed(new Exception())
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
+        AuthUtils.authStub(authConnector)
 
         val result = controller.getLock(fakeRequest)
         an[Exception] must be thrownBy status(result)
-      }
-
-      "throw an exception when the call is not authorised" in {
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
-
-        val result = controller.getLock(fakeRequest)
-        an[CredIdNotFoundFromAuth] must be thrownBy status(result)
       }
 
     }
@@ -146,7 +139,7 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
     "calling getLockByUser" must {
       "return OK with the data" in {
         when(repo.getLockByCredId(eqTo(id))) thenReturn Future.successful(Some(lock))
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
+        AuthUtils.authStub(authConnector)
 
         val result = controller.getLockByUser(fakeRequest)
         status(result) mustEqual OK
@@ -155,7 +148,7 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
 
       "return NOT FOUND when the data doesn't exist" in {
         when(repo.getLockByCredId(eqTo(id))) thenReturn Future.successful(None)
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
+        AuthUtils.authStub(authConnector)
 
         val result = controller.getLockByUser(fakeRequest)
         status(result) mustEqual NOT_FOUND
@@ -163,17 +156,10 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
 
       "throw an exception when the repository call fails" in {
         when(repo.getLockByCredId(eqTo(id))) thenReturn Future.failed(new Exception())
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
+        AuthUtils.authStub(authConnector)
 
         val result = controller.getLockByUser(fakeRequest)
         an[Exception] must be thrownBy status(result)
-      }
-
-      "throw an exception when the call is not authorised" in {
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
-
-        val result = controller.getLockByUser(fakeRequest)
-        an[CredIdNotFoundFromAuth] must be thrownBy status(result)
       }
 
     }
@@ -182,31 +168,24 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
 
       "return OK when the data is saved successfully" in {
         when(repo.setLock(any())) thenReturn Future.successful(true)
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
+        AuthUtils.authStub(authConnector)
 
         val result = controller.lock(fakePostRequest)
         status(result) mustEqual OK
-      }
-
-      "throw an exception when the call is not authorised" in {
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
-
-        val result = controller.lock(fakePostRequest)
-        an[CredIdNotFoundFromAuth] must be thrownBy status(result)
       }
     }
 
     "calling removeLockOnScheme" must {
       "return OK when the data is removed successfully" in {
         when(repo.releaseLockByPstr(eqTo(pstr))) thenReturn Future.successful(true)
-        when(authConnector.authorise[Unit](any(), any())(any(), any())) thenReturn Future.successful(())
+        AuthUtils.authStub(authConnector)
 
         val result = controller.removeLockOnScheme()(fakeRequest)
         status(result) mustEqual OK
       }
 
       "throw an exception when the call is not authorised" in {
-        when(authConnector.authorise[Unit](any(), any())(any(), any())) thenReturn Future.failed(new Exception())
+        AuthUtils.failedAuthStub(authConnector)
 
         val result = controller.removeLockOnScheme()(fakeRequest)
         an[Exception] must be thrownBy status(result)
@@ -216,34 +195,20 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
     "calling removeLockByUser" must {
       "return OK when the data is removed successfully" in {
         when(repo.releaseLockByCredId(eqTo(id))) thenReturn Future.successful(true)
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
+        AuthUtils.authStub(authConnector)
 
         val result = controller.removeLockByUser()(fakeRequest)
         status(result) mustEqual OK
-      }
-
-      "throw an exception when the call is not authorised" in {
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
-
-        val result = controller.removeLockByUser()(fakeRequest)
-        an[CredIdNotFoundFromAuth] must be thrownBy status(result)
       }
     }
 
     "calling removeLock" must {
       "return OK when the data is removed successfully" in {
         when(repo.releaseLock(eqTo(lock))) thenReturn Future.successful(true)
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
+        AuthUtils.authStub(authConnector)
 
         val result = controller.removeLock()(fakeRequest)
         status(result) mustEqual OK
-      }
-
-      "throw an exception when the call is not authorised" in {
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
-
-        val result = controller.removeLock()(fakeRequest)
-        an[CredIdNotFoundFromAuth] must be thrownBy status(result)
       }
     }
   }

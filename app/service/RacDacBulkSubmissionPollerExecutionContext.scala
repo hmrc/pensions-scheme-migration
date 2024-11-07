@@ -16,8 +16,8 @@
 
 package service
 
-import org.apache.pekko.actor.ActorSystem
 import com.google.inject.Inject
+import org.apache.pekko.actor.ActorSystem
 import play.api.libs.concurrent.CustomExecutionContext
 
 class RacDacBulkSubmissionPollerExecutionContext @Inject()(actorSystem: ActorSystem)

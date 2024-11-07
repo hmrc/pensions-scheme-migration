@@ -16,12 +16,12 @@
 
 package controllers
 
-import _root_.utils.AuthUtil
 import audit.{AuditService, EmailRequestAuditEvent, RacDacBulkMigrationTriggerAuditEvent}
 import com.google.inject.Inject
 import config.AppConfig
 import connector._
 import connector.utils.HttpResponseHelper
+import controllers.actions.AuthAction
 import models.enumeration.JourneyType.RACDAC_BULK_MIG
 import models.racDac.{RacDacHeaders, RacDacRequest, WorkItemRequest}
 import org.apache.pekko.actor.ActorSystem
@@ -43,12 +43,12 @@ class BulkRacDacController @Inject()(appConfig: AppConfig,
                                      cc: ControllerComponents,
                                      service: RacDacBulkSubmissionService,
                                      auditService: AuditService,
-                                     authUtil: AuthUtil,
                                      repository: RacDacRequestsQueueEventsLogRepository,
                                      system: ActorSystem,
                                      emailConnector: EmailConnector,
                                      minimalDetailsConnector: MinimalDetailsConnector,
-                                     crypto: ApplicationCrypto
+                                     crypto: ApplicationCrypto,
+                                     authAction: AuthAction
                                     )(
                                       implicit ec: ExecutionContext
                                     )
@@ -84,42 +84,39 @@ class BulkRacDacController @Inject()(appConfig: AppConfig,
     }(executionContext)
   }
 
-  def clearEventLogThenInitiateMigration: Action[AnyContent] = Action.async {
-    implicit request =>
-      authUtil.doAuth { _ =>
-        val hc = HeaderCarrierConverter.fromRequest(request)
-        hc.sessionId match {
-          case Some(SessionId(sessionId)) =>
-            val optionPsaId = request.headers.get("psaId")
-            val feJson = request.body.asJson
-            val executionContext: ExecutionContext = system.dispatchers.lookup(id = "racDacWorkItem")
-            (optionPsaId, feJson) match {
-              case (Some(psaId), Some(jsValue)) =>
-                jsValue.validate[Seq[RacDacRequest]] match {
-                  case JsSuccess(seqRacDacRequest, _) =>
-                    repository.remove(sessionId)(ec).map { _ =>
-                      putAllItemsOnQueueThenSendAuditEventAndEmail(sessionId, psaId, seqRacDacRequest)(request, hc, executionContext)
-                      Ok
-                    }
-                  case JsError(_) =>
-                    val error = new BadRequestException(s"Invalid request received from frontend for rac dac migration")
-                    auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(psaId, 0, error.message))(request, executionContext)
-                    Future.failed(error)
-                }
-              case _ =>
-                val error = new BadRequestException("Missing Body or missing psaId in the header")
-                auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(optionPsaId.getOrElse(""), 0, error.message
-                ))(request, ec)
-                Future.failed(error)
-            }
+  def clearEventLogThenInitiateMigration: Action[AnyContent] = authAction.async { implicit request =>
+      val hc = HeaderCarrierConverter.fromRequest(request)
+    (hc.sessionId match {
+        case Some(SessionId(sessionId)) =>
+          val optionPsaId = request.headers.get("psaId")
+          val feJson = request.body.asJson
+          val executionContext: ExecutionContext = system.dispatchers.lookup(id = "racDacWorkItem")
+          (optionPsaId, feJson) match {
+            case (Some(psaId), Some(jsValue)) =>
+              jsValue.validate[Seq[RacDacRequest]] match {
+                case JsSuccess(seqRacDacRequest, _) =>
+                  repository.remove(sessionId)(ec).map { _ =>
+                    putAllItemsOnQueueThenSendAuditEventAndEmail(sessionId, psaId, seqRacDacRequest)(request, hc, executionContext)
+                    Ok
+                  }
+                case JsError(_) =>
+                  val error = new BadRequestException(s"Invalid request received from frontend for rac dac migration")
+                  auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(psaId, 0, error.message))(request, executionContext)
+                  Future.failed(error)
+              }
+            case _ =>
+              val error = new BadRequestException("Missing Body or missing psaId in the header")
+              auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(optionPsaId.getOrElse(""), 0, error.message
+              ))(request, ec)
+              Future.failed(error)
+          }
 
-          case _ =>
-            val error = new BadRequestException("Session ID not found - Unable to retrieve session ID")
-            auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent("", 0, error.message
-            ))(request, ec)
-            Future.failed(error)
-        }
-      }
+        case _ =>
+          val error = new BadRequestException("Session ID not found - Unable to retrieve session ID")
+          auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent("", 0, error.message
+          ))(request, ec)
+          Future.failed(error)
+      }) recoverWith recoverFromError
   }
 
   private def sendEmail(psaId: String)(implicit requestHeader: RequestHeader,
@@ -156,46 +153,30 @@ class BulkRacDacController @Inject()(appConfig: AppConfig,
     s"${appConfig.baseUrlPensionsSchemeMigration}/pensions-scheme-migration/email-response/${RACDAC_BULK_MIG}/$encryptedPsa"
   }
 
-  def isRequestSubmitted: Action[AnyContent] = Action.async {
+  def isRequestSubmitted: Action[AnyContent] = authAction.async {
     implicit request => {
-      withPsa { psaId =>
-        service.isRequestSubmitted(psaId).map {
-          case Right(isSubmitted) => Ok(JsBoolean(isSubmitted))
-          case _ => ServiceUnavailable
-        }
+      service.isRequestSubmitted(request.psaId).map {
+        case Right(isSubmitted) => Ok(JsBoolean(isSubmitted))
+        case _ => ServiceUnavailable
       }
     }
   }
 
-  def isAllFailed: Action[AnyContent] = Action.async {
+  def isAllFailed: Action[AnyContent] = authAction.async {
     implicit request => {
-      withPsa { psaId =>
-        service.isAllFailed(psaId).map {
-          case Right(None) => NoContent
-          case Right(Some(isFailed)) => Ok(JsBoolean(isFailed))
-          case _ => ServiceUnavailable
-        }
+      service.isAllFailed(request.psaId).map {
+        case Right(None) => NoContent
+        case Right(Some(isFailed)) => Ok(JsBoolean(isFailed))
+        case _ => ServiceUnavailable
       }
     }
   }
 
-  def deleteAll: Action[AnyContent] = Action.async {
-    implicit request => {
-      withPsa { psaId =>
-        service.deleteAll(psaId).map {
-          case Right(isDeleted) => Ok(JsBoolean(isDeleted))
-          case _ => ServiceUnavailable
-        }
+  def deleteAll: Action[AnyContent] = authAction.async {
+    implicit request =>
+      service.deleteAll(request.psaId).map {
+        case Right(isDeleted) => Ok(JsBoolean(isDeleted))
+        case _ => ServiceUnavailable
       }
-    }
-  }
-
-  private def withPsa(fn: String => Future[Result])(implicit request: Request[AnyContent]): Future[Result] = {
-    authUtil.doAuth { _ =>
-      request.headers.get("psaId") match {
-        case Some(id) => fn(id)
-        case _ => Future.failed(new BadRequestException("Missing psaId in the header"))
-      }
-    }
   }
 }
