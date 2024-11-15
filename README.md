@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is the repository for Pension Scheme Migration Frontend. This service allows a user to migrate pension schemes from TPSS including RAC/DACs. All schemes will need to be migrated from TPSS to the MPS infrastructure by end of ____. RACs (Retired Annuity Contracts) and DACs (Deferred Annuity Contracts) are two older types of pension scheme. A user declares as an administrator of a RAC/DAC. The administrator is responsible for the migration of schemes.
+This is the repository for Pension Scheme Migration Frontend. This service allows a user to migrate pension schemes from TPSS including RAC/DACs. All schemes will need to be migrated from TPSS to the MPS infrastructure by end of 2026. RACs (Retired Annuity Contracts) and DACs (Deferred Annuity Contracts) are two older types of pension scheme. A user declares as an administrator of a RAC/DAC. The administrator is responsible for the migration of schemes.
 
 This service has a corresponding back-end microservice to support the migration of legacy schemes and legacy scheme details from TPSS, and registration of legacy schemes to ETMP.
 
@@ -25,7 +25,7 @@ This service is written in Scala and Play, so needs at least a [JRE] to run.
 ## Running the Service
 **Service Manager Profile:** PODS_ALL
 
-**Port:** 8209
+**Port:** 8214
 
 **Links:** http://localhost:8213/add-pension-scheme/list-pension-schemes 
 
