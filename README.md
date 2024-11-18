@@ -1,4 +1,4 @@
-# Pensions Scheme  Migration
+# Pensions Scheme Migration
 
 ## Contents
 - [Overview](#overview)
