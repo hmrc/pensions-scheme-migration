@@ -1,15 +1,13 @@
 # Pensions Scheme Migration
 
-## Contents
 - [Overview](#overview)
 - [Requirements](#requirements)
 - [Running the Service](#running-the-service)
 - [Enrolments](#enrolments)
 - [Compile & Test](#compile--test)
-- [Identity Verification Testing](#identity-verification-testing)
 - [Navigation and Dependent Services](#navigation-and-dependent-services)
 - [Service Documentation](#service-documentation)
-- [Endpoints Used](#endpoints-used)
+- [Endpoints](#endpoints)
 - [License](#license)
 
 ## Overview
@@ -145,11 +143,13 @@ The Pension Migration Frontend integrates with the Manage Pension Schemes (MPS) 
 There are numerous APIs implemented throughout the MPS architecture, and the relevant endpoints are illustrated below. For an overview of all PODS APIs, refer to the [PODS API Documentation](https://confluence.tools.tax.service.gov.uk/display/PODSP/PODS+API+Latest+Version).
 
 
-## Service-Specific Documentation [To Do]
+## Service Documentation
+[To Do]
 Include relevant links or details to any additional, service-specific documents (e.g., stubs, testing protocols) when available. 
 
 
-## API Endpoints [To Do]
+## Endpoints
+[To Do]
 
 | *Task*                                                      | *Supported Methods* | *Description*                                                                                                        |
 |-------------------------------------------------------------|---------------------|----------------------------------------------------------------------------------------------------------------------|
@@ -185,4 +185,4 @@ Unless required by applicable law or agreed to in writing, software distributed 
 
 Back-end microservice to support the migration of legacy schemes and legacy scheme details from TPSS, and registration of legacy schemes to ETMP.
 
-[Back to Top](#pensions-scheme-migration)
+[↥ Back to Top](#pensions-scheme-migration)
