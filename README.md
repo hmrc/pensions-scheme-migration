@@ -1,5 +1,17 @@
 # Pensions Scheme  Migration
 
+## Contents
+- [Overview](#overview)
+- [Requirements](#requirements)
+- [Running the Service](#running-the-service)
+- [Enrolments](#enrolments)
+- [Compile & Test](#compile--test)
+- [Identity Verification Testing](#identity-verification-testing)
+- [Navigation and Dependent Services](#navigation-and-dependent-services)
+- [Service Documentation](#service-documentation)
+- [Endpoints Used](#endpoints-used)
+- [License](#license)
+
 ## Overview
 
 This is the repository for Pension Scheme Migration Frontend. This service allows a user to migrate pension schemes from TPSS including RAC/DACs. All schemes will need to be migrated from TPSS to the MPS infrastructure by end of 2026. RACs (Retired Annuity Contracts) and DACs (Deferred Annuity Contracts) are two older types of pension scheme. A user declares as an administrator of a RAC/DAC. The administrator is responsible for the migration of schemes.
@@ -15,9 +27,9 @@ This service has a corresponding back-end microservice to support the migration 
 ## Requirements
 This service is written in Scala and Play, so needs at least a [JRE] to run.
 
-**Node version:** 20.18.0
+**Node version:** 16.20.2
 
-**Java version:** 19
+**Java version:** 11
 
 **Scala version:** 2.13.14
 
