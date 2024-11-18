@@ -33,7 +33,7 @@ import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.RequestHeader
 import play.api.test.FakeRequest
 import repositories._
-import uk.gov.hmrc.http.{BadRequestException, NotFoundException, UpstreamErrorResponse}
+import uk.gov.hmrc.http.{BadRequestException, UpstreamErrorResponse}
 
 
 class LegacySchemeDetailsConnectorSpec

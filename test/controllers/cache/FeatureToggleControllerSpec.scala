@@ -151,7 +151,7 @@ class FeatureToggleControllerSpec extends SpecBase with MockitoSugar with Before
         .thenReturn(Future.successful(()))
 
       when(mockFeatureToggleService.deleteToggle(any()))
-        .thenReturn(Future.successful())
+        .thenReturn(Future.successful((): Unit))
 
       val controller = new FeatureToggleController(controllerComponents, mockFeatureToggleService)
 

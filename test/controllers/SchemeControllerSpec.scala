@@ -51,7 +51,8 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
   private val psaId = AuthUtils.psaId
 
   before {
-    reset(mockSchemeConnector, mockAuthConnector)
+    reset(mockSchemeConnector)
+    reset(mockAuthConnector)
     reset(mockPensionSchemeService)
     reset(mockListOfLegacySchemesCacheRepository)
     AuthUtils.authStub(mockAuthConnector)

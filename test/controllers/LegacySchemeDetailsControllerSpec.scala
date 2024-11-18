@@ -50,7 +50,8 @@ class LegacySchemeDetailsControllerSpec
   private val userAnswersResponse: JsValue = readJsonFromFile("/data/validGetSchemeDetailsIFUserAnswers.json")
 
   before {
-    reset(mockSchemeConnector, mockAuthConnector)
+    reset(mockSchemeConnector)
+    reset(mockAuthConnector)
     AuthUtils.authStub(mockAuthConnector)
   }
 

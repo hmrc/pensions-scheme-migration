@@ -77,11 +77,13 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
   )
 
   before {
-    reset(
-      mockAppConfig,
-      mockRacDacBulkSubmissionService, mockAuditService, mockAuthConnector,
-      mockRacDacRequestsQueueEventsLogRepository, mockEmailConnector, mockMinimalDetailsConnector
-    )
+    reset(mockAppConfig)
+    reset(mockRacDacBulkSubmissionService)
+    reset(mockAuditService)
+    reset(mockAuthConnector)
+    reset(mockRacDacRequestsQueueEventsLogRepository)
+    reset(mockEmailConnector)
+    reset(mockMinimalDetailsConnector)
     when(mockAppConfig.bulkMigrationConfirmationEmailTemplateId).thenReturn(emailTemplate)
     when(mockAppConfig.baseUrlPensionsSchemeMigration).thenReturn(baseUrl)
     AuthUtils.authStub(mockAuthConnector)
