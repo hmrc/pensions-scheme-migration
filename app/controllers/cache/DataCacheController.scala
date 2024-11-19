@@ -23,7 +23,7 @@ import play.api.libs.json.Json
 import play.api.mvc._
 import repositories.DataCacheRepository
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
-import uk.gov.hmrc.http.{BadRequestException, UnauthorizedException}
+import uk.gov.hmrc.http.BadRequestException
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
