@@ -151,29 +151,267 @@ Include relevant links or details to any additional, service-specific documents 
 ## Endpoints
 [To Do]
 
-| *Task*                                                      | *Supported Methods* | *Description*                                                                                                        |
-|-------------------------------------------------------------|---------------------|----------------------------------------------------------------------------------------------------------------------|
-| ```/register-scheme                                     ``` | POST                | Register legacy scheme to ETMP [More...](docs/register-scheme.md)                                                    |
-| ```/list-of-schemes                                     ``` | GET                 | Retrieves list of legacy scheme details from TPSS [More...](docs/list-of-schemes.md)                                 |
-| ```/getLegacySchemeDetails                              ``` | GET                 | Returns Legacy Scheme Details [More...](docs/scheme.md)                                                              |
-| ```/lock                                                ``` | GET                 | Returns the migration lock from the Mongo lock cache on basis of pstr,credId and psaId                               |
-| ```/lock                                                ``` | POST                | Saves a value as migration lock(pstr,credId and psaId) to a key in the Mongo lock cache                              |
-| ```/lock                                                ``` | DELETE              | Removes the migration lock(pstr,credId and psaId) of a key from the Mongo lock cache                                 |
-| ```/migration-data                                      ``` | GET                 | Returns the value of a key from the Mongo data cache                                                                 |
-| ```/migration-data                                      ``` | POST                | Saves a value to a key in the Mongo data cache                                                                       |
-| ```/migration-data                                      ``` | DELETE              | Removes the value of a key from the Mongo data cache                                                                 |
-| ```/scheme-data                                         ``` | GET                 | Returns the value of a key from the Mongo scheme data cache                                                          |
-| ```/scheme-data                                         ``` | POST                | Saves a value to a key in the Mongo scheme data cache                                                                |
-| ```/scheme-data                                         ``` | DELETE              | Removes the value of a key from the Mongo scheme data cache                                                          |
-| ```/lock-by-user                                        ``` | GET                 | Returns the migration lock(pstr,credId and psaId) from the Mongo lock cache on basis of credId                       |
-| ```/lock-by-user                                        ``` | DELETE              | Remove the migration lock(pstr,credId and psaId) from the Mongo lock cache on basis of credId                        |
-| ```/lock-on-scheme                                      ``` | GET                 | Returns the migration lock(pstr,credId and psaId) from the Mongo lock cache on basis of pstr                         |
-| ```/lock-on-scheme                                      ``` | DELETE              | Remove the migration lock(pstr,credId and psaId) from the Mongo lock cache on basis of pstr                          |
-| ```/bulk-migration                                      ``` | POST                | Save a values of rac/dac legacy schemes in racDac work item mongo                                                    |
-| ```/bulk-migration/isRequestInProgress                  ``` | GET                 | Returns true or false for psaId.This will check to see if bulk migration request has been made or not.               |
-| ```/bulk-migration/isAllFailed                          ``` | GET                 | Returns true or false for psaId.This will check to see if bulk migration request all record is failed or not.        |
-| ```/bulk-migration/deleteAll                            ``` | DELETE              | Remove value for psa from the  racDac work item mongo                                                                |
-| ```/email-response/:journeyType/:id                     ``` | POST                | Sends an audit event indicating the response returned by the email service in response to a request to send an email |
+**Standard Path**
+```POST   /register-scheme```
+
+**Description**
+Register legacy scheme to ETMP [More...](docs/register-scheme.md)
+
+| *Args*                        | *Expected Requests*                      | *Samples Response*                           | *Error Codes/Responses*                   |
+|-------------------------------|------------------------------------------|----------------------------------------------|-------------------------------------------|
+| ```INSERT ARGS```             | INSERT REQUEST HERE                      | INSERT RESPONSE HERE                         | INSERT ERROR CODES AND RESPONSES          |
+
+**Standard Path**
+
+
+**Description**
+
+
+| *Args*                        | *Expected Requests*                      | *Samples Response*                           | *Error Codes/Responses*                   |
+|-------------------------------|------------------------------------------|----------------------------------------------|-------------------------------------------|
+| ```INSERT ARGS```             | INSERT REQUEST HERE                      | INSERT RESPONSE HERE                         | INSERT ERROR CODES AND RESPONSES          |
+
+---
+
+**Standard Path**  
+```GET   /list-of-schemes```
+
+**Description**  
+Retrieves a list of legacy scheme details from TPSS [More...](docs/list-of-schemes.md)
+
+| *Args*                        | *Expected Requests*                      | *Samples Response*                           | *Error Codes/Responses*                   |
+|-------------------------------|------------------------------------------|----------------------------------------------|-------------------------------------------|
+| ```INSERT ARGS```             | INSERT REQUEST HERE                      | INSERT RESPONSE HERE                         | INSERT ERROR CODES AND RESPONSES          |
+
+---
+
+**Standard Path**  
+```GET   /getLegacySchemeDetails```
+
+**Description**  
+Returns Legacy Scheme Details [More...](docs/scheme.md)
+
+| *Args*                        | *Expected Requests*                      | *Samples Response*                           | *Error Codes/Responses*                   |
+|-------------------------------|------------------------------------------|----------------------------------------------|-------------------------------------------|
+| ```INSERT ARGS```             | INSERT REQUEST HERE                      | INSERT RESPONSE HERE                         | INSERT ERROR CODES AND RESPONSES          |
+
+---
+
+**Standard Path**  
+```GET   /lock```
+
+**Description**  
+Returns the migration lock from the Mongo lock cache on the basis of pstr, credId, and psaId
+
+| *Args*                        | *Expected Requests*                      | *Samples Response*                           | *Error Codes/Responses*                   |
+|-------------------------------|------------------------------------------|----------------------------------------------|-------------------------------------------|
+| ```INSERT ARGS```             | INSERT REQUEST HERE                      | INSERT RESPONSE HERE                         | INSERT ERROR CODES AND RESPONSES          |
+
+---
+
+**Standard Path**  
+```POST   /lock```
+
+**Description**  
+Saves a value as a migration lock (pstr, credId, and psaId) to a key in the Mongo lock cache
+
+| *Args*                        | *Expected Requests*                      | *Samples Response*                           | *Error Codes/Responses*                   |
+|-------------------------------|------------------------------------------|----------------------------------------------|-------------------------------------------|
+| ```INSERT ARGS```             | INSERT REQUEST HERE                      | INSERT RESPONSE HERE                         | INSERT ERROR CODES AND RESPONSES          |
+
+---
+
+**Standard Path**  
+```DELETE   /lock```
+
+**Description**  
+Removes the migration lock (pstr, credId, and psaId) of a key from the Mongo lock cache
+
+| *Args*                        | *Expected Requests*                      | *Samples Response*                           | *Error Codes/Responses*                   |
+|-------------------------------|------------------------------------------|----------------------------------------------|-------------------------------------------|
+| ```INSERT ARGS```             | INSERT REQUEST HERE                      | INSERT RESPONSE HERE                         | INSERT ERROR CODES AND RESPONSES          |
+
+---
+
+**Standard Path**  
+```GET   /migration-data```
+
+**Description**  
+Returns the value of a key from the Mongo data cache
+
+| *Args*                        | *Expected Requests*                      | *Samples Response*                           | *Error Codes/Responses*                   |
+|-------------------------------|------------------------------------------|----------------------------------------------|-------------------------------------------|
+| ```INSERT ARGS```             | INSERT REQUEST HERE                      | INSERT RESPONSE HERE                         | INSERT ERROR CODES AND RESPONSES          |
+
+---
+
+**Standard Path**  
+```POST   /migration-data```
+
+**Description**  
+Saves a value to a key in the Mongo data cache
+
+| *Args*                        | *Expected Requests*                      | *Samples Response*                           | *Error Codes/Responses*                   |
+|-------------------------------|------------------------------------------|----------------------------------------------|-------------------------------------------|
+| ```INSERT ARGS```             | INSERT REQUEST HERE                      | INSERT RESPONSE HERE                         | INSERT ERROR CODES AND RESPONSES          |
+
+---
+
+**Standard Path**  
+```DELETE   /migration-data```
+
+**Description**  
+Removes the value of a key from the Mongo data cache
+
+| *Args*                        | *Expected Requests*                      | *Samples Response*                           | *Error Codes/Responses*                   |
+|-------------------------------|------------------------------------------|----------------------------------------------|-------------------------------------------|
+| ```INSERT ARGS```             | INSERT REQUEST HERE                      | INSERT RESPONSE HERE                         | INSERT ERROR CODES AND RESPONSES          |
+
+---
+
+**Standard Path**  
+```GET   /scheme-data```
+
+**Description**  
+Returns the value of a key from the Mongo scheme data cache
+
+| *Args*                        | *Expected Requests*                      | *Samples Response*                           | *Error Codes/Responses*                   |
+|-------------------------------|------------------------------------------|----------------------------------------------|-------------------------------------------|
+| ```INSERT ARGS```             | INSERT REQUEST HERE                      | INSERT RESPONSE HERE                         | INSERT ERROR CODES AND RESPONSES          |
+
+---
+
+**Standard Path**  
+```POST   /scheme-data```
+
+**Description**  
+Saves a value to a key in the Mongo scheme data cache
+
+| *Args*                        | *Expected Requests*                      | *Samples Response*                           | *Error Codes/Responses*                   |
+|-------------------------------|------------------------------------------|----------------------------------------------|-------------------------------------------|
+| ```INSERT ARGS```             | INSERT REQUEST HERE                      | INSERT RESPONSE HERE                         | INSERT ERROR CODES AND RESPONSES          |
+
+---
+
+**Standard Path**  
+```DELETE   /scheme-data```
+
+**Description**  
+Removes the value of a key from the Mongo scheme data cache
+
+| *Args*                        | *Expected Requests*                      | *Samples Response*                           | *Error Codes/Responses*                   |
+|-------------------------------|------------------------------------------|----------------------------------------------|-------------------------------------------|
+| ```INSERT ARGS```             | INSERT REQUEST HERE                      | INSERT RESPONSE HERE                         | INSERT ERROR CODES AND RESPONSES          |
+
+---
+
+**Standard Path**  
+```GET   /lock-by-user```
+
+**Description**  
+Returns the migration lock (pstr, credId, and psaId) from the Mongo lock cache on the basis of credId
+
+| *Args*                        | *Expected Requests*                      | *Samples Response*                           | *Error Codes/Responses*                   |
+|-------------------------------|------------------------------------------|----------------------------------------------|-------------------------------------------|
+| ```INSERT ARGS```             | INSERT REQUEST HERE                      | INSERT RESPONSE HERE                         | INSERT ERROR CODES AND RESPONSES          |
+
+---
+
+**Standard Path**  
+```DELETE   /lock-by-user```
+
+**Description**  
+Removes the migration lock (pstr, credId, and psaId) from the Mongo lock cache on the basis of credId
+
+| *Args*                        | *Expected Requests*                      | *Samples Response*                           | *Error Codes/Responses*                   |
+|-------------------------------|------------------------------------------|----------------------------------------------|-------------------------------------------|
+| ```INSERT ARGS```             | INSERT REQUEST HERE                      | INSERT RESPONSE HERE                         | INSERT ERROR CODES AND RESPONSES          |
+
+---
+
+**Standard Path**  
+```GET   /lock-on-scheme```
+
+**Description**  
+Returns the migration lock (pstr, credId, and psaId) from the Mongo lock cache on the basis of pstr
+
+| *Args*                        | *Expected Requests*                      | *Samples Response*                           | *Error Codes/Responses*                   |
+|-------------------------------|------------------------------------------|----------------------------------------------|-------------------------------------------|
+| ```INSERT ARGS```             | INSERT REQUEST HERE                      | INSERT RESPONSE HERE                         | INSERT ERROR CODES AND RESPONSES          |
+
+---
+
+**Standard Path**  
+```DELETE   /lock-on-scheme```
+
+**Description**  
+Removes the migration lock (pstr, credId, and psaId) from the Mongo lock cache on the basis of pstr
+
+| *Args*                        | *Expected Requests*                      | *Samples Response*                           | *Error Codes/Responses*                   |
+|-------------------------------|------------------------------------------|----------------------------------------------|-------------------------------------------|
+| ```INSERT ARGS```             | INSERT REQUEST HERE                      | INSERT RESPONSE HERE                         | INSERT ERROR CODES AND RESPONSES          |
+
+---
+
+**Standard Path**  
+```POST   /bulk-migration```
+
+**Description**  
+Saves values of rac/dac legacy schemes in racDac work item mongo
+
+| *Args*                        | *Expected Requests*                      | *Samples Response*                           | *Error Codes/Responses*                   |
+|-------------------------------|------------------------------------------|----------------------------------------------|-------------------------------------------|
+| ```INSERT ARGS```             | INSERT REQUEST HERE                      | INSERT RESPONSE HERE                         | INSERT ERROR CODES AND RESPONSES          |
+
+---
+
+**Standard Path**  
+```GET   /bulk-migration/isRequestInProgress```
+
+**Description**  
+Returns true or false for psaId. This checks if a bulk migration request has been made.
+
+| *Args*                        | *Expected Requests*                      | *Samples Response*                           | *Error Codes/Responses*                   |
+|-------------------------------|------------------------------------------|----------------------------------------------|-------------------------------------------|
+| ```INSERT ARGS```             | INSERT REQUEST HERE                      | INSERT RESPONSE HERE                         | INSERT ERROR CODES AND RESPONSES          |
+
+---
+
+**Standard Path**  
+```GET   /bulk-migration/isAllFailed```
+
+**Description**  
+Returns true or false for psaId. This checks if all records in a bulk migration request failed.
+
+| *Args*                        | *Expected Requests*                      | *Samples Response*                           | *Error Codes/Responses*                   |
+|-------------------------------|------------------------------------------|----------------------------------------------|-------------------------------------------|
+| ```INSERT ARGS```             | INSERT REQUEST HERE                      | INSERT RESPONSE HERE                         | INSERT ERROR CODES AND RESPONSES          |
+
+---
+
+**Standard Path**  
+```DELETE   /bulk-migration/deleteAll```
+
+**Description**  
+Removes value for psaId from the racDac work item mongo
+
+| *Args*                        | *Expected Requests*                      | *Samples Response*                           | *Error Codes/Responses*                   |
+|-------------------------------|------------------------------------------|----------------------------------------------|-------------------------------------------|
+| ```INSERT ARGS```             | INSERT REQUEST HERE                      | INSERT RESPONSE HERE                         | INSERT ERROR CODES AND RESPONSES          |
+
+---
+
+**Standard Path**  
+```POST   /email-response/:journeyType/:id```
+
+**Description**  
+Sends an audit event indicating the response returned by the email service in response to a request to send an email
+
+| *Args*                        | *Expected Requests*                      | *Samples Response*                           | *Error Codes/Responses*                   |
+|-------------------------------|------------------------------------------|----------------------------------------------|-------------------------------------------|
+| ```INSERT ARGS```             | INSERT REQUEST HERE                      | INSERT RESPONSE HERE                         | INSERT ERROR CODES AND RESPONSES          |
+
+---
 
 ## License
 This code is open source software Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at:
