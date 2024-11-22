@@ -19,9 +19,10 @@ package controllers
 import com.google.inject.Inject
 import connector.SchemeConnector
 import connector.utils.HttpResponseHelper
+import crypto.{EncryptedValue, SecureGCMCipher}
 import models.MigrationType.isRacDac
 import models.{ListOfLegacySchemes, MigrationType}
-import play.api.Logger
+import play.api.{Configuration, Logger}
 import play.api.libs.json.{JsBoolean, JsObject, JsValue, Json}
 import play.api.mvc._
 import repositories.ListOfLegacySchemesCacheRepository
@@ -38,6 +39,8 @@ class SchemeController @Inject()(
                                   pensionSchemeService: PensionSchemeService,
                                   listOfLegacySchemesCacheRepository: ListOfLegacySchemesCacheRepository,
                                   cc: ControllerComponents,
+                                  cipher: SecureGCMCipher,
+                                  configuration: Configuration,
                                   authUtil: AuthUtil
                                 )(
                                   implicit ec: ExecutionContext
@@ -53,7 +56,12 @@ class SchemeController @Inject()(
         psaId match {
           case Some(id) =>
             getListOfLegacySchemes(id).map {
-              case Right(json) => Ok(Json.toJson(json.convertTo[ListOfLegacySchemes]))
+              case Right(json) => {
+                val encryptionKey  = configuration.get[String]("mongodb.migration.encryptionKey")
+                val decryptedJson = Json.parse(cipher.decrypt(json.as[EncryptedValue], id, encryptionKey))
+                println(s"\n\n\n Decrypted List of legacy schemes json is: $decryptedJson")
+                Ok(Json.toJson(decryptedJson.convertTo[ListOfLegacySchemes]))
+              }
               case Left(e) => result(e)
             }
           case _ => Future.failed(new BadRequestException("Bad Request with missing PSAId"))

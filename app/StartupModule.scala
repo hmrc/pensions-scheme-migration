@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,12 @@
  * limitations under the License.
  */
 
-package models.cache
+import com.google.inject.AbstractModule
+import play.api.{Configuration, Environment}
+import service.MigrationService
 
-import crypto.DataEncryptor
-import play.api.libs.json.{Format, JsValue, Json, OFormat}
-import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
-
-import java.time.Instant
-
-case class DataJson(pstr: String, data: JsValue, lastUpdated: Instant, expireAt: Instant)
-
-object DataJson {
-  implicit val dateFormat: Format[Instant] = MongoJavatimeFormats.instantFormat
-  implicit val format: OFormat[DataJson] = Json.format[DataJson]
+class StartupModule (environment: Environment, configuration: Configuration) extends AbstractModule {
+  override def configure(): Unit = {
+    if (configuration.get[Boolean]("mongodb.migration.enable")) bind(classOf[MigrationService]).asEagerSingleton()
+  }
 }
