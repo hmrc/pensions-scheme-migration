@@ -56,12 +56,15 @@ class SchemeController @Inject()(
         psaId match {
           case Some(id) =>
             getListOfLegacySchemes(id).map {
-              case Right(json) => {
-                val encryptionKey  = configuration.get[String]("mongodb.migration.encryptionKey")
-                val decryptedJson = Json.parse(cipher.decrypt(json.as[EncryptedValue], id, encryptionKey))
-                println(s"\n\n\n Decrypted List of legacy schemes json is: $decryptedJson")
-                Ok(Json.toJson(decryptedJson.convertTo[ListOfLegacySchemes]))
-              }
+              case Right(json) =>
+                val jsonIsEncrypted = json.validate[EncryptedValue].fold(_ => false, _ => true)
+                val listOfSchemes = if (jsonIsEncrypted) {
+                  val encryptionKey  = configuration.get[String]("mongodb.migration.encryptionKey")
+                  Json.parse(cipher.decrypt(json.as[EncryptedValue], id, encryptionKey))
+                } else {
+                  json
+                }
+                Ok(Json.toJson(listOfSchemes.convertTo[ListOfLegacySchemes]))
               case Left(e) => result(e)
             }
           case _ => Future.failed(new BadRequestException("Bad Request with missing PSAId"))
