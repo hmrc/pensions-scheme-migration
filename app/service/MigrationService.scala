@@ -17,17 +17,13 @@
 package service
 
 import com.google.inject.Inject
-import controllers.cache.CredIdNotFoundFromAuth
 import crypto.{DataEncryptor, EncryptedValue, SecureGCMCipher}
-import models.cache.{DataJson, MigrationLock}
-import models.racDac.{RacDacHeaders, WorkItemRequest}
+import models.racDac.EncryptedWorkItemRequest
 import org.mongodb.scala.MongoCollection
-import play.api.libs.json.{JsArray, JsNumber, JsObject, JsString, JsValue, Json}
+import play.api.libs.json.{JsObject, JsString, JsValue, Json}
 import play.api.{Configuration, Logging}
-import repositories.{DataCacheRepository, ListOfLegacySchemesCacheRepository, LockCacheRepository, RacDacRequestsQueueEventsLogRepository, RacDacRequestsQueueRepository, SchemeDataCacheRepository}
+import repositories.{DataCacheRepository, ListOfLegacySchemesCacheRepository, RacDacRequestsQueueRepository, SchemeDataCacheRepository}
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
-import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
-import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.mongo.lock.{LockService, MongoLockRepository}
 
 import java.util.concurrent.TimeUnit
@@ -39,21 +35,16 @@ import scala.util.{Failure, Success, Try}
 class MigrationService @Inject()(mongoLockRepository: MongoLockRepository,
                                  listOfLegacySchemesCacheRepository: ListOfLegacySchemesCacheRepository,
                                  migrationDataCacheRepository: DataCacheRepository,
-                                 racDacRequestsQueueRepository: RacDacRequestsQueueRepository,
+                                 racDacWorkItemRepository: RacDacRequestsQueueRepository,
                                  schemeDataCacheRepository: SchemeDataCacheRepository,
                                  cipher: SecureGCMCipher,
                                  configuration: Configuration,
-                                 dataEncryptor: DataEncryptor,
                                  val authConnector: AuthConnector)(implicit ec: ExecutionContext) extends Logging with AuthorisedFunctions {
   private val lock = LockService(mongoLockRepository, "pensions_scheme_migration_mongodb_migration_lock", Duration(10, TimeUnit.MINUTES))
-  // TODO - look into encryption keys and add to config - https://confluence.tools.tax.service.gov.uk/display/PBD/Self-Service+of+Secrets
-  private val encryptionKey  = configuration.get[String]("mongodb.migration.encryptionKey")
+  private val encryptionKey = configuration.get[String]("mongodb.migration.encryptionKey")
 
-  // list of legacy schemes id is the psaId
-  private def encryptCollection(collection: MongoCollection[JsObject], collectionName: String, idAndDataToSave: (String, JsValue) => Future[Boolean]) ={
+  private def encryptCollection(collection: MongoCollection[JsObject], collectionName: String, idAndDataToSave: (String, JsValue) => Future[Boolean]) = {
     collection.find().toFuture().map(seqJsValue => {
-//      println(s"Existing scheme data collections: ${seqJsValue}")
-
       val newEncryptedValues = seqJsValue.flatMap { jsValue =>
         val data = jsValue \ "data"
         val alreadyEncrypted = data.validate[EncryptedValue].fold(_ => false, _ => true)
@@ -81,148 +72,76 @@ class MigrationService @Inject()(mongoLockRepository: MongoLockRepository,
     })
   }
 
-//  private def encryptListOfLegacySchemesCollection() ={
-//    val collection = listOfLegacySchemesCacheRepository.collection
-//    collection.find().toFuture().map(seqJsValue => {
-//      println(s"Existing list of legacy collections: ${seqJsValue}")
-//      val newEncryptedValues = seqJsValue.flatMap { jsValue =>
-//        val totalResults = jsValue \ "data" \ "totalResults"
-//        val items = jsValue \ "data" \ "items"
-//        val totalResultsAlreadyEncrypted = totalResults.validate[EncryptedValue].fold(_ => false, _ => true)
-//        val itemsAlreadyEncrypted = items.validate[EncryptedValue].fold(_ => false, _ => true)
-//
-//        if (totalResultsAlreadyEncrypted && itemsAlreadyEncrypted) {
-//          None
-//        } else {
-//          // TODO - If issues, may be problem with using "id" associated text
-//          val encryptedTotalResults = Json.toJson(cipher.encrypt(totalResults.as[JsNumber].toString(), (jsValue \ "id").as[String], encryptionKey))
-//          val encryptedItems = Json.toJson(cipher.encrypt(items.as[List[JsString]].toString(), (jsValue \ "id").as[String], encryptionKey))
-//          val dataObj = Json.obj(
-//            "totalResults" -> encryptedTotalResults,
-//            "items" -> encryptedItems
-//          )
-//          val encryptedJsValue = (jsValue.as[JsObject] - "data") + ("data" -> dataObj)
-//          Some(encryptedJsValue)
-//        }
-//      }
-//
-//      val numberOfNewEncryptedValues = newEncryptedValues.length
-//
-//      logger.warn(s"[PODS-9953] Number of documents encrypted for List Of Legacy Schemes Cache: $numberOfNewEncryptedValues")
-//
-//      val successfulInserts = newEncryptedValues.map { jsValue =>
-//        val id = (jsValue \ "id").as[String]
-//        val data = (jsValue \ "data").as[JsValue]
-//        Await.result(listOfLegacySchemesCacheRepository.upsert(id, data), 5.seconds)
-//      }.count(_ == true)
-//
-//      logger.warn(s"[PODS-9953] Number of documents upserted for List Of Legacy Schemes Cache: $successfulInserts")
-//      numberOfNewEncryptedValues -> successfulInserts
-//    })
-//  }
+  private def encryptMigrationDataCollection() = {
+    val collection = migrationDataCacheRepository.collection
+    collection.find().toFuture().map(seqDataJson => {
+      val newEncryptedValues = seqDataJson.flatMap { dataJson =>
+        val data = dataJson.data
+        val alreadyEncrypted = data.validate[EncryptedValue].fold(_ => false, _ => true)
+        if (alreadyEncrypted) {
+          None
+        } else {
+          val encryptedData = Json.toJson(cipher.encrypt(data.toString(), dataJson.pstr, encryptionKey))
+          val encryptedJsValue = (data.as[JsObject] - "data") + ("data" -> encryptedData) + ("pstr" -> JsString(dataJson.pstr))
+          Some(encryptedJsValue)
+        }
+      }
 
-//  private def encryptMigrationDataCollection() = {
-//    val collection = migrationDataCacheRepository.collection
-//    collection.find().toFuture().map(seqDataJson => {
-//
-//      val newEncryptedValues = seqDataJson.flatMap { dataJson =>
-//        val data = dataJson.data
-//        val dataValue = data \ "data"
-//        val alreadyEncrypted = data.validate[EncryptedValue].fold(_ => false, _ => true)
-//        if (alreadyEncrypted) {
-//          None
-//        } else {
-//          val encryptedData = Json.toJson(cipher.encrypt(dataValue.as[JsValue].toString(), (data \ "id").as[String], encryptionKey))
-//          val encryptedJsValue = (data.as[JsObject] - "data") + ("data" -> encryptedData) + ("pstr" -> JsString(dataJson.pstr))
-//          Some(encryptedJsValue)
-//        }
-//      }
-//
-//      val numberOfNewEncryptedValues = newEncryptedValues.length
-//
-//      logger.warn(s"[PODS-9953] Number of documents encrypted for Migration Data Cache: $numberOfNewEncryptedValues")
-//
-//      val successfulInserts = newEncryptedValues.map { jsValue =>
-//        // TODO - is this just the mongo document ID?
-//        val id = (jsValue \ "id").as[String]
-//        val data = (jsValue \ "data").as[JsValue]
-//        val pstr = (jsValue \ "pstr").as[String]
-//        authorised().retrieve(Retrievals.externalId) {
-//          // TODO - work out how to retrieve real psaId
-//          case Some(credId) => Future.successful(MigrationLock(pstr, credId, "psaId"))
-//          case _ => Future.failed(CredIdNotFoundFromAuth())
-//        }.map { migrationLock =>
-//          Await.result(migrationDataCacheRepository.renewLockAndSave(migrationLock, data), 5.seconds)
-//        }
-//
-//      }.map(futureInsert => futureInsert.filter(insert => insert)).length
-//
-//      logger.warn(s"[PODS-9953] Number of documents upserted for Migration Data Cache: $successfulInserts")
-//      numberOfNewEncryptedValues -> successfulInserts
-//    })
-//  }
+      val numberOfNewEncryptedValues = newEncryptedValues.length
 
-//  private def encryptRacDacRequestQueueCollection() = {
-//    val collection = racDacRequestsQueueRepository.collection
-//    collection.find().toFuture().map(seqWorkItem => {
-//      val newEncryptedValues = seqWorkItem.flatMap { workItem =>
-//        val workItemRequest = workItem.item.request
-//        val requestData = workItemRequest \ "request"
-//        val alreadyEncrypted = requestData.validate[EncryptedValue].fold(_ => false, _ => true)
-//        if (alreadyEncrypted) {
-//          None
-//        } else {
-//          val encryptedData = Json.toJson(cipher.encrypt(requestData.as[JsValue].toString(), (workItemRequest \ "id").as[String], encryptionKey))
-//          val psaId = workItem.item.psaId
-//          val headers = Json.obj(
-//            "requestId" -> workItem.item.headers.requestId,
-//            "sessionId" -> workItem.item.headers.sessionId
-//          )
-//          val encryptedJsValue = (workItemRequest.as[JsObject] - "data") +
-//            ("psaId" -> JsString(psaId)) +
-//            ("headers" -> headers) +
-//            ("request" -> encryptedData)
-//          Some(encryptedJsValue)
-//        }
-//      }
-//
-//      val numberOfNewEncryptedValues = newEncryptedValues.length
-//
-//      logger.warn(s"[PODS-9953] Number of documents encrypted for RacDac Request Queue: $numberOfNewEncryptedValues")
-//
-//      val successfulInserts = newEncryptedValues.map { jsValue =>
-//        val psaId = jsValue \ "psaId"
-//        val requestId = jsValue \ "requestId"
-//        val sessionId = jsValue \ "sessionId"
-//        val request = jsValue \ "request"
-//        val requestIdValue = if(requestId.as[String].isEmpty) {
-//          None
-//        } else {
-//          Some(requestId.as[String])
-//        }
-//        val sessionIdValue = if (sessionId.as[String].isEmpty) {
-//          None
-//        } else {
-//          Some(sessionId.as[String])
-//        }
-//        val racDacHeaders = RacDacHeaders(requestIdValue, sessionIdValue)
-//        WorkItemRequest(psaId.as[String], request.as[JsValue], racDacHeaders)
-////        val decryptedWorkItems = seqWorkItem.map(encryptedWorkItem =>
-////          encryptedWorkItem.item.decrypt(dataEncryptor)
-////        )
-//        Await.result(racDacRequestsQueueRepository.pushAll(decryptedWorkItems), 5.seconds)
-//      }.count(_ == true)
-//    })
-//  }
+      logger.warn(s"[PODS-9953] Number of documents encrypted for Migration Data Cache: $numberOfNewEncryptedValues")
+
+      val successfulInserts = newEncryptedValues.map { jsValue =>
+        val data = (jsValue \ "data").as[JsValue]
+        val pstr = (jsValue \ "pstr").as[String]
+        Await.result(migrationDataCacheRepository.saveMigratedData(pstr, data), 5.seconds)
+      }.count(_ == true)
+
+      logger.warn(s"[PODS-9953] Number of documents upserted for Migration Data Cache: $successfulInserts")
+      numberOfNewEncryptedValues -> successfulInserts
+    })
+  }
+
+  private def encryptRacDacWorkItemCollection() = {
+    val collection = racDacWorkItemRepository.collection
+    collection.find().toFuture().map { seqWorkItem =>
+      val newEncryptedValues = seqWorkItem.flatMap { workItem =>
+        val item: EncryptedWorkItemRequest = workItem.item
+        val request = item.request
+
+        val alreadyEncrypted = request.validate[EncryptedValue].fold(_ => false, _ => true)
+        if (alreadyEncrypted) {
+          None
+        } else {
+          val encryptedData = Json.toJson(cipher.encrypt(request.toString(), item.psaId, encryptionKey))
+          val encryptedJsValue = (request.as[JsObject] - "request") + ("request" -> encryptedData) + ("psaId" -> JsString(item.psaId))
+          Some(encryptedJsValue)
+        }
+      }
+
+      val numberOfNewEncryptedValues = newEncryptedValues.length
+
+      logger.warn(s"[PODS-9953] Number of documents encrypted for RacDac Work Item: $numberOfNewEncryptedValues")
+
+      val successfulInserts = newEncryptedValues.map { jsValue =>
+        val request = (jsValue \ "request").as[JsValue]
+        val psaId = (jsValue \ "psaId").as[String]
+        Await.result(racDacWorkItemRepository.saveMigratedData(psaId, request), 5.seconds)
+      }.count(_ == true)
+
+      logger.warn(s"[PODS-9953] Number of documents upserted for RacDac Work Item: $successfulInserts")
+      numberOfNewEncryptedValues -> successfulInserts
+    }
+  }
 
   private def encryptCollections() = {
     logger.warn("[PODS-9953] Started encrypting collection")
 
     Future.sequence(Seq(
-//      encryptListOfLegacySchemesCollection(),
       encryptCollection(schemeDataCacheRepository.collection, "Scheme Data Cache", schemeDataCacheRepository.save),
-      encryptCollection(listOfLegacySchemesCacheRepository.collection, "List Of Legacy Schemes", listOfLegacySchemesCacheRepository.upsert)
-//      encryptMigrationDataCollection()
+      encryptCollection(listOfLegacySchemesCacheRepository.collection, "List Of Legacy Schemes", listOfLegacySchemesCacheRepository.upsert),
+      encryptMigrationDataCollection(),
+      encryptRacDacWorkItemCollection()
     ))
   }
 
@@ -231,10 +150,10 @@ class MigrationService @Inject()(mongoLockRepository: MongoLockRepository,
         val newDecryptedValues = seqJsValue.flatMap { jsValue =>
           val data = jsValue \ "data"
           val valuesAreEncrypted = data.validate[EncryptedValue].fold(_ => false, _ => true)
-          if(valuesAreEncrypted) {
+          if (valuesAreEncrypted) {
             val decryptedData = Json.parse(cipher.decrypt(data.as[EncryptedValue], (jsValue \ "id").as[String], encryptionKey))
             val decryptedJsValue = (jsValue.as[JsObject] - "data") + ("data" -> decryptedData)
-//            println(s"Decrypted ${collectionName} value is: ${decryptedJsValue}")
+            println(s"Decrypted ${collectionName} value is: ${decryptedJsValue}")
             Some(decryptedJsValue)
           } else {
             None
@@ -251,7 +170,7 @@ class MigrationService @Inject()(mongoLockRepository: MongoLockRepository,
 
           Try(Await.result(idAndDataToSave(id, data), 5.seconds)) match {
             case Failure(exception) =>
-              logger.error(s"[PODS-9953] upsert failed", exception)
+              logger.error(s"[PODS-9953] $collectionName upsert failed", exception)
               false
             case Success(_) =>
               true
@@ -264,18 +183,96 @@ class MigrationService @Inject()(mongoLockRepository: MongoLockRepository,
       })
   }
 
-//  private def decryptListOfLegacySchemesCollection() = {
-//    val collection = listOfLegacySchemesCacheRepository.collection
-//    collection.find().toFuture().map(seqJsValue =>
-//    )
-//  }
+  private def decryptMigrationDataCollection() = {
+    val collection = migrationDataCacheRepository.collection
+    collection.find().toFuture().map(seqDataJson => {
+      val newDecryptedValues = seqDataJson.flatMap(dataJson => {
+        val data = dataJson.data
+        val dataIsEncrypted = data.validate[EncryptedValue].fold(_ => false, _ => true)
+        if (dataIsEncrypted) {
+          val decryptedData = cipher.decrypt(data.as[EncryptedValue], dataJson.pstr, encryptionKey)
+          println(s"\n\n\n decryptedData is: ${decryptedData}")
+          val parsedDecryptedData = Json.parse(decryptedData)
+          println(s"\n\n\n parsedDecryptedData is: ${parsedDecryptedData}")
+          val decryptedJsValue = (Json.toJson(dataJson).as[JsObject] - "data") + ("data" -> parsedDecryptedData) + ("pstr" -> JsString(dataJson.pstr))
+          println(s"\n\n\n decryptedJsValue is: ${decryptedJsValue}")
+          Some(decryptedJsValue)
+        } else {
+          None
+        }
+      })
+
+      val numberOfNewDecryptedValues = newDecryptedValues.length
+
+      logger.warn(s"[PODS-9953] Number of documents decrypted for Migration Data Cache: $numberOfNewDecryptedValues")
+
+      val successfulInserts = newDecryptedValues.map { jsValue =>
+        val pstr = (jsValue \ "pstr").as[String]
+        val data = (jsValue \ "data").as[JsValue]
+
+        Try(Await.result(migrationDataCacheRepository.saveMigratedData(pstr, data), 5.seconds)) match {
+          case Failure(exception) =>
+            logger.error(s"[PODS-9953] Migration Data Cache upsert failed", exception)
+            false
+          case Success(_) =>
+            true
+        }
+      }.count(_ == true)
+
+      logger.warn(s"[PODS-9953] Number of documents upserted for Migration Data Cache: $successfulInserts")
+
+      numberOfNewDecryptedValues -> successfulInserts
+    })
+  }
+
+  private def decryptRacDacWorkItemCollection() = {
+    val collection = racDacWorkItemRepository.collection
+    collection.find().toFuture().map(seqWorkItem => {
+      val newDecryptedValues = seqWorkItem.flatMap { workItem =>
+        val item = workItem.item
+        val request = item.request
+        val requestIsEncrypted = request.validate[EncryptedValue].fold(_ => false, _ => true)
+        if (requestIsEncrypted) {
+          val decryptedRequest = Json.parse(cipher.decrypt(request.as[EncryptedValue], item.psaId, encryptionKey))
+          val decryptedJsValue = (Json.toJson(item).as[JsObject] - "request") + ("request" -> decryptedRequest) + ("psaId" -> JsString(item.psaId))
+          println(s"decrypted rac dac request is: ${decryptedJsValue}")
+          Some(decryptedJsValue)
+        } else {
+          None
+        }
+      }
+
+      val numberOfNewDecryptedValues = newDecryptedValues.length
+
+      logger.warn(s"[PODS-9953] Number of documents decrypted for RacDac Work Item: $numberOfNewDecryptedValues")
+
+      val successfulInserts = newDecryptedValues.map { jsValue =>
+        val psaId = (jsValue \ "psaId").as[String]
+        val request = (jsValue \ "request").as[JsValue]
+
+        Try(Await.result(racDacWorkItemRepository.saveMigratedData(psaId, request), 5.seconds)) match {
+          case Failure(exception) =>
+            logger.error(s"[PODS-9953] RacDac Work Item upsert failed", exception)
+            false
+          case Success(_) =>
+        }
+      }.count(_ == true)
+
+      logger.warn(s"[PODS-9953] Number of documents upserted for RacDac Work Item: $successfulInserts")
+
+      numberOfNewDecryptedValues -> successfulInserts
+    })
+
+  }
 
   private def decryptCollections() = {
     logger.warn("[PODS-9953] Started decrypting collection")
 
     Future.sequence(Seq(
       decryptCollection(schemeDataCacheRepository.collection, "Scheme Data Cache", schemeDataCacheRepository.save),
-      decryptCollection(listOfLegacySchemesCacheRepository.collection, "List Of Legacy Schemes", listOfLegacySchemesCacheRepository.upsert)
+      decryptCollection(listOfLegacySchemesCacheRepository.collection, "List Of Legacy Schemes", listOfLegacySchemesCacheRepository.upsert),
+      decryptMigrationDataCollection(),
+      decryptRacDacWorkItemCollection()
     ))
   }
 

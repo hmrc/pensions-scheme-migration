@@ -119,6 +119,23 @@ class DataCacheRepository @Inject()(
     }
   }
 
+  def saveMigratedData(pstr: String, data: JsValue): Future[Boolean] = {
+    logger.debug("Calling saveMigratedData in Migration Data Cache")
+
+    val upsertOptions = new FindOneAndUpdateOptions().upsert(true)
+
+    collection.findOneAndUpdate(
+      filter = Filters.eq(pstrKey, pstr),
+      update = Updates.combine(
+        set(pstrKey, pstr),
+        set(dataKey, Codecs.toBson(cipher.encrypt(pstr, data))),
+        set(lastUpdatedKey, Instant.now()),
+        set(expireAtKey, expireInSeconds)
+      ),
+      upsertOptions
+    ).toFuture().map(_ => true)
+  }
+
 }
 
 object DataCacheRepository {

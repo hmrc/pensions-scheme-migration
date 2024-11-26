@@ -18,12 +18,14 @@ package controllers
 
 import base.SpecBase
 import connector.SchemeConnector
+import crypto.SecureGCMCipher
 import models.Scheme
 import org.mockito.ArgumentMatchers.{any, eq => meq}
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.concurrent.{PatienceConfiguration, ScalaFutures}
 import org.scalatestplus.mockito.MockitoSugar
+import play.api.Configuration
 import play.api.libs.json._
 import play.api.mvc.AnyContentAsJson
 import play.api.test.FakeRequest
@@ -47,8 +49,17 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
   val mockSchemeConnector: SchemeConnector = mock[SchemeConnector]
   val mockPensionSchemeService: PensionSchemeService = mock[PensionSchemeService]
   val mockListOfLegacySchemesCacheRepository: ListOfLegacySchemesCacheRepository = mock[ListOfLegacySchemesCacheRepository]
-  val schemeController = new SchemeController(mockSchemeConnector, mockPensionSchemeService,
-    mockListOfLegacySchemesCacheRepository, stubControllerComponents(), authUtil)
+  private val mockConfig = mock[Configuration]
+  private val mockCipher = mock[SecureGCMCipher]
+  val schemeController = new SchemeController(
+    mockSchemeConnector,
+    mockPensionSchemeService,
+    mockListOfLegacySchemesCacheRepository,
+    stubControllerComponents(),
+    mockCipher,
+    mockConfig,
+    authUtil
+  )
 
   before {
     reset(mockSchemeConnector, mockAuthConnector)

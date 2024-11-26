@@ -20,8 +20,11 @@ import com.google.inject.{Inject, Singleton}
 import crypto.DataEncryptor
 import models.racDac.{EncryptedWorkItemRequest, WorkItemRequest}
 import org.bson.types.ObjectId
-import org.mongodb.scala.model.{Filters, IndexModel, IndexOptions, Indexes}
+import org.mongodb.scala.model.Updates.set
+import org.mongodb.scala.model.{Filters, FindOneAndUpdateOptions, IndexModel, IndexOptions, Indexes, Updates}
+import play.api.libs.json.JsValue
 import play.api.{Configuration, Logger}
+import uk.gov.hmrc.mongo.play.json.Codecs
 import uk.gov.hmrc.mongo.workitem.ProcessingStatus.{PermanentlyFailed, ToDo}
 import uk.gov.hmrc.mongo.workitem._
 import uk.gov.hmrc.mongo.{MongoComponent, MongoUtils}
@@ -142,6 +145,21 @@ class RacDacRequestsQueueRepository @Inject()(configuration: Configuration,
     ).toFuture().map(_ => Right(true)).recover {
       case exception: Exception => Left(WorkItemProcessingException(s"deleting all requests failed due to ${exception.getMessage}"))
     }
+  }
+
+  def saveMigratedData(psaId: String, data: JsValue): Future[Boolean] = {
+    val upsertOptions = new FindOneAndUpdateOptions().upsert(true)
+
+    val idKey = "item.psaId"
+    collection.findOneAndUpdate(
+      filter = Filters.eq(idKey, psaId),
+      update = Updates.combine(
+        set(idKey, psaId),
+        set("item.request", Codecs.toBson(dataEncryptor.encrypt(psaId, data))),
+        set("updatedAt", Instant.now())
+      ),
+      upsertOptions
+    ).toFuture().map(_ => true)
   }
 
   case class WorkItemProcessingException(message: String) extends Exception(message)
