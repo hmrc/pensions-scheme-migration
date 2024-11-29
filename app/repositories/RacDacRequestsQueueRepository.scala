@@ -160,7 +160,6 @@ class RacDacRequestsQueueRepository @Inject()(configuration: Configuration,
       ),
       upsertOptions
     ).toFuture().map(_ => true)
-    }
   }
 
   case class WorkItemProcessingException(message: String) extends Exception(message)

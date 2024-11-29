@@ -17,7 +17,7 @@
 package service
 
 import com.google.inject.Inject
-import crypto.{DataEncryptor, EncryptedValue, SecureGCMCipher}
+import crypto.{EncryptedValue, SecureGCMCipher}
 import models.racDac.EncryptedWorkItemRequest
 import org.mongodb.scala.MongoCollection
 import play.api.libs.json.{JsObject, JsString, JsValue, Json}

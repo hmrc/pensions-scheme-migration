@@ -16,7 +16,6 @@
 
 package models.cache
 
-import crypto.DataEncryptor
 import play.api.libs.json.{Format, JsValue, Json, OFormat}
 import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 
