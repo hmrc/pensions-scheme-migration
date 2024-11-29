@@ -17,7 +17,7 @@
 package models.userAnswersToEtmp
 
 import play.api.libs.functional.syntax._
-import play.api.libs.json.{JsPath, Reads, _}
+import play.api.libs.json._
 
 case class PartnershipDetail(name: String, vat: Option[String], paye: Option[String], utr: Option[String], utrReason: Option[String],
                              address: Address, contact: ContactDetails, addressYears: Boolean, tradingTime: Option[Boolean], previousAddress: Option[Address])

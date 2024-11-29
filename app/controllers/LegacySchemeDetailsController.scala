@@ -22,33 +22,26 @@ import connector.utils.HttpResponseHelper
 import play.api.mvc._
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import utils.AuthUtil
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class LegacySchemeDetailsController @Inject()(
                                                legacySchemeDetailsConnector: LegacySchemeDetailsConnector,
                                                cc: ControllerComponents,
-                                               authUtil: AuthUtil
+                                               authAction: actions.AuthAction
                                              )(implicit ec: ExecutionContext)
   extends BackendController(cc)
     with HttpResponseHelper {
 
-  def getLegacySchemeDetails: Action[AnyContent] = Action.async {
+  def getLegacySchemeDetails: Action[AnyContent] = authAction.async {
     implicit request =>
-      authUtil.doAuth { _ =>
-        val psaId = request.headers.get("psaId")
-        val pstr = request.headers.get("pstr")
+      val pstr = request.headers.get("pstr")
 
-        (psaId, pstr) match {
-          case (Some(psaId), Some(pstr)) =>
-            legacySchemeDetailsConnector.getSchemeDetails(psaId, pstr).map {
-              case Right(json) => Ok(json)
-              case Left(e) => result(e)
-            }
-          case _ =>
-            Future.failed(new BadRequestException("Bad Request with missing parameters PSAId or PSTR"))
+      pstr.map { pstr =>
+        legacySchemeDetailsConnector.getSchemeDetails(request.psaId, pstr).map {
+          case Right(json) => Ok(json)
+          case Left(e) => result(e)
         }
-      }
+      }.getOrElse(Future.failed(new BadRequestException("Bad Request with missing parameters PSAId or PSTR")))
   }
 }

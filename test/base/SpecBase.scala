@@ -49,7 +49,7 @@ trait SpecBase extends PlaySpec with GuiceOneAppPerSuite with JsonFileReader wit
       bind[LockCacheRepository].toInstance(mock[LockCacheRepository]),
       bind[RacDacRequestsQueueEventsLogRepository].toInstance(mock[RacDacRequestsQueueEventsLogRepository]),
       bind[RacDacRequestsQueueRepository].toInstance(mock[RacDacRequestsQueueRepository]),
-      bind[SchemeDataCacheRepository].toInstance(mock[SchemeDataCacheRepository])
+      bind[SchemeDataCacheRepository].toInstance(mock[SchemeDataCacheRepository]),
     )
   }
 

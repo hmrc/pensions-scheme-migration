@@ -18,18 +18,19 @@ package controllers
 
 import base.SpecBase
 import connector.LegacySchemeDetailsConnector
+import controllers.actions.AuthAction
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.concurrent.{PatienceConfiguration, ScalaFutures}
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.libs.json.{JsObject, JsValue, Json}
-import play.api.mvc.AnyContentAsEmpty
+import play.api.mvc.{AnyContentAsEmpty, BodyParsers}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.{BadRequestException, UpstreamErrorResponse}
-import utils.AuthUtil
+import utils.AuthUtils
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -41,18 +42,17 @@ class LegacySchemeDetailsControllerSpec
     with PatienceConfiguration {
 
   private val mockAuthConnector: AuthConnector = mock[AuthConnector]
-  private val authUtil = new AuthUtil(mockAuthConnector, stubControllerComponents())
   private val mockSchemeConnector: LegacySchemeDetailsConnector = mock[LegacySchemeDetailsConnector]
   private val schemeDetailsController =
-    new LegacySchemeDetailsController(mockSchemeConnector, stubControllerComponents(), authUtil)
+    new LegacySchemeDetailsController(mockSchemeConnector, stubControllerComponents(), new AuthAction(mockAuthConnector, app.injector.instanceOf[BodyParsers.Default]))
   private val pstr = "00000000AA"
-  private val psaId = "000"
+  private val psaId = AuthUtils.psaId
   private val userAnswersResponse: JsValue = readJsonFromFile("/data/validGetSchemeDetailsIFUserAnswers.json")
 
   before {
-    reset(mockSchemeConnector, mockAuthConnector)
-    when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any()))
-      .thenReturn(Future.successful(Some("Ext-137d03b9-d807-4283-a254-fb6c30aceef1")))
+    reset(mockSchemeConnector)
+    reset(mockAuthConnector)
+    AuthUtils.authStub(mockAuthConnector)
   }
 
   "getLegacySchemeDetails" must {
@@ -74,18 +74,6 @@ class LegacySchemeDetailsControllerSpec
         status(result) mustBe OK
         contentAsJson(result) mustBe successResponse
         verify(mockSchemeConnector, times(1)).getSchemeDetails(any(), any())(any(), any())
-      }
-    }
-
-    "throw BadRequestException when psaId is not present in the header" in {
-      val result = schemeDetailsController.getLegacySchemeDetails()(FakeRequest("GET", "/").withHeaders(
-        ("pstr", pstr)
-      ))
-
-      ScalaFutures.whenReady(result.failed) { e =>
-        e mustBe a[BadRequestException]
-        e.getMessage mustBe "Bad Request with missing parameters PSAId or PSTR"
-        verify(mockSchemeConnector, never).getSchemeDetails(any(), any())(any(), any())
       }
     }
 

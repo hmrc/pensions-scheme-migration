@@ -18,23 +18,21 @@ package controllers
 
 import base.SpecBase
 import connector.SchemeConnector
-import crypto.SecureGCMCipher
 import models.Scheme
 import org.mockito.ArgumentMatchers.{any, eq => meq}
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
 import org.scalatest.concurrent.{PatienceConfiguration, ScalaFutures}
 import org.scalatestplus.mockito.MockitoSugar
-import play.api.Configuration
 import play.api.libs.json._
-import play.api.mvc.AnyContentAsJson
+import play.api.mvc.{AnyContentAsJson, BodyParsers}
 import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import repositories.ListOfLegacySchemesCacheRepository
 import service.PensionSchemeService
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http._
-import utils.AuthUtil
+import utils.AuthUtils
 
 import java.time.LocalDate
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -45,32 +43,23 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
   import SchemeControllerSpec._
 
   private val mockAuthConnector: AuthConnector = mock[AuthConnector]
-  private val authUtil = new AuthUtil(mockAuthConnector, stubControllerComponents())
-  val mockSchemeConnector: SchemeConnector = mock[SchemeConnector]
-  val mockPensionSchemeService: PensionSchemeService = mock[PensionSchemeService]
-  val mockListOfLegacySchemesCacheRepository: ListOfLegacySchemesCacheRepository = mock[ListOfLegacySchemesCacheRepository]
-  private val mockConfig = mock[Configuration]
-  private val mockCipher = mock[SecureGCMCipher]
-  val schemeController = new SchemeController(
-    mockSchemeConnector,
-    mockPensionSchemeService,
-    mockListOfLegacySchemesCacheRepository,
-    stubControllerComponents(),
-    mockCipher,
-    mockConfig,
-    authUtil
-  )
+  private val mockSchemeConnector: SchemeConnector = mock[SchemeConnector]
+  private val mockPensionSchemeService: PensionSchemeService = mock[PensionSchemeService]
+  private val mockListOfLegacySchemesCacheRepository: ListOfLegacySchemesCacheRepository = mock[ListOfLegacySchemesCacheRepository]
+  private val schemeController = new SchemeController(mockSchemeConnector, mockPensionSchemeService,
+    mockListOfLegacySchemesCacheRepository, stubControllerComponents(), new actions.AuthAction(mockAuthConnector, app.injector.instanceOf[BodyParsers.Default]))
+  private val psaId = AuthUtils.psaId
 
   before {
-    reset(mockSchemeConnector, mockAuthConnector)
+    reset(mockSchemeConnector)
+    reset(mockAuthConnector)
     reset(mockPensionSchemeService)
     reset(mockListOfLegacySchemesCacheRepository)
-    when(mockAuthConnector.authorise[Option[String]](any(), any())(any(), any()))
-      .thenReturn(Future.successful(Some("Ext-137d03b9-d807-4283-a254-fb6c30aceef1")))
+    AuthUtils.authStub(mockAuthConnector)
   }
 
   "list of legacy schemes" must {
-    val fakeRequest = FakeRequest("GET", "/").withHeaders(("psaId", "A2000001"))
+    val fakeRequest = FakeRequest("GET", "/")
 
     "return OK with list of schemes for PSA and cache has not value exists " in {
       when(mockListOfLegacySchemesCacheRepository.get(any())(any()))
@@ -79,7 +68,7 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
         })
       when(mockListOfLegacySchemesCacheRepository.upsert(any(), any())(any()))
         .thenReturn(Future.successful(true))
-      when(mockSchemeConnector.listOfLegacySchemes(meq("A2000001"))(any(), any()))
+      when(mockSchemeConnector.listOfLegacySchemes(meq(psaId))(any(), any()))
         .thenReturn(Future.successful(Right(validResponse)))
       val result = schemeController.listOfLegacySchemes(fakeRequest)
       ScalaFutures.whenReady(result) { _ =>
@@ -101,18 +90,9 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
       }
     }
 
-    "throw BadRequestException when PSAId is not present in the header" in {
-      val result = schemeController.listOfLegacySchemes(FakeRequest("GET", "/"))
-      ScalaFutures.whenReady(result.failed) { e =>
-        e mustBe a[BadRequestException]
-        e.getMessage mustBe "Bad Request with missing PSAId"
-        verify(mockSchemeConnector, never).listOfLegacySchemes(any())(any(), any())
-      }
-    }
-
     "throw JsResultException when the invalid data returned from If/ETMP" in {
       val invalidResponse = Json.obj("invalid" -> "data")
-      when(mockSchemeConnector.listOfLegacySchemes(meq("A2000001"))(any(), any()))
+      when(mockSchemeConnector.listOfLegacySchemes(meq(psaId))(any(), any()))
         .thenReturn(Future.successful(Right(invalidResponse)))
       when(mockListOfLegacySchemesCacheRepository.get(any())(any()))
         .thenReturn(Future.successful {
@@ -132,7 +112,7 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
         "code" -> "INVALID_PSAID",
         "reason" -> "Submission has not passed validation. Invalid parameter PSAID."
       )
-      when(mockSchemeConnector.listOfLegacySchemes(meq("A2000001"))(any(), any())).thenReturn(
+      when(mockSchemeConnector.listOfLegacySchemes(meq(psaId))(any(), any())).thenReturn(
         Future.failed(new BadRequestException(invalidPayload.toString())))
       when(mockListOfLegacySchemesCacheRepository.get(any())(any()))
         .thenReturn(Future.successful {
@@ -142,7 +122,7 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
       ScalaFutures.whenReady(result.failed) { e =>
         e mustBe a[BadRequestException]
         e.getMessage mustBe invalidPayload.toString()
-        verify(mockSchemeConnector, times(1)).listOfLegacySchemes(meq("A2000001"))(any(), any())
+        verify(mockSchemeConnector, times(1)).listOfLegacySchemes(meq(psaId))(any(), any())
       }
     }
 
@@ -151,7 +131,7 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
         "code" -> "SERVICE_UNAVAILABLE",
         "reason" -> "Dependent systems are currently not responding."
       )
-      when(mockSchemeConnector.listOfLegacySchemes(meq("A2000001"))(any(), any())).thenReturn(
+      when(mockSchemeConnector.listOfLegacySchemes(meq(psaId))(any(), any())).thenReturn(
         Future.failed(UpstreamErrorResponse(serviceUnavailable.toString(), SERVICE_UNAVAILABLE, SERVICE_UNAVAILABLE)))
       when(mockListOfLegacySchemesCacheRepository.get(any())(any()))
         .thenReturn(Future.successful {
@@ -161,12 +141,12 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
       ScalaFutures.whenReady(result.failed) { e =>
         e mustBe a[UpstreamErrorResponse]
         e.getMessage mustBe serviceUnavailable.toString()
-        verify(mockSchemeConnector, times(1)).listOfLegacySchemes(meq("A2000001"))(any(), any())
+        verify(mockSchemeConnector, times(1)).listOfLegacySchemes(meq(psaId))(any(), any())
       }
     }
 
     "throw generic exception when any other exception returned from If" in {
-      when(mockSchemeConnector.listOfLegacySchemes(meq("A2000001"))(any(), any())).thenReturn(
+      when(mockSchemeConnector.listOfLegacySchemes(meq(psaId))(any(), any())).thenReturn(
         Future.failed(new Exception("Generic Exception")))
       when(mockListOfLegacySchemesCacheRepository.get(any())(any()))
         .thenReturn(Future.successful {
@@ -178,14 +158,14 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
       ScalaFutures.whenReady(result.failed) { e =>
         e mustBe a[Exception]
         e.getMessage mustBe "Generic Exception"
-        verify(mockSchemeConnector, times(1)).listOfLegacySchemes(meq("A2000001"))(any(), any())
+        verify(mockSchemeConnector, times(1)).listOfLegacySchemes(meq(psaId))(any(), any())
       }
     }
   }
 
   "registerScheme" must {
 
-    def fakeRequest(data: JsValue): FakeRequest[AnyContentAsJson] = FakeRequest("POST", "/").withJsonBody(data).withHeaders(("psaId", "A2000001"))
+    def fakeRequest(data: JsValue): FakeRequest[AnyContentAsJson] = FakeRequest("POST", "/").withJsonBody(data).withHeaders(("psaId", psaId))
 
     val validData = readJsonFromFile("/data/validSchemeRegistrationRequest.json")
     "return No_Content when the scheme is already registered  by the user within the TTL" in {
@@ -208,18 +188,6 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
       ScalaFutures.whenReady(result) { _ =>
         status(result) mustBe OK
         contentAsJson(result) mustBe successResponse
-      }
-    }
-
-    "throw BadRequestException when PSAId is not present in the header" in {
-      val validData = readJsonFromFile("/data/validSchemeRegistrationRequest.json")
-
-      val result = schemeController.registerScheme(Scheme)(FakeRequest("POST", "/").withJsonBody(validData))
-      ScalaFutures.whenReady(result.failed) { e =>
-        e mustBe a[BadRequestException]
-        e.getMessage mustBe "Bad Request without PSAId or request body"
-        verify(mockPensionSchemeService, never).registerScheme(any(),
-          any())(any(), any())
       }
     }
 
@@ -290,18 +258,10 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
     "return OK when the scheme is registered successfully" in {
       when(mockListOfLegacySchemesCacheRepository.remove(any())(any())).thenReturn(
         Future.successful(true))
-      val fakeRequest = FakeRequest("GET", "/").withHeaders(("psaId", "A2000001"))
+      val fakeRequest = FakeRequest("GET", "/").withHeaders(("psaId", psaId))
       val result = schemeController.removeListOfLegacySchemesCache(fakeRequest)
       ScalaFutures.whenReady(result) { _ =>
         status(result) mustBe OK
-      }
-    }
-    "throw BadRequestException when PSAId is not present in the header" in {
-      val result = schemeController.removeListOfLegacySchemesCache(fakeRequest)
-      ScalaFutures.whenReady(result.failed) { e =>
-        e mustBe a[BadRequestException]
-        e.getMessage mustBe "Bad Request with missing PSAId"
-        verify(mockListOfLegacySchemesCacheRepository, never).remove(any())(any())
       }
     }
   }

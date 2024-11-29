@@ -22,9 +22,10 @@ import models.MinPSA
 import play.api.Logging
 import play.api.http.Status._
 import play.api.libs.json.{JsError, JsResultException, JsSuccess, Json}
+import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http.client.HttpClientV2
 import uk.gov.hmrc.http.{HeaderCarrier, HttpException, HttpResponse, StringContextOps}
-import uk.gov.hmrc.http.HttpReads.Implicits._
+
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -37,7 +38,7 @@ class MinimalDetailsConnector @Inject()(http: HttpClientV2, config: AppConfig)
 
   def getPSADetails(psaId: String)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[Either[HttpException, MinPSA]] = {
     val url = config.getPSAMinDetails
-    val headers: Seq[(String, String)] = Seq(("psaId", psaId))
+    val headers: Seq[(String, String)] = Seq(("loggedInAsPsa", "true"))
     http.get(url"$url")(hc)
       .setHeader(headers: _*)
       .execute[HttpResponse].map { response =>

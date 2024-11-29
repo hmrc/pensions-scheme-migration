@@ -16,7 +16,7 @@
 
 package controllers.cache
 
-import org.apache.commons.lang3.RandomUtils
+import utils.RandomUtils
 import org.apache.pekko.util.ByteString
 import org.mockito.ArgumentMatchers.{eq => eqTo, _}
 import org.mockito.Mockito.{reset, when}
@@ -33,6 +33,7 @@ import play.api.test.Helpers._
 import repositories._
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.HeaderCarrier
+import utils.AuthUtils
 
 import scala.concurrent.Future
 
@@ -42,7 +43,7 @@ class SchemeDataCacheControllerSpec extends AnyWordSpec with Matchers with Mocki
 
   private val repo = mock[SchemeDataCacheRepository]
   private val authConnector: AuthConnector = mock[AuthConnector]
-  private val id = "id"
+  private val id = AuthUtils.id
   private val fakeRequest = FakeRequest()
   private val fakePostRequest = FakeRequest("POST", "/")
 
@@ -74,7 +75,7 @@ class SchemeDataCacheControllerSpec extends AnyWordSpec with Matchers with Mocki
     "calling get" must {
       "return OK with the data" in {
         when(repo.get(eqTo(id))(any())) thenReturn Future.successful(Some(Json.obj("testId" -> "data")))
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
+        AuthUtils.authStub(authConnector)
 
         val result = controller.get(fakeRequest)
         status(result) mustEqual OK
@@ -83,7 +84,7 @@ class SchemeDataCacheControllerSpec extends AnyWordSpec with Matchers with Mocki
 
       "return NOT FOUND when the data doesn't exist" in {
         when(repo.get(eqTo(id))(any())) thenReturn Future.successful(None)
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
+        AuthUtils.authStub(authConnector)
 
         val result = controller.get(fakeRequest)
         status(result) mustEqual NOT_FOUND
@@ -91,17 +92,10 @@ class SchemeDataCacheControllerSpec extends AnyWordSpec with Matchers with Mocki
 
       "throw an exception when the repository call fails" in {
         when(repo.get(eqTo(id))(any())) thenReturn Future.failed(new Exception())
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
+        AuthUtils.authStub(authConnector)
 
         val result = controller.get(fakeRequest)
         an[Exception] must be thrownBy status(result)
-      }
-
-      "throw an exception when the call is not authorised" in {
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
-
-        val result = controller.get(fakeRequest)
-        an[CredIdNotFoundFromAuth] must be thrownBy status(result)
       }
 
     }
@@ -110,7 +104,7 @@ class SchemeDataCacheControllerSpec extends AnyWordSpec with Matchers with Mocki
 
       "return OK when the data is saved successfully" in {
         when(repo.save(any(), any())(any())) thenReturn Future.successful(true)
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
+        AuthUtils.authStub(authConnector)
 
         val result = controller.save(fakePostRequest.withJsonBody(Json.obj("value" -> "data")))
         status(result) mustEqual OK
@@ -118,34 +112,20 @@ class SchemeDataCacheControllerSpec extends AnyWordSpec with Matchers with Mocki
 
       "return BAD REQUEST when the request body cannot be parsed" in {
         when(repo.save(any(), any())(any())) thenReturn Future.successful(true)
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
+        AuthUtils.authStub(authConnector)
 
         val result = controller.save(fakePostRequest.withRawBody(ByteString(RandomUtils.nextBytes(512001))))
         status(result) mustEqual BAD_REQUEST
-      }
-
-      "throw an exception when the call is not authorised" in {
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
-
-        val result = controller.save(fakePostRequest.withJsonBody(Json.obj(fields = "value" -> "data")))
-        an[CredIdNotFoundFromAuth] must be thrownBy status(result)
       }
     }
 
     "calling remove" must {
       "return OK when the data is removed successfully" in {
         when(repo.remove(eqTo(id))(any())) thenReturn Future.successful(true)
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
+        AuthUtils.authStub(authConnector)
 
         val result = controller.remove(fakeRequest)
         status(result) mustEqual OK
-      }
-
-      "throw an exception when the call is not authorised" in {
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(None)
-
-        val result = controller.remove(fakeRequest)
-        an[CredIdNotFoundFromAuth] must be thrownBy status(result)
       }
     }
   }
