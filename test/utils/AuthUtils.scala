@@ -26,7 +26,7 @@ import scala.concurrent.Future
 
 object AuthUtils {
   val id = "id"
-  val psaId = "psaId"
+  val psaId = "A2000001"
 
   def failedAuthStub(mockAuthConnector: AuthConnector): OngoingStubbing[Future[Unit]] = when(mockAuthConnector.authorise[Unit](any(), any())(any(), any())) thenReturn Future.failed(new Exception())
   def authStub(mockAuthConnector: AuthConnector): OngoingStubbing[Future[Enrolments ~ Option[String]]] = when(mockAuthConnector.authorise[Enrolments ~ Option[String]](any(), any())(any(), any())) thenReturn Future.successful(AuthUtils.authResponse)

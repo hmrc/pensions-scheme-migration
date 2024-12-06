@@ -1,14 +1,17 @@
 # microservice specific routes
 
+#TODO LOOK
 GET           /lock                                         controllers.cache.LockCacheController.getLock
 POST          /lock                                         controllers.cache.LockCacheController.lock
 DELETE        /lock                                         controllers.cache.LockCacheController.removeLock()
 
+#TODO LOOK
 GET           /lock-by-user                                 controllers.cache.LockCacheController.getLockByUser
 DELETE        /lock-by-user                                 controllers.cache.LockCacheController.removeLockByUser()
 GET           /lock-on-scheme                               controllers.cache.LockCacheController.getLockOnScheme
 DELETE        /lock-on-scheme                               controllers.cache.LockCacheController.removeLockOnScheme()
 
+#TODO LOOK
 GET           /migration-data                               controllers.cache.DataCacheController.get
 POST          /migration-data                               controllers.cache.DataCacheController.save
 DELETE        /migration-data                               controllers.cache.DataCacheController.remove
@@ -24,8 +27,10 @@ DELETE        /list-of-schemes-remove-cache                 controllers.SchemeCo
 POST          /register-scheme/:migrationType               controllers.SchemeController.registerScheme(migrationType: MigrationType)
 GET           /getLegacySchemeDetails                       controllers.LegacySchemeDetailsController.getLegacySchemeDetails
 
+#deprecated
 POST          /bulk-migration                               controllers.BulkRacDacController.clearEventLogThenInitiateMigration
-GET           /bulk-migration/isRequestInProgress            controllers.BulkRacDacController.isRequestSubmitted
+POST          /bulk-migration/init                          controllers.BulkRacDacController.clearEventLogThenInitiateMigrationSelf
+GET           /bulk-migration/isRequestInProgress           controllers.BulkRacDacController.isRequestSubmitted
 GET           /bulk-migration/isAllFailed                   controllers.BulkRacDacController.isAllFailed
 DELETE        /bulk-migration/deleteAll                     controllers.BulkRacDacController.deleteAll
 

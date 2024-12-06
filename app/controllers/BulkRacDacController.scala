@@ -119,6 +119,40 @@ class BulkRacDacController @Inject()(appConfig: AppConfig,
       }) recoverWith recoverFromError
   }
 
+  def clearEventLogThenInitiateMigrationSelf: Action[AnyContent] = authAction.async { implicit request =>
+    val hc = HeaderCarrierConverter.fromRequest(request)
+    (hc.sessionId match {
+      case Some(SessionId(sessionId)) =>
+        val feJson = request.body.asJson
+        val executionContext: ExecutionContext = system.dispatchers.lookup(id = "racDacWorkItem")
+        feJson match {
+          case Some(jsValue) =>
+            jsValue.validate[Seq[RacDacRequest]] match {
+              case JsSuccess(seqRacDacRequest, _) =>
+                repository.remove(sessionId)(ec).map { _ =>
+                  putAllItemsOnQueueThenSendAuditEventAndEmail(sessionId, request.psaId, seqRacDacRequest)(request, hc, executionContext)
+                  Ok
+                }
+              case JsError(_) =>
+                val error = new BadRequestException(s"Invalid request received from frontend for rac dac migration")
+                auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(request.psaId, 0, error.message))(request, executionContext)
+                Future.failed(error)
+            }
+          case _ =>
+            val error = new BadRequestException("Missing Body in the header")
+            auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(request.psaId, 0, error.message
+            ))(request, ec)
+            Future.failed(error)
+        }
+
+      case _ =>
+        val error = new BadRequestException("Session ID not found - Unable to retrieve session ID")
+        auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent("", 0, error.message
+        ))(request, ec)
+        Future.failed(error)
+    }) recoverWith recoverFromError
+  }
+
   private def sendEmail(psaId: String)(implicit requestHeader: RequestHeader,
                                        headerCarrier: HeaderCarrier, executionContext: ExecutionContext): Future[Result] = {
     logger.debug(s"Sending bulk migration email for $psaId")
