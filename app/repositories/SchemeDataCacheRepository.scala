@@ -18,6 +18,7 @@ package repositories
 
 import com.google.inject.Inject
 import com.mongodb.client.model.FindOneAndUpdateOptions
+import crypto.DataEncryptor
 import org.mongodb.scala.model.Updates.set
 import org.mongodb.scala.model._
 import play.api.libs.json._
@@ -33,7 +34,8 @@ import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
 class SchemeDataCacheRepository @Inject()(mongoComponent: MongoComponent,
-                                          configuration: Configuration
+                                          configuration: Configuration,
+                                          cipher: DataEncryptor
                                          )(implicit val ec: ExecutionContext)
   extends PlayMongoRepository[JsObject](
     collectionName = configuration.get[String](path = "mongodb.migration-cache.scheme-data-cache.name"),
@@ -42,7 +44,7 @@ class SchemeDataCacheRepository @Inject()(mongoComponent: MongoComponent,
     indexes = Seq(
       IndexModel(
         keys = Indexes.ascending("id"),
-        indexOptions = IndexOptions().name("id").unique(true)
+        indexOptions = IndexOptions().name("id").unique(true).background(true)
       ),
       IndexModel(
         keys = Indexes.ascending("expireAt"),
@@ -65,7 +67,7 @@ class SchemeDataCacheRepository @Inject()(mongoComponent: MongoComponent,
       filter = Filters.eq(idKey, id),
       update = Updates.combine(
         set(idKey, id),
-        set(dataKey, Codecs.toBson(userData)),
+        set(dataKey, Codecs.toBson(cipher.encrypt(id, userData))),
         set(lastUpdatedKey, Instant.now()),
         set(expireAtKey, expireInSeconds)
       ),
@@ -80,7 +82,7 @@ class SchemeDataCacheRepository @Inject()(mongoComponent: MongoComponent,
     ).toFuture()
       .map(_.headOption)
       .map {
-        _.flatMap { dataJson => (dataJson \ "data").asOpt[JsObject] }
+        _.flatMap { dataJson => (dataJson \ "data").asOpt[JsObject].map(cipher.decrypt(id, _)) }
       }
   }
 

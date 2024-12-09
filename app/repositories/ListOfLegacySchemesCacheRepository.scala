@@ -18,6 +18,7 @@ package repositories
 
 import com.google.inject.Inject
 import com.mongodb.client.model.FindOneAndUpdateOptions
+import crypto.DataEncryptor
 import org.mongodb.scala.model.Updates.set
 import org.mongodb.scala.model._
 import play.api.libs.json.{JsObject, JsValue}
@@ -33,7 +34,8 @@ import scala.concurrent.{ExecutionContext, Future}
 @Singleton
 class ListOfLegacySchemesCacheRepository@Inject()(
                                         mongoComponent: MongoComponent,
-                                        configuration: Configuration
+                                        configuration: Configuration,
+                                        cipher: DataEncryptor
                                       )(implicit ec: ExecutionContext)
   extends PlayMongoRepository[JsObject](
     collectionName = configuration.get[String](path = "mongodb.migration-cache.list-of-legacy-schemes.name"),
@@ -62,7 +64,7 @@ class ListOfLegacySchemesCacheRepository@Inject()(
       filter = Filters.eq(idKey, id),
       update = Updates.combine(
         set(idKey, id),
-        set(dataKey, Codecs.toBson(data)),
+        set(dataKey, Codecs.toBson(cipher.encrypt(id, data))),
         set(lastUpdatedKey, Instant.now())
       ),
       upsertOptions
@@ -74,15 +76,7 @@ class ListOfLegacySchemesCacheRepository@Inject()(
       filter = Filters.eq(idKey, id)
     ).toFuture()
       .map(_.headOption)
-      .map { _.flatMap { dataJson => (dataJson \ "data").asOpt[JsObject]}}
-  }
-
-  def getLastUpdated(id: String)(implicit ec: ExecutionContext): Future[Option[Instant]] = {
-    collection.find(
-      filter = Filters.eq(idKey, id)
-    ).toFuture()
-      .map(_.headOption)
-      .map { _.flatMap { dataJson => (dataJson \ "lastUpdated").asOpt[Instant]}}
+      .map { _.flatMap { dataJson => (dataJson \ "data").asOpt[JsObject].map(cipher.decrypt(id, _))}}
   }
 
   def remove(id: String)(implicit ec: ExecutionContext): Future[Boolean] = {

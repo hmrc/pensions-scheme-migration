@@ -42,7 +42,7 @@ class RacDacRequestsQueueEventsLogRepository @Inject()(mongoComponent: MongoComp
     indexes = Seq(
       IndexModel(
         keys = Indexes.ascending("id"),
-        indexOptions = IndexOptions().name("id").unique(true)
+        indexOptions = IndexOptions().name("id").unique(true).background(true)
       ),
       IndexModel(
         keys = Indexes.ascending("expireAt"),
