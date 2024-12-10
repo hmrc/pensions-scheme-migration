@@ -24,6 +24,7 @@ import models.userAnswersToEtmp.trustee.TrusteeDetails
 import models.userAnswersToEtmp.{CustomerAndSchemeDetails, PensionSchemeDeclaration, PensionsScheme, SchemeMigrationDetails}
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
+import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.flatspec.AsyncFlatSpec
 import org.scalatest.matchers.must.Matchers._
 import org.scalatest.matchers.should.Matchers
@@ -87,6 +88,18 @@ class PensionSchemeServiceSpec
     }
   }
 
+  "registerScheme" must "return BadRequestException if json cannot be validated" in {
+    when(schemeConnector.registerScheme(any(), any())(any())).
+      thenReturn(Future.successful(Right(schemeRegistrationResponseJson)))
+
+    val result = pensionSchemeService.registerScheme(psaId, Json.obj())
+
+    ScalaFutures.whenReady(result.failed) { e =>
+      e mustBe a[BadRequestException]
+      e.getMessage mustBe "Invalid pension scheme"
+    }
+  }
+
   "registerScheme" must "return the result of submitting a RAC/DAC pensions scheme" in {
     when(schemeConnector.registerScheme(any(), any())(any())).
       thenReturn(Future.successful(Right(schemeRegistrationResponseJson)))
@@ -96,6 +109,18 @@ class PensionSchemeServiceSpec
         val json = response.value
         verify(schemeConnector, times(1)).registerScheme(any(), eqTo(racDacRegisterData))(any())
         json.validate[SchemeRegistrationResponse] mustBe JsSuccess(schemeRegistrationResponse)
+    }
+  }
+
+  "registerScheme" must "return BadRequestException if json cannot be validated for RAC/DAC" in {
+    when(schemeConnector.registerScheme(any(), any())(any())).
+      thenReturn(Future.successful(Right(schemeRegistrationResponseJson)))
+
+    val result = pensionSchemeService.registerRacDac(psaId, Json.obj())(implicitly, implicitly, Some(implicitly))
+
+    ScalaFutures.whenReady(result.failed) { e =>
+      e mustBe a[BadRequestException]
+      e.getMessage mustBe "Invalid pension scheme"
     }
   }
 
