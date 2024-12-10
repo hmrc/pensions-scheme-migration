@@ -45,7 +45,7 @@ class LockCacheRepository @Inject()(
     indexes = Seq(
       IndexModel(
         keys = Indexes.ascending("pstr"),
-        indexOptions = IndexOptions().name("pstr_index").unique(true)
+        indexOptions = IndexOptions().name("pstr_index").unique(true).background(true)
       ),
       IndexModel(
         keys = Indexes.ascending("credId"),

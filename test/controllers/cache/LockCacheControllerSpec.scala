@@ -20,6 +20,7 @@ import models.cache.MigrationLock
 import org.mockito.ArgumentMatchers.{eq => eqTo, _}
 import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfter
+import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
@@ -30,7 +31,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import repositories._
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.http.HeaderCarrier
+import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier}
 import utils.AuthUtils
 
 import scala.concurrent.Future
@@ -106,6 +107,17 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
         an[Exception] must be thrownBy status(result)
       }
 
+      "return a BadRequestException when no pstr in headers" in {
+        when(repo.getLockByPstr(eqTo(pstr))) thenReturn Future.successful(Some(lock))
+        AuthUtils.authStub(authConnector)
+
+        val result = controller.getLockOnScheme(FakeRequest())
+        ScalaFutures.whenReady(result.failed) { res =>
+          res mustBe a[BadRequestException]
+          res.getMessage mustBe "Bad Request without pstr"
+        }
+      }
+
     }
 
     "calling getLock" must {
@@ -173,6 +185,13 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
         val result = controller.lock(fakePostRequest)
         status(result) mustEqual OK
       }
+      "return Conflict when the data is not saved successfully" in {
+        when(repo.setLock(any())) thenReturn Future.successful(false)
+        AuthUtils.authStub(authConnector)
+
+        val result = controller.lock(fakePostRequest)
+        status(result) mustEqual CONFLICT
+      }
     }
 
     "calling removeLockOnScheme" must {
@@ -189,6 +208,18 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
 
         val result = controller.removeLockOnScheme()(fakeRequest)
         an[Exception] must be thrownBy status(result)
+      }
+
+      "return a BadRequestException when no pstr in headers" in {
+        when(repo.releaseLockByPstr(eqTo(pstr))) thenReturn Future.successful(true)
+        AuthUtils.authStub(authConnector)
+
+        val result = controller.removeLockOnScheme()(FakeRequest())
+
+        ScalaFutures.whenReady(result.failed) { res =>
+          res mustBe a[BadRequestException]
+          res.getMessage mustBe "Bad Request without pstr"
+        }
       }
     }
 

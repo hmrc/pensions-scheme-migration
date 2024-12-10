@@ -108,6 +108,17 @@ class FeatureToggleServiceSpec extends SpecBase with MockitoSugar with ScalaFutu
     }
   }
 
+  "When getToggle return the toggle details" in {
+
+    when(adminDataRepository.getFeatureToggles).thenReturn(Future.successful(Seq.empty))
+    when(adminDataRepository.setFeatureToggles(any())).thenReturn(Future.successful((): Unit))
+    when(toggleDataRepository.getAllFeatureToggles).thenReturn(Future.successful(Seq(ToggleDetails("dummy", None, isEnabled = true))))
+
+    whenReady(OUT.getToggle(toggleName = "dummy")) { result =>
+      result.get mustBe ToggleDetails("dummy", None, isEnabled = true)
+    }
+  }
+
   "When set fails in the repo returns a success result" in {
     val toggleName = arbitrary[FeatureToggleName].sample.value
 
