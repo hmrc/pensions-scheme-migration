@@ -16,7 +16,8 @@
 
 package controllers.cache
 
-import utils.RandomUtils
+import controllers.actions.SchemeAuthAction
+import utils.{AuthUtils, FakeSchemeAuthAction, RandomUtils}
 import org.apache.pekko.util.ByteString
 import org.mockito.ArgumentMatchers.{eq => eqTo, _}
 import org.mockito.Mockito.{reset, when}
@@ -33,7 +34,6 @@ import play.api.test.Helpers._
 import repositories._
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.HeaderCarrier
-import utils.AuthUtils
 
 import scala.concurrent.Future
 
@@ -58,7 +58,8 @@ class DataCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
       bind[LockCacheRepository].toInstance(mock[LockCacheRepository]),
       bind[RacDacRequestsQueueEventsLogRepository].toInstance(mock[RacDacRequestsQueueEventsLogRepository]),
       bind[RacDacRequestsQueueRepository].toInstance(mock[RacDacRequestsQueueRepository]),
-      bind[SchemeDataCacheRepository].toInstance(mock[SchemeDataCacheRepository])
+      bind[SchemeDataCacheRepository].toInstance(mock[SchemeDataCacheRepository]),
+      bind[SchemeAuthAction].toInstance(new FakeSchemeAuthAction)
     ).build()
 
   before {
