@@ -35,7 +35,7 @@ class SchemeController @Inject()(
                                   pensionSchemeService: PensionSchemeService,
                                   listOfLegacySchemesCacheRepository: ListOfLegacySchemesCacheRepository,
                                   cc: ControllerComponents,
-                                  authAction: actions.AuthAction,
+                                  authAction: actions.AuthAction
                                 )(
                                   implicit ec: ExecutionContext
                                 )
