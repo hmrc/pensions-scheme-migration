@@ -17,12 +17,11 @@
 package controllers
 
 import com.google.inject.Inject
-import connector.SchemeConnector
 import connector.utils.HttpResponseHelper
 import models.MigrationType.isRacDac
 import models.{ListOfLegacySchemes, MigrationType}
 import play.api.Logger
-import play.api.libs.json.{JsBoolean, JsObject, JsValue, Json}
+import play.api.libs.json.{JsBoolean, JsObject, Json}
 import play.api.mvc._
 import repositories.ListOfLegacySchemesCacheRepository
 import service.PensionSchemeService
@@ -33,11 +32,10 @@ import utils.ValidationUtils.genResponse
 import scala.concurrent.{ExecutionContext, Future}
 
 class SchemeController @Inject()(
-                                  schemeConnector: SchemeConnector,
                                   pensionSchemeService: PensionSchemeService,
                                   listOfLegacySchemesCacheRepository: ListOfLegacySchemesCacheRepository,
                                   cc: ControllerComponents,
-                                  authAction: actions.AuthAction
+                                  authAction: actions.AuthAction,
                                 )(
                                   implicit ec: ExecutionContext
                                 )
@@ -47,7 +45,7 @@ class SchemeController @Inject()(
 
   def listOfLegacySchemes: Action[AnyContent] = authAction.async {
     implicit request =>
-      getListOfLegacySchemes(request.psaId).map {
+      pensionSchemeService.getListOfLegacySchemes(request.psaId).map {
         case Right(json) => Ok(Json.toJson(json.convertTo[ListOfLegacySchemes]))
         case Left(e) => result(e)
       }
@@ -76,28 +74,6 @@ class SchemeController @Inject()(
 
   def removeListOfLegacySchemesCache: Action[AnyContent] = authAction.async { implicit request =>
       listOfLegacySchemesCacheRepository.remove(request.psaId).map(_ => Ok)
-  }
-
-  private def getListOfLegacySchemes(psaId: String)(
-    implicit request: RequestHeader): Future[Either[HttpException, JsValue]] = {
-    listOfLegacySchemesCacheRepository.get(psaId).flatMap {
-      case Some(response) =>
-        Future.successful(Right(response))
-      case _ => getAndCacheListOfLegacySchemes(psaId)
-    }
-
-  }
-
-  private def getAndCacheListOfLegacySchemes(psaId: String)(
-    implicit request: RequestHeader): Future[Either[HttpException, JsValue]] = {
-    schemeConnector.listOfLegacySchemes(psaId) flatMap {
-      case Right(psaDetails) => {
-        listOfLegacySchemesCacheRepository.upsert(psaId, Json.toJson(psaDetails)).map(_ =>
-          Right(psaDetails)
-        )
-      }
-      case Left(e) => Future.successful(Left(e))
-    }
   }
 
 }

@@ -77,14 +77,6 @@ class ListOfLegacySchemesCacheRepository@Inject()(
       .map { _.flatMap { dataJson => (dataJson \ "data").asOpt[JsObject]}}
   }
 
-  def getLastUpdated(id: String)(implicit ec: ExecutionContext): Future[Option[Instant]] = {
-    collection.find(
-      filter = Filters.eq(idKey, id)
-    ).toFuture()
-      .map(_.headOption)
-      .map { _.flatMap { dataJson => (dataJson \ "lastUpdated").asOpt[Instant]}}
-  }
-
   def remove(id: String)(implicit ec: ExecutionContext): Future[Boolean] = {
     logger.info(s"Removing row from list of legacy schemes collection externalId:$id")
     collection.deleteOne(
