@@ -56,7 +56,6 @@ class SchemeDataCacheControllerSpec extends AnyWordSpec with Matchers with Mocki
     ).overrides(
     bind[AuthConnector].toInstance(authConnector),
     bind[SchemeDataCacheRepository].toInstance(repo),
-    bind[AdminDataRepository].toInstance(mock[AdminDataRepository]),
     bind[DataCacheRepository].toInstance(mock[DataCacheRepository]),
     bind[ListOfLegacySchemesCacheRepository].toInstance(mock[ListOfLegacySchemesCacheRepository]),
     bind[LockCacheRepository].toInstance(mock[LockCacheRepository]),

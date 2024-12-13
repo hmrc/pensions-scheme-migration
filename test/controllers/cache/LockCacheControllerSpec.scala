@@ -51,7 +51,6 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
   private val modules: Seq[GuiceableModule] = Seq(
     bind[AuthConnector].toInstance(authConnector),
     bind[LockCacheRepository].toInstance(repo),
-    bind[AdminDataRepository].toInstance(mock[AdminDataRepository]),
     bind[DataCacheRepository].toInstance(mock[DataCacheRepository]),
     bind[ListOfLegacySchemesCacheRepository].toInstance(mock[ListOfLegacySchemesCacheRepository]),
     bind[RacDacRequestsQueueRepository].toInstance(mock[RacDacRequestsQueueRepository]),
