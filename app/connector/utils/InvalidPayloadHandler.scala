@@ -87,7 +87,7 @@ class InvalidPayloadHandler @Inject() extends Logging {
   private def valueFromJson(message: ValidationMessage, json: JsValue): Option[String] = {
     message.getType match {
       case "enum" | "format" | "maximum" | "maxLength" | "minimum" | "minLength" | "pattern" | "type" =>
-        (json \ message.getPath.drop(2)).asOpt[JsValue] match {
+        (json \ message.getInstanceLocation.toString.drop(2)).asOpt[JsValue] match {
           case Some(JsBoolean(bool)) => Some(bool.toString)
           case Some(JsNull) => Some("null")
           case Some(JsNumber(n)) => Some(depersonalise(n.toString))

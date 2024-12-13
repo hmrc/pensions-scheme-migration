@@ -23,10 +23,9 @@ import org.mongodb.scala.model._
 import play.api.libs.json.{JsObject, JsValue}
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
-import java.time.{Instant, ZoneId}
+import java.time.Instant
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 import scala.concurrent.{ExecutionContext, Future}
@@ -78,16 +77,8 @@ class ListOfLegacySchemesCacheRepository@Inject()(
       .map { _.flatMap { dataJson => (dataJson \ "data").asOpt[JsObject]}}
   }
 
-  def getLastUpdated(id: String)(implicit ec: ExecutionContext): Future[Option[Instant]] = {
-    collection.find(
-      filter = Filters.eq(idKey, id)
-    ).toFuture()
-      .map(_.headOption)
-      .map { _.flatMap { dataJson => (dataJson \ "lastUpdated").asOpt[Instant]}}
-  }
-
   def remove(id: String)(implicit ec: ExecutionContext): Future[Boolean] = {
-    logger.warn(s"Removing row from list of legacy schemes collection externalId:$id")
+    logger.info(s"Removing row from list of legacy schemes collection externalId:$id")
     collection.deleteOne(
       filter = Filters.eq(idKey, id)
     ).toFuture().map( _ => true)

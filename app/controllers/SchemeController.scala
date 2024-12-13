@@ -17,28 +17,25 @@
 package controllers
 
 import com.google.inject.Inject
-import connector.SchemeConnector
 import connector.utils.HttpResponseHelper
 import models.MigrationType.isRacDac
 import models.{ListOfLegacySchemes, MigrationType}
 import play.api.Logger
-import play.api.libs.json.{JsBoolean, JsObject, JsValue, Json}
+import play.api.libs.json.{JsBoolean, JsObject, Json}
 import play.api.mvc._
 import repositories.ListOfLegacySchemesCacheRepository
 import service.PensionSchemeService
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import utils.AuthUtil
 import utils.ValidationUtils.genResponse
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class SchemeController @Inject()(
-                                  schemeConnector: SchemeConnector,
                                   pensionSchemeService: PensionSchemeService,
                                   listOfLegacySchemesCacheRepository: ListOfLegacySchemesCacheRepository,
                                   cc: ControllerComponents,
-                                  authUtil: AuthUtil
+                                  authAction: actions.AuthAction
                                 )(
                                   implicit ec: ExecutionContext
                                 )
@@ -46,78 +43,37 @@ class SchemeController @Inject()(
 
   private val logger = Logger(classOf[SchemeController])
 
-  def listOfLegacySchemes: Action[AnyContent] = Action.async {
+  def listOfLegacySchemes: Action[AnyContent] = authAction.async {
     implicit request =>
-      authUtil.doAuth { _ =>
-        val psaId = request.headers.get("psaId")
-        psaId match {
-          case Some(id) =>
-            getListOfLegacySchemes(id).map {
-              case Right(json) => Ok(Json.toJson(json.convertTo[ListOfLegacySchemes]))
-              case Left(e) => result(e)
-            }
-          case _ => Future.failed(new BadRequestException("Bad Request with missing PSAId"))
-        }
+      pensionSchemeService.getListOfLegacySchemes(request.psaId).map {
+        case Right(json) => Ok(Json.toJson(json.convertTo[ListOfLegacySchemes]))
+        case Left(e) => result(e)
       }
   }
 
-  def registerScheme(migrationType: MigrationType): Action[AnyContent] = Action.async {
+  def registerScheme(migrationType: MigrationType): Action[AnyContent] = authAction.async {
     implicit request =>
-      authUtil.doAuth { _ => {
-        val psaId = request.headers.get("psaId")
-        val feJson = request.body.asJson
-        val checkRacDac: Boolean = isRacDac(migrationType)
-        logger.debug(s"[PSA-Scheme-Migration-Incoming-Payload] $feJson for Migration Type: $checkRacDac")
-        (psaId, feJson) match {
-          case (Some(psa), Some(jsValue)) =>
-            val registerSchemeCall = {
-              if (checkRacDac)
-                pensionSchemeService.registerRacDac(psa, jsValue)(implicitly, implicitly, Some(implicitly))
-              else
-                pensionSchemeService.registerScheme(psa, jsValue)
-            }
-            registerSchemeCall.map {
-              case Right(json: JsObject) => Ok(json)
-              case Right(_: JsBoolean) => NoContent
-              case Left(e) => result(e)
-            }
-          case _ => Future.failed(new BadRequestException("Bad Request without PSAId or request body"))
+      val feJson = request.body.asJson
+      val checkRacDac: Boolean = isRacDac(migrationType)
+      logger.debug(s"[PSA-Scheme-Migration-Incoming-Payload] $feJson for Migration Type: $checkRacDac")
+      feJson.map { jsValue =>
+        val registerSchemeCall = {
+          if (checkRacDac)
+            pensionSchemeService.registerRacDac(request.psaId, jsValue)(implicitly, implicitly, Some(implicitly))
+          else
+            pensionSchemeService.registerScheme(request.psaId, jsValue)
         }
-      } recoverWith recoverFromError
-      }
-  }
-
-  def removeListOfLegacySchemesCache: Action[AnyContent] = Action.async {
-    implicit request =>
-      authUtil.doAuth { _ =>
-        val psaId = request.headers.get("psaId")
-        psaId match {
-          case Some(id) => listOfLegacySchemesCacheRepository.remove(id).map(_ => Ok)
-          case _ => Future.failed(new BadRequestException("Bad Request with missing PSAId"))
+        registerSchemeCall.map {
+          case Right(json: JsObject) => Ok(json)
+          case Right(_: JsBoolean) => NoContent
+          case Right(_) => throw new RuntimeException("Unexpected json type")
+          case Left(e) => result(e)
         }
-      }
+      }.getOrElse(Future.failed(new BadRequestException("Bad Request without PSAId or request body"))) recoverWith recoverFromError
   }
 
-  private def getListOfLegacySchemes(psaId: String)(
-    implicit request: RequestHeader): Future[Either[HttpException, JsValue]] = {
-    listOfLegacySchemesCacheRepository.get(psaId).flatMap {
-      case Some(response) =>
-        Future.successful(Right(response))
-      case _ => getAndCacheListOfLegacySchemes(psaId)
-    }
-
-  }
-
-  private def getAndCacheListOfLegacySchemes(psaId: String)(
-    implicit request: RequestHeader): Future[Either[HttpException, JsValue]] = {
-    schemeConnector.listOfLegacySchemes(psaId) flatMap {
-      case Right(psaDetails) => {
-        listOfLegacySchemesCacheRepository.upsert(psaId, Json.toJson(psaDetails)).map(_ =>
-          Right(psaDetails)
-        )
-      }
-      case Left(e) => Future.successful(Left(e))
-    }
+  def removeListOfLegacySchemesCache: Action[AnyContent] = authAction.async { implicit request =>
+      listOfLegacySchemesCacheRepository.remove(request.psaId).map(_ => Ok)
   }
 
 }

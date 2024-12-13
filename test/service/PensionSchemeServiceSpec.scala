@@ -22,6 +22,7 @@ import models.enumeration.SchemeType
 import models.userAnswersToEtmp.establisher.EstablisherDetails
 import models.userAnswersToEtmp.trustee.TrusteeDetails
 import models.userAnswersToEtmp.{CustomerAndSchemeDetails, PensionSchemeDeclaration, PensionsScheme, SchemeMigrationDetails}
+import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.{any, eq => eqTo}
 import org.mockito.Mockito._
 import org.scalatest.flatspec.AsyncFlatSpec
@@ -33,8 +34,10 @@ import play.api.http.Status
 import play.api.libs.json._
 import play.api.mvc.AnyContentAsEmpty
 import play.api.test.FakeRequest
-import repositories.DeclarationLockRepository
-import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier}
+import repositories.{DeclarationLockRepository, ListOfLegacySchemesCacheRepository}
+import uk.gov.hmrc.domain.PsaId
+import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpException}
+import utils.AuthUtils
 
 import scala.concurrent.Future
 
@@ -57,8 +60,14 @@ class PensionSchemeServiceSpec
   override protected def beforeEach(): Unit = {
     reset(schemeConnector)
     reset(declarationLockRepository)
+    reset(mockListOfLegacySchemesCacheRepository)
     super.beforeEach()
   }
+
+  private val pensionSchemeService: PensionSchemeService = new PensionSchemeService(
+    schemeConnector, auditService, new SchemeAuditService, declarationLockRepository,
+    mockListOfLegacySchemesCacheRepository
+  )
 
   "registerScheme" must "return the result of false when declaration has already done with same psaId and pstr " in {
     val regDataWithRacDacNode = schemeJsValue.as[JsObject]
@@ -171,6 +180,141 @@ class PensionSchemeServiceSpec
       }
   }
 
+  "getListOfLegacySchemes" must "return the list of legacy schemes" in {
+    val validResponse = Json.parse(
+      """{
+        |  "totalResults": 2,
+        |  "items": [
+        |    {
+        |      "pstr": "00241768RH",
+        |      "declarationDate": "0001-01-01T00:00:00",
+        |      "schemeName": "THE AMDAIL PENSION SCHEME",
+        |      "schemeOpenDate": "2006-04-05T00:00:00",
+        |      "racDac": false
+        |    },
+        |    {
+        |      "pstr": "00615269RH",
+        |      "declarationDate": "2012-02-20T00:00:00",
+        |      "schemeName": "paul qqq",
+        |      "schemeOpenDate": "paul qqq",
+        |      "racDac": true,
+        |      "policyNo": "24101975"
+        |    }
+        |  ]
+        |}""".stripMargin)
+
+    when(mockListOfLegacySchemesCacheRepository.get(ArgumentMatchers.eq(AuthUtils.psaId))(any())).thenReturn(Future.successful(None))
+    when(schemeConnector.listOfLegacySchemes(ArgumentMatchers.eq(AuthUtils.psaId))(any(), any())).thenReturn(Future.successful(Right(validResponse)))
+    when(mockListOfLegacySchemesCacheRepository.upsert(ArgumentMatchers.eq(AuthUtils.psaId), ArgumentMatchers.eq(validResponse))(any())).thenReturn(Future.successful(true))
+    val result = pensionSchemeService.getListOfLegacySchemes(AuthUtils.psaId)
+    result.map { result =>
+      result mustBe Right(validResponse)
+    }
+  }
+
+  it must "return the list of legacy schemes from cache if it's available" in {
+    val validResponse = Json.parse(
+      """{
+        |  "totalResults": 2,
+        |  "items": [
+        |    {
+        |      "pstr": "00241768RH",
+        |      "declarationDate": "0001-01-01T00:00:00",
+        |      "schemeName": "THE AMDAIL PENSION SCHEME",
+        |      "schemeOpenDate": "2006-04-05T00:00:00",
+        |      "racDac": false
+        |    },
+        |    {
+        |      "pstr": "00615269RH",
+        |      "declarationDate": "2012-02-20T00:00:00",
+        |      "schemeName": "paul qqq",
+        |      "schemeOpenDate": "paul qqq",
+        |      "racDac": true,
+        |      "policyNo": "24101975"
+        |    }
+        |  ]
+        |}""".stripMargin)
+
+    when(mockListOfLegacySchemesCacheRepository.get(ArgumentMatchers.eq(AuthUtils.psaId))(any())).thenReturn(Future.successful(Some(validResponse)))
+    val result = pensionSchemeService.getListOfLegacySchemes(AuthUtils.psaId)
+    result.map { result =>
+      result mustBe Right(validResponse)
+    }
+  }
+
+  "isAssociated" must "return true if psaId is associated with the scheme list for that pstr" in {
+    val validResponse = Json.parse(
+      """{
+        |  "totalResults": 2,
+        |  "items": [
+        |    {
+        |      "pstr": "00241768RH",
+        |      "declarationDate": "0001-01-01T00:00:00",
+        |      "schemeName": "THE AMDAIL PENSION SCHEME",
+        |      "schemeOpenDate": "2006-04-05T00:00:00",
+        |      "racDac": false
+        |    },
+        |    {
+        |      "pstr": "00615269RH",
+        |      "declarationDate": "2012-02-20T00:00:00",
+        |      "schemeName": "paul qqq",
+        |      "schemeOpenDate": "paul qqq",
+        |      "racDac": true,
+        |      "policyNo": "24101975"
+        |    }
+        |  ]
+        |}""".stripMargin)
+
+    when(mockListOfLegacySchemesCacheRepository.get(ArgumentMatchers.eq(AuthUtils.psaId))(any())).thenReturn(Future.successful(Some(validResponse)))
+    val result = pensionSchemeService.isAssociated(PsaId(AuthUtils.psaId), "00241768RH")
+    result.map { result =>
+      result mustBe true
+    }
+  }
+
+  it must "return false if psaId is not associated with the scheme list for that pstr" in {
+    val validResponse = Json.parse(
+      """{
+        |  "totalResults": 2,
+        |  "items": [
+        |    {
+        |      "pstr": "00241768RH",
+        |      "declarationDate": "0001-01-01T00:00:00",
+        |      "schemeName": "THE AMDAIL PENSION SCHEME",
+        |      "schemeOpenDate": "2006-04-05T00:00:00",
+        |      "racDac": false
+        |    },
+        |    {
+        |      "pstr": "00615269RH",
+        |      "declarationDate": "2012-02-20T00:00:00",
+        |      "schemeName": "paul qqq",
+        |      "schemeOpenDate": "paul qqq",
+        |      "racDac": true,
+        |      "policyNo": "24101975"
+        |    }
+        |  ]
+        |}""".stripMargin)
+
+    when(mockListOfLegacySchemesCacheRepository.get(ArgumentMatchers.eq(AuthUtils.psaId))(any())).thenReturn(Future.successful(Some(validResponse)))
+    val result = pensionSchemeService.isAssociated(PsaId(AuthUtils.psaId), "invalidPstr")
+    result.map { result =>
+      result mustBe false
+    }
+  }
+
+  it must "throw RuntimeException if error returned from upstream" in {
+
+    reset(mockListOfLegacySchemesCacheRepository)
+    reset(schemeConnector)
+    when(mockListOfLegacySchemesCacheRepository.get(ArgumentMatchers.eq(AuthUtils.psaId))(any())).thenReturn(Future.successful(None))
+    when(schemeConnector.listOfLegacySchemes(ArgumentMatchers.eq(AuthUtils.psaId))(any(), any())).thenReturn(Future.successful(Left(new HttpException("", 500))))
+    val result = pensionSchemeService.isAssociated(PsaId(AuthUtils.psaId), "invalidPstr")
+    result.failed.map { e =>
+      e mustBe a[RuntimeException]
+      e.getMessage mustBe "Unable to retrieve list of legacy schemes"
+    }
+  }
+
 }
 
 object PensionSchemeServiceSpec extends MockitoSugar {
@@ -178,10 +322,7 @@ object PensionSchemeServiceSpec extends MockitoSugar {
   private val schemeConnector: SchemeConnector = mock[SchemeConnector]
   private val declarationLockRepository: DeclarationLockRepository = mock[DeclarationLockRepository]
   private val auditService: StubSuccessfulAuditService = new StubSuccessfulAuditService()
-
-  private val pensionSchemeService: PensionSchemeService = new PensionSchemeService(
-    schemeConnector, auditService, new SchemeAuditService, declarationLockRepository
-  )
+private val mockListOfLegacySchemesCacheRepository = mock[ListOfLegacySchemesCacheRepository]
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
   implicit val request: FakeRequest[AnyContentAsEmpty.type] =

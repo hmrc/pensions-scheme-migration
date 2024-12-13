@@ -31,6 +31,7 @@ import play.api.test.Helpers._
 import repositories._
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.{HeaderCarrier, HeaderNames}
+import utils.AuthUtils
 
 import scala.concurrent.Future
 
@@ -40,7 +41,7 @@ class RacDacRequestsQueueEventsLogControllerSpec extends AnyWordSpec with Matche
 
   private val repo: RacDacRequestsQueueEventsLogRepository = mock[RacDacRequestsQueueEventsLogRepository]
   private val authConnector: AuthConnector = mock[AuthConnector]
-  private val id = "id"
+  private val sessionId = "123"
   private val fakeRequest = FakeRequest().withHeaders(HeaderNames.xSessionId -> "123")
 
   private val app: Application = new GuiceApplicationBuilder()
@@ -59,29 +60,27 @@ class RacDacRequestsQueueEventsLogControllerSpec extends AnyWordSpec with Matche
   before {
     reset(repo)
     reset(authConnector)
+    AuthUtils.authStub(authConnector)
   }
 
   "RacDacRequestsQueueEventsLogController" when {
     "calling getStatus" must {
       "return OK when the status is OK" in {
-        when(repo.get(eqTo("123"))(any())) thenReturn Future.successful(Some(Json.obj("status" -> OK)))
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
+        when(repo.get(eqTo(sessionId))(any())) thenReturn Future.successful(Some(Json.obj("status" -> OK)))
 
         val result = controller.getStatus(fakeRequest)
         status(result) mustEqual OK
       }
 
       "return 500 when the status is 500" in {
-        when(repo.get(eqTo("123"))(any())) thenReturn Future.successful(Some(Json.obj("status" -> INTERNAL_SERVER_ERROR)))
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
+        when(repo.get(eqTo(sessionId))(any())) thenReturn Future.successful(Some(Json.obj("status" -> INTERNAL_SERVER_ERROR)))
 
         val result = controller.getStatus(fakeRequest)
         status(result) mustEqual INTERNAL_SERVER_ERROR
       }
 
       "return NOT FOUND when not present in repository" in {
-        when(repo.get(eqTo("123"))(any())) thenReturn Future.successful(None)
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
+        when(repo.get(eqTo(sessionId))(any())) thenReturn Future.successful(None)
 
         val result = controller.getStatus(fakeRequest)
         status(result) mustEqual NOT_FOUND

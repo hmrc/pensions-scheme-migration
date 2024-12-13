@@ -23,7 +23,6 @@ import org.mongodb.scala.model._
 import play.api.libs.json._
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
 import java.time.temporal.ChronoUnit
@@ -87,7 +86,7 @@ class RacDacRequestsQueueEventsLogRepository @Inject()(mongoComponent: MongoComp
   }
 
   def remove(id: String)(implicit ec: ExecutionContext): Future[Boolean] = {
-    logger.warn(s"Removing row from collection rac dac requests queue events log repository")
+    logger.info(s"Removing row from collection rac dac requests queue events log repository")
     collection.deleteOne(
       filter = Filters.eq(idKey, id)
     ).toFuture().map(_ => true)

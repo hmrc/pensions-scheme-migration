@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
-package models.userAnswersToEtmp
+package utils
 
-import play.api.libs.json._
+import java.util.concurrent.ThreadLocalRandom
 
-case class CorrespondenceAddressDetails(addressDetails: Address)
-
-object CorrespondenceAddressDetails {
-  implicit val formats: Format[CorrespondenceAddressDetails] = Json.format[CorrespondenceAddressDetails]
+object RandomUtils {
+   def nextBytes(count: Int): Array[Byte] = {
+    val result = new Array[Byte](count)
+    ThreadLocalRandom.current.nextBytes(result)
+    result
+  }
 }

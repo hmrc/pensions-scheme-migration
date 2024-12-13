@@ -25,7 +25,6 @@ import play.api.libs.json._
 import play.api.{Configuration, Logging}
 import repositories.DataCacheRepository.{AlreadyLockedException, LockCouldNotBeSetException}
 import uk.gov.hmrc.mongo.MongoComponent
-import uk.gov.hmrc.mongo.play.json.formats.MongoJavatimeFormats
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
 
 import java.time.temporal.ChronoUnit
@@ -109,7 +108,7 @@ class DataCacheRepository @Inject()(
   }
 
   def remove(pstr: String)(implicit ec: ExecutionContext): Future[Boolean] = {
-    logger.warn(s"Removing row from data cache collection - pstr: $pstr")
+    logger.info(s"Removing row from data cache collection - pstr: $pstr")
     collection.deleteOne(
       filter = Filters.eq(pstrKey, pstr)
     ).toFuture().flatMap { _ =>

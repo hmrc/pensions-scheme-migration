@@ -16,9 +16,9 @@
 
 package utils
 
-import org.joda.time.LocalDate
 import org.scalacheck.Gen
 import play.api.libs.json.{JsObject, Json}
+import java.time.LocalDate
 
 trait PensionSchemeGenerators { // scalastyle:off magic.number
   val specialCharStringGen: Gen[String] = Gen.listOfN[Char](160, Gen.alphaChar).map(_.mkString)
@@ -50,7 +50,7 @@ trait PensionSchemeGenerators { // scalastyle:off magic.number
     day <- Gen.choose(1, 28)
     month <- Gen.choose(1, 12)
     year <- Gen.choose(1990, 2000)
-  } yield new LocalDate(year, month, day)
+  } yield LocalDate.of(year, month, day)
   val reasonGen: Gen[String] = Gen.listOfN[Char](randomNumberFromRange(1, 160), Gen.alphaChar).map(_.mkString)
 
   val booleanGen: Gen[Boolean] = Gen.oneOf(true, false)
