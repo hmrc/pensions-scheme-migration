@@ -17,8 +17,8 @@
 package controllers
 
 import base.SpecBase
-import connector.SchemeConnector
 import models.Scheme
+import org.mockito.ArgumentMatchers
 import org.mockito.ArgumentMatchers.{any, eq => meq}
 import org.mockito.Mockito._
 import org.scalatest.BeforeAndAfter
@@ -43,19 +43,20 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
   import SchemeControllerSpec._
 
   private val mockAuthConnector: AuthConnector = mock[AuthConnector]
-  private val mockSchemeConnector: SchemeConnector = mock[SchemeConnector]
   private val mockPensionSchemeService: PensionSchemeService = mock[PensionSchemeService]
   private val mockListOfLegacySchemesCacheRepository: ListOfLegacySchemesCacheRepository = mock[ListOfLegacySchemesCacheRepository]
-  private val schemeController = new SchemeController(mockSchemeConnector, mockPensionSchemeService,
+  private val schemeController = new SchemeController(mockPensionSchemeService,
     mockListOfLegacySchemesCacheRepository, stubControllerComponents(), new actions.AuthAction(mockAuthConnector, app.injector.instanceOf[BodyParsers.Default]))
   private val psaId = AuthUtils.psaId
 
   before {
-    reset(mockSchemeConnector)
     reset(mockAuthConnector)
     reset(mockPensionSchemeService)
     reset(mockListOfLegacySchemesCacheRepository)
     AuthUtils.authStub(mockAuthConnector)
+    when(mockPensionSchemeService.getListOfLegacySchemes(ArgumentMatchers.eq(psaId))(any())).thenReturn(
+      Future.successful(Right(validResponse))
+    )
   }
 
   "list of legacy schemes" must {
@@ -68,13 +69,10 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
         })
       when(mockListOfLegacySchemesCacheRepository.upsert(any(), any())(any()))
         .thenReturn(Future.successful(true))
-      when(mockSchemeConnector.listOfLegacySchemes(meq(psaId))(any(), any()))
-        .thenReturn(Future.successful(Right(validResponse)))
       val result = schemeController.listOfLegacySchemes(fakeRequest)
       ScalaFutures.whenReady(result) { _ =>
         status(result) mustBe OK
         contentAsJson(result) mustEqual transformedResponse
-        verify(mockSchemeConnector, times(1)).listOfLegacySchemes(any())(any(), any())
       }
     }
     "return OK with list of schemes for PSA and cache has value exists " in {
@@ -86,80 +84,79 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
       ScalaFutures.whenReady(result) { _ =>
         status(result) mustBe OK
         contentAsJson(result) mustEqual transformedResponse
-        verify(mockListOfLegacySchemesCacheRepository, times(1)).get(any())(any())
       }
     }
 
     "throw JsResultException when the invalid data returned from If/ETMP" in {
-      val invalidResponse = Json.obj("invalid" -> "data")
-      when(mockSchemeConnector.listOfLegacySchemes(meq(psaId))(any(), any()))
-        .thenReturn(Future.successful(Right(invalidResponse)))
       when(mockListOfLegacySchemesCacheRepository.get(any())(any()))
         .thenReturn(Future.successful {
           None
         })
+      when(mockPensionSchemeService.getListOfLegacySchemes(ArgumentMatchers.eq(psaId))(any())).thenReturn(
+        Future.failed(JsResultException(Seq()))
+      )
       when(mockListOfLegacySchemesCacheRepository.upsert(any(), any())(any()))
         .thenReturn(Future.successful(true))
       val result = schemeController.listOfLegacySchemes(fakeRequest)
       ScalaFutures.whenReady(result.failed) { e =>
         e mustBe a[JsResultException]
-        verify(mockSchemeConnector, times(1)).listOfLegacySchemes(any())(any(), any())
       }
     }
 
-    "throw BadRequestException when bad request returned from If" in {
+    "return Bad Request when bad request returned from If" in {
       val invalidPayload: JsObject = Json.obj(
         "code" -> "INVALID_PSAID",
         "reason" -> "Submission has not passed validation. Invalid parameter PSAID."
       )
-      when(mockSchemeConnector.listOfLegacySchemes(meq(psaId))(any(), any())).thenReturn(
-        Future.failed(new BadRequestException(invalidPayload.toString())))
+
+      when(mockPensionSchemeService.getListOfLegacySchemes(ArgumentMatchers.eq(psaId))(any())).thenReturn(
+        Future.successful(Left(new HttpException(Json.stringify(invalidPayload), 400)))
+      )
+
       when(mockListOfLegacySchemesCacheRepository.get(any())(any()))
         .thenReturn(Future.successful {
           None
         })
       val result = schemeController.listOfLegacySchemes(fakeRequest)
-      ScalaFutures.whenReady(result.failed) { e =>
-        e mustBe a[BadRequestException]
-        e.getMessage mustBe invalidPayload.toString()
-        verify(mockSchemeConnector, times(1)).listOfLegacySchemes(meq(psaId))(any(), any())
-      }
+
+      status(result) mustBe BAD_REQUEST
+      contentAsString(result) mustBe Json.stringify(invalidPayload)
     }
 
-    "throw Upstream5xxResponse when UpStream5XXResponse returned" in {
+    "return Internal Server Error when UpStream5XXResponse returned" in {
       val serviceUnavailable: JsObject = Json.obj(
         "code" -> "SERVICE_UNAVAILABLE",
         "reason" -> "Dependent systems are currently not responding."
       )
-      when(mockSchemeConnector.listOfLegacySchemes(meq(psaId))(any(), any())).thenReturn(
-        Future.failed(UpstreamErrorResponse(serviceUnavailable.toString(), SERVICE_UNAVAILABLE, SERVICE_UNAVAILABLE)))
+
+      when(mockPensionSchemeService.getListOfLegacySchemes(ArgumentMatchers.eq(psaId))(any())).thenReturn(
+        Future.successful(Left(new HttpException(Json.stringify(serviceUnavailable), 500)))
+      )
+
       when(mockListOfLegacySchemesCacheRepository.get(any())(any()))
         .thenReturn(Future.successful {
           None
         })
       val result = schemeController.listOfLegacySchemes(fakeRequest)
-      ScalaFutures.whenReady(result.failed) { e =>
-        e mustBe a[UpstreamErrorResponse]
-        e.getMessage mustBe serviceUnavailable.toString()
-        verify(mockSchemeConnector, times(1)).listOfLegacySchemes(meq(psaId))(any(), any())
-      }
+      status(result) mustBe INTERNAL_SERVER_ERROR
+      contentAsString(result) mustBe Json.stringify(serviceUnavailable)
     }
 
-    "throw generic exception when any other exception returned from If" in {
-      when(mockSchemeConnector.listOfLegacySchemes(meq(psaId))(any(), any())).thenReturn(
-        Future.failed(new Exception("Generic Exception")))
+    "Return the error when any other exception returned from If" in {
       when(mockListOfLegacySchemesCacheRepository.get(any())(any()))
         .thenReturn(Future.successful {
           None
         })
+
+      when(mockPensionSchemeService.getListOfLegacySchemes(ArgumentMatchers.eq(psaId))(any())).thenReturn(
+        Future.successful(Left(new HttpException("{}", 403)))
+      )
+
       when(mockListOfLegacySchemesCacheRepository.upsert(any(), any())(any()))
         .thenReturn(Future.successful(true))
       val result = schemeController.listOfLegacySchemes(fakeRequest)
-      ScalaFutures.whenReady(result.failed) { e =>
-        e mustBe a[Exception]
-        e.getMessage mustBe "Generic Exception"
-        verify(mockSchemeConnector, times(1)).listOfLegacySchemes(meq(psaId))(any(), any())
-      }
+      status(result) mustBe FORBIDDEN
+      contentAsString(result) mustBe "{}"
     }
   }
 

@@ -24,8 +24,10 @@ DELETE        /list-of-schemes-remove-cache                 controllers.SchemeCo
 POST          /register-scheme/:migrationType               controllers.SchemeController.registerScheme(migrationType: MigrationType)
 GET           /getLegacySchemeDetails                       controllers.LegacySchemeDetailsController.getLegacySchemeDetails
 
+#deprecated
 POST          /bulk-migration                               controllers.BulkRacDacController.clearEventLogThenInitiateMigration
-GET           /bulk-migration/isRequestInProgress            controllers.BulkRacDacController.isRequestSubmitted
+POST          /bulk-migration/init                          controllers.BulkRacDacController.clearEventLogThenInitiateMigrationSelf
+GET           /bulk-migration/isRequestInProgress           controllers.BulkRacDacController.isRequestSubmitted
 GET           /bulk-migration/isAllFailed                   controllers.BulkRacDacController.isAllFailed
 DELETE        /bulk-migration/deleteAll                     controllers.BulkRacDacController.deleteAll
 

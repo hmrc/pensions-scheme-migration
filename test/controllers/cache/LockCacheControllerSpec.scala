@@ -16,6 +16,7 @@
 
 package controllers.cache
 
+import controllers.actions.SchemeAuthAction
 import models.cache.MigrationLock
 import org.mockito.ArgumentMatchers.{eq => eqTo, _}
 import org.mockito.Mockito.{reset, when}
@@ -32,7 +33,7 @@ import play.api.test.Helpers._
 import repositories._
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier}
-import utils.AuthUtils
+import utils.{AuthUtils, FakeSchemeAuthAction}
 
 import scala.concurrent.Future
 
@@ -56,7 +57,8 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
     bind[ListOfLegacySchemesCacheRepository].toInstance(mock[ListOfLegacySchemesCacheRepository]),
     bind[RacDacRequestsQueueRepository].toInstance(mock[RacDacRequestsQueueRepository]),
     bind[SchemeDataCacheRepository].toInstance(mock[SchemeDataCacheRepository]),
-    bind[RacDacRequestsQueueEventsLogRepository].toInstance(mock[RacDacRequestsQueueEventsLogRepository])
+    bind[RacDacRequestsQueueEventsLogRepository].toInstance(mock[RacDacRequestsQueueEventsLogRepository]),
+    bind[SchemeAuthAction].toInstance(new FakeSchemeAuthAction)
   )
 
   private val app = new GuiceApplicationBuilder()

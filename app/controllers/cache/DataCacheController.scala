@@ -17,13 +17,12 @@
 package controllers.cache
 
 import com.google.inject.Inject
-import controllers.actions.{AuthAction, AuthRequest}
+import controllers.actions.{AuthAction, AuthRequest, SchemeAuthAction}
 import models.cache.MigrationLock
 import play.api.libs.json.Json
 import play.api.mvc._
 import repositories.DataCacheRepository
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
-import uk.gov.hmrc.http.BadRequestException
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
@@ -31,36 +30,43 @@ import scala.concurrent.{ExecutionContext, Future}
 class DataCacheController @Inject()(repository: DataCacheRepository,
                                     val authConnector: AuthConnector,
                                     cc: ControllerComponents,
-                                    authAction: AuthAction
+                                    authAction: AuthAction,
+                                    schemeAuthAction: SchemeAuthAction
                                    )(implicit ec: ExecutionContext) extends BackendController(cc) with AuthorisedFunctions {
 
-  def save: Action[AnyContent] = authAction.async {
-    implicit request =>
-      val psaId = request.headers.get("psaId").getOrElse(throw MissingHeadersException)
-      val lock = MigrationLock(pstr, request.externalId, psaId)
-      request.body.asJson.map { jsValue =>
-        repository.renewLockAndSave(lock, jsValue).map(_ => Ok)
-      } getOrElse Future.successful(BadRequest)
+  private def schemeAuthAsync(block: (AuthRequest[AnyContent], String) => Future[Result]) = {
+    authAction.async { implicit req =>
+      req.headers.get("pstr") match {
+        case Some(pstr) => schemeAuthAction(pstr).invokeBlock(req, block(_, pstr))
+        case None => Future.successful(BadRequest("pstr header not present"))
+      }
+
+    }
   }
 
-  def get: Action[AnyContent] = authAction.async {
-    implicit request =>
-      repository.get(pstr)
-        .map {
-          case Some(migrationData) => Ok(Json.toJson(migrationData))
-          case None => NotFound
-        }
+  def save: Action[AnyContent] = authAction.async { implicit req =>
+    req.headers.get("pstr") match {
+      case Some(pstr) =>
+        schemeAuthAction(pstr).invokeBlock(req, { req:AuthRequest[AnyContent] =>
+          val lock = MigrationLock(pstr, req.externalId, req.psaId)
+            req.body.asJson.map { jsValue =>
+            repository.renewLockAndSave(lock, jsValue).map(_ => Ok)
+          } getOrElse Future.successful(BadRequest)
+        })
+
+      case None => Future.successful(BadRequest("pstr header not present"))
+    }
   }
 
-  def remove: Action[AnyContent] = authAction.async {
-    implicit request =>
-      repository.remove(pstr).map(_ => Ok)
+  def get: Action[AnyContent] = schemeAuthAsync { case (req, pstr) =>
+    repository.get(pstr)
+      .map {
+        case Some(migrationData) => Ok(Json.toJson(migrationData))
+        case None => NotFound
+      }
   }
 
-  private def pstr(implicit request: AuthRequest[_]): String = request.headers.get("pstr").getOrElse(throw MissingHeadersException)
+  def remove: Action[AnyContent] = schemeAuthAsync { case (req, pstr) =>
+    repository.remove(pstr).map(_ => Ok)
+  }
 }
-
-
-case object MissingHeadersException extends BadRequestException("Missing pstr from headers")
-
-
