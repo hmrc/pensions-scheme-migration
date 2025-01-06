@@ -50,7 +50,6 @@ class RacDacRequestsQueueEventsLogControllerSpec extends AnyWordSpec with Matche
     .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
     .overrides(bind[AuthConnector].toInstance(authConnector),
       bind[RacDacRequestsQueueEventsLogRepository].toInstance(repo),
-      bind[AdminDataRepository].toInstance(mock[AdminDataRepository]),
       bind[DataCacheRepository].toInstance(mock[DataCacheRepository]),
       bind[ListOfLegacySchemesCacheRepository].toInstance(mock[ListOfLegacySchemesCacheRepository]),
       bind[LockCacheRepository].toInstance(mock[LockCacheRepository]),

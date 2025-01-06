@@ -53,7 +53,6 @@ class DataCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
     .overrides(
       bind[AuthConnector].toInstance(authConnector),
       bind[DataCacheRepository].toInstance(repo),
-      bind[AdminDataRepository].toInstance(mock[AdminDataRepository]),
       bind[ListOfLegacySchemesCacheRepository].toInstance(mock[ListOfLegacySchemesCacheRepository]),
       bind[LockCacheRepository].toInstance(mock[LockCacheRepository]),
       bind[RacDacRequestsQueueEventsLogRepository].toInstance(mock[RacDacRequestsQueueEventsLogRepository]),
