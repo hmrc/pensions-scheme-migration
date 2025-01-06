@@ -30,7 +30,10 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.mongo.MongoComponent
 
 import java.time.Instant
+import java.util.UUID
+import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.Duration
 
 
 class LockCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with BeforeAndAfter with

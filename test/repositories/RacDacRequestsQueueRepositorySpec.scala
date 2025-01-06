@@ -19,7 +19,7 @@ package repositories
 import audit.AuditServiceSpec.mock
 import com.typesafe.config.ConfigFactory
 import config.AppConfig
-import crypto.{DataEncryptor, SecureGCMCipher}
+import crypto.DataEncryptor
 import models.racDac.{RacDacHeaders, RacDacRequest, WorkItemRequest}
 import org.mockito.Mockito.when
 import org.scalatest.matchers.must.Matchers
@@ -58,7 +58,7 @@ class RacDacRequestsQueueRepositorySpec extends AnyWordSpec with Matchers with M
 
   private val mockAppConfig = mock[AppConfig]
   when(mockAppConfig.mongoEncryptionKey).thenReturn(None)
-  private val dataEncryptor = new DataEncryptor(new SecureGCMCipher(), mockAppConfig)
+  private val dataEncryptor = new DataEncryptor(mockAppConfig)
   private val repository = new RacDacRequestsQueueRepository(config,
     MongoComponent(mongoUri),
     new ServicesConfig(config),

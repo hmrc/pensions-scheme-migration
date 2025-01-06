@@ -17,18 +17,19 @@
 package service
 
 import com.google.inject.Inject
-import crypto.{EncryptedValue, SecureGCMCipher}
+import crypto.DataEncryptorImpl
 import models.racDac.EncryptedWorkItemRequest
 import org.mongodb.scala.MongoCollection
-import play.api.libs.json.{JsObject, JsString, JsValue, Json}
+import play.api.libs.json.{JsObject, JsString, JsValue, Json, OFormat}
 import play.api.{Configuration, Logging}
 import repositories.{DataCacheRepository, ListOfLegacySchemesCacheRepository, RacDacRequestsQueueRepository, SchemeDataCacheRepository}
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
+import uk.gov.hmrc.crypto.EncryptedValue
 import uk.gov.hmrc.mongo.lock.{LockService, MongoLockRepository}
 
 import java.util.concurrent.TimeUnit
-import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.concurrent.duration.{Duration, DurationInt}
+import scala.concurrent.{Await, ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
 
 //noinspection ScalaStyle
@@ -37,11 +38,11 @@ class MigrationService @Inject()(mongoLockRepository: MongoLockRepository,
                                  migrationDataCacheRepository: DataCacheRepository,
                                  racDacWorkItemRepository: RacDacRequestsQueueRepository,
                                  schemeDataCacheRepository: SchemeDataCacheRepository,
-                                 cipher: SecureGCMCipher,
                                  configuration: Configuration,
                                  val authConnector: AuthConnector)(implicit ec: ExecutionContext) extends Logging with AuthorisedFunctions {
+  private val cipher = new DataEncryptorImpl(Some(configuration.get[String]("mongodb.migration.encryptionKey")))
   private val lock = LockService(mongoLockRepository, "pensions_scheme_migration_mongodb_migration_lock", Duration(10, TimeUnit.MINUTES))
-  private val encryptionKey = configuration.get[String]("mongodb.migration.encryptionKey")
+  implicit private val encryptedValueFormat: OFormat[EncryptedValue] = Json.format
 
   private def encryptCollection(collection: MongoCollection[JsObject], collectionName: String, idAndDataToSave: (String, JsValue) => Future[Boolean]) = {
     collection.find().toFuture().map(seqJsValue => {
@@ -51,7 +52,7 @@ class MigrationService @Inject()(mongoLockRepository: MongoLockRepository,
         if (alreadyEncrypted) {
           None
         } else {
-          val encryptedData = Json.toJson(cipher.encrypt(data.as[JsValue].toString(), (jsValue \ "id").as[String], encryptionKey))
+          val encryptedData = Json.toJson(cipher.encrypt((jsValue \ "id").as[String], data.as[JsValue]))
           val encryptedJsValue = (jsValue.as[JsObject] - "data") + ("data" -> encryptedData)
           Some(encryptedJsValue)
         }
@@ -81,7 +82,7 @@ class MigrationService @Inject()(mongoLockRepository: MongoLockRepository,
         if (alreadyEncrypted) {
           None
         } else {
-          val encryptedData = Json.toJson(cipher.encrypt(data.toString(), dataJson.pstr, encryptionKey))
+          val encryptedData = Json.toJson(cipher.encrypt(dataJson.pstr, data))
           val encryptedJsValue = (data.as[JsObject] - "data") + ("data" -> encryptedData) + ("pstr" -> JsString(dataJson.pstr))
           Some(encryptedJsValue)
         }
@@ -113,7 +114,7 @@ class MigrationService @Inject()(mongoLockRepository: MongoLockRepository,
         if (alreadyEncrypted) {
           None
         } else {
-          val encryptedData = Json.toJson(cipher.encrypt(request.toString(), item.psaId, encryptionKey))
+          val encryptedData = Json.toJson(cipher.encrypt(item.psaId, request))
           val encryptedJsValue = (request.as[JsObject] - "request") + ("request" -> encryptedData) + ("psaId" -> JsString(item.psaId))
           Some(encryptedJsValue)
         }
@@ -151,7 +152,7 @@ class MigrationService @Inject()(mongoLockRepository: MongoLockRepository,
           val data = jsValue \ "data"
           val valuesAreEncrypted = data.validate[EncryptedValue].fold(_ => false, _ => true)
           if (valuesAreEncrypted) {
-            val decryptedData = Json.parse(cipher.decrypt(data.as[EncryptedValue], (jsValue \ "id").as[String], encryptionKey))
+            val decryptedData = cipher.decrypt((jsValue \ "id").as[String], data.as[JsValue])
             val decryptedJsValue = (jsValue.as[JsObject] - "data") + ("data" -> decryptedData)
             Some(decryptedJsValue)
           } else {
@@ -189,9 +190,8 @@ class MigrationService @Inject()(mongoLockRepository: MongoLockRepository,
         val data = dataJson.data
         val dataIsEncrypted = data.validate[EncryptedValue].fold(_ => false, _ => true)
         if (dataIsEncrypted) {
-          val decryptedData = cipher.decrypt(data.as[EncryptedValue], dataJson.pstr, encryptionKey)
-          val parsedDecryptedData = Json.parse(decryptedData)
-          val decryptedJsValue = (Json.toJson(dataJson).as[JsObject] - "data") + ("data" -> parsedDecryptedData) + ("pstr" -> JsString(dataJson.pstr))
+          val decryptedData = cipher.decrypt(dataJson.pstr, data)
+          val decryptedJsValue = (Json.toJson(dataJson).as[JsObject] - "data") + ("data" -> decryptedData) + ("pstr" -> JsString(dataJson.pstr))
           Some(decryptedJsValue)
         } else {
           None
@@ -229,7 +229,7 @@ class MigrationService @Inject()(mongoLockRepository: MongoLockRepository,
         val request = item.request
         val requestIsEncrypted = request.validate[EncryptedValue].fold(_ => false, _ => true)
         if (requestIsEncrypted) {
-          val decryptedRequest = Json.parse(cipher.decrypt(request.as[EncryptedValue], item.psaId, encryptionKey))
+          val decryptedRequest = cipher.decrypt(item.psaId, request)
           val decryptedJsValue = (Json.toJson(item).as[JsObject] - "request") + ("request" -> decryptedRequest) + ("psaId" -> JsString(item.psaId))
           Some(decryptedJsValue)
         } else {

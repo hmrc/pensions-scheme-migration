@@ -17,7 +17,7 @@
 package models
 
 import config.AppConfig
-import crypto.{DataEncryptor, SecureGCMCipher}
+import crypto.DataEncryptor
 import models.racDac.{EncryptedWorkItemRequest, RacDacHeaders, RacDacRequest, WorkItemRequest}
 import org.mockito.Mockito
 import org.scalatest.matchers.must.Matchers
@@ -33,7 +33,7 @@ class WorkItemRequestSpec extends AnyWordSpec
   with MockitoSugar {
 
   private val mockAppConfig = mock[AppConfig]
-  private def dataEncryptor = new DataEncryptor(new SecureGCMCipher(), mockAppConfig)
+  private def dataEncryptor = new DataEncryptor(mockAppConfig)
   private val racDacRequest = WorkItemRequest("test psa",
     RacDacRequest("test scheme 1", "001","00615269RH","2012-02-20","2020-01-01"), RacDacHeaders(None, None))
   override def beforeEach(): Unit = {

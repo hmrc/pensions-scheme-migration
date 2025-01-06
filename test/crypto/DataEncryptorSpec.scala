@@ -16,65 +16,20 @@
 
 package crypto
 
-import config.AppConfig
-import org.mockito.Mockito.when
-import org.scalatest.BeforeAndAfterAll
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatestplus.mockito.MockitoSugar
-import play.api.inject.bind
-import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
-import play.api.libs.json.Json
-import repositories._
-import uk.gov.hmrc.auth.core.AuthConnector
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import play.api.libs.json.{Json, OFormat}
+import uk.gov.hmrc.crypto.EncryptedValue
 
-class DataEncryptorSpec extends AnyFreeSpec with Matchers with BeforeAndAfterAll with MockitoSugar {
+class DataEncryptorSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with MockitoSugar {
 
+  private val encryptor = app.injector.instanceOf[DataEncryptor]
 
-  private val modules: Seq[GuiceableModule] = Seq(
-    bind[AuthConnector].toInstance(mock[AuthConnector]),
-    bind[LockCacheRepository].toInstance(mock[LockCacheRepository]),
-    bind[AdminDataRepository].toInstance(mock[AdminDataRepository]),
-    bind[DataCacheRepository].toInstance(mock[DataCacheRepository]),
-    bind[ListOfLegacySchemesCacheRepository].toInstance(mock[ListOfLegacySchemesCacheRepository]),
-    bind[RacDacRequestsQueueRepository].toInstance(mock[RacDacRequestsQueueRepository]),
-    bind[SchemeDataCacheRepository].toInstance(mock[SchemeDataCacheRepository]),
-    bind[RacDacRequestsQueueEventsLogRepository].toInstance(mock[RacDacRequestsQueueEventsLogRepository])
-  )
+  private val encryptorNoKey = new DataEncryptorImpl(None)
 
-  private val app = new GuiceApplicationBuilder()
-    .configure(
-      conf = "auditing.enabled" -> false,
-      "metrics.enabled" -> false,
-      "metrics.jvm" -> false,
-      "run.mode" -> "Test"
-    ).overrides(modules: _*).build()
-
-  private val mockAppConfig = mock[AppConfig]
-  private val mockAppConfigNotEncrypted = mock[AppConfig]
-
-  private val encryptor      = new DataEncryptor(
-    app.injector.instanceOf[SecureGCMCipher],
-    mockAppConfig
-  )
-
-  private val encryptorNoKey = new DataEncryptor(
-    app.injector.instanceOf[SecureGCMCipher],
-    mockAppConfigNotEncrypted
-  )
-
-  val secretKey = "QZNWcapID0BmWTneSk4hNl5RqdMlh4RI"
-
-  override def beforeAll(): Unit = {
-    super.beforeAll()
-    when(mockAppConfig.mongoEncryptionKey).thenReturn(Some(secretKey))
-    when(mockAppConfigNotEncrypted.mongoEncryptionKey).thenReturn(None)
-  }
-
-  override protected def afterAll(): Unit = {
-    app.stop()
-    super.afterAll()
-  }
+  private implicit val encryptedValueFormat: OFormat[EncryptedValue] = Json.format[EncryptedValue]
 
   private val id  = "id"
   private val notEncryptedJsValue = Json.parse("""{"value": true}""")
@@ -83,12 +38,10 @@ class DataEncryptorSpec extends AnyFreeSpec with Matchers with BeforeAndAfterAll
 
   "encrypt" - {
     "must encrypt jsValue" in {
-      println(encryptor.encrypt(id, notEncryptedJsValue).as[EncryptedValue])
       encryptor.encrypt(id, notEncryptedJsValue).as[EncryptedValue] mustBe an[EncryptedValue]
     }
     "must not encrypt if no key is provided" in {
       encryptorNoKey.encrypt(id, notEncryptedJsValue) mustBe notEncryptedJsValue
-
     }
   }
 
