@@ -52,7 +52,6 @@ class DataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
   private val modules: Seq[GuiceableModule] = Seq(
     bind[AuthConnector].toInstance(mock[AuthConnector]),
     bind[LockCacheRepository].toInstance(mock[LockCacheRepository]),
-    bind[AdminDataRepository].toInstance(mock[AdminDataRepository]),
     bind[DataCacheRepository].toInstance(mock[DataCacheRepository]),
     bind[ListOfLegacySchemesCacheRepository].toInstance(mock[ListOfLegacySchemesCacheRepository]),
     bind[RacDacRequestsQueueRepository].toInstance(mock[RacDacRequestsQueueRepository]),

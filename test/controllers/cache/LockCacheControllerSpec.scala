@@ -113,10 +113,8 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
         AuthUtils.authStub(authConnector)
 
         val result = controller.getLockOnScheme(FakeRequest())
-        ScalaFutures.whenReady(result.failed) { res =>
-          res mustBe a[BadRequestException]
-          res.getMessage mustBe "Bad Request without pstr"
-        }
+        status(result) mustBe BAD_REQUEST
+        contentAsString(result) mustBe "pstr header not present"
       }
 
     }
@@ -216,11 +214,8 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
         AuthUtils.authStub(authConnector)
 
         val result = controller.removeLockOnScheme()(FakeRequest())
-
-        ScalaFutures.whenReady(result.failed) { res =>
-          res mustBe a[BadRequestException]
-          res.getMessage mustBe "Bad Request without pstr"
-        }
+        status(result) mustBe BAD_REQUEST
+        contentAsString(result) mustBe "pstr header not present"
       }
     }
 

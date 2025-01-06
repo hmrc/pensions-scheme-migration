@@ -54,7 +54,6 @@ class EmailConnectorSpec extends AsyncFlatSpec with Matchers with WireMockHelper
 
   override protected def bindings: Seq[GuiceableModule] =
     Seq(
-      bind[AdminDataRepository].toInstance(mock[AdminDataRepository]),
       bind[DataCacheRepository].toInstance(mock[DataCacheRepository]),
       bind[ListOfLegacySchemesCacheRepository].toInstance(mock[ListOfLegacySchemesCacheRepository]),
       bind[LockCacheRepository].toInstance(mock[LockCacheRepository]),
