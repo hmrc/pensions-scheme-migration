@@ -25,7 +25,7 @@ import uk.gov.hmrc.crypto.EncryptedValue
 
 class DataEncryptorSpec extends AnyFreeSpec with Matchers with GuiceOneAppPerSuite with MockitoSugar {
 
-  private val encryptor = app.injector.instanceOf[DataEncryptor]
+  private val encryptor = new DataEncryptorImpl(Some("QZNWcapID0BmWTneSk4hNl5RqdMlh4RI"))
 
   private val encryptorNoKey = new DataEncryptorImpl(None)
 
