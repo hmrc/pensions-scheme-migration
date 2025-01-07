@@ -247,6 +247,17 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
         e.getMessage mustBe "Generic Exception"
       }
     }
+
+    "return exception when incorrect data type returned from api" in {
+      when(mockPensionSchemeService.registerScheme(any(), any())(any(), any())).thenReturn(
+        Future.successful(Right(JsString("Something went wrong"))))
+
+      val result = schemeController.registerScheme(Scheme)(fakeRequest(validData))
+      ScalaFutures.whenReady(result.failed) { e =>
+        e mustBe a[Exception]
+        e.getMessage mustBe "Unexpected json type"
+      }
+    }
   }
 
 

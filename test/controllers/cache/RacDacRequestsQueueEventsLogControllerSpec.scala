@@ -16,9 +16,11 @@
 
 package controllers.cache
 
+import models.racDac.SessionIdNotFound
 import org.mockito.ArgumentMatchers.{eq => eqTo, _}
 import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfter
+import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
@@ -84,6 +86,21 @@ class RacDacRequestsQueueEventsLogControllerSpec extends AnyWordSpec with Matche
 
         val result = controller.getStatus(fakeRequest)
         status(result) mustEqual NOT_FOUND
+      }
+
+      "return NOT FOUND when status is not found in returned json" in {
+        when(repo.get(eqTo(sessionId))(any())) thenReturn Future.successful(Some(Json.obj()))
+
+        val result = controller.getStatus(fakeRequest)
+        status(result) mustEqual NOT_FOUND
+      }
+
+      "return SessionIdNotFound sessionId not present" in {
+        val fakeRequest = FakeRequest()
+        val result = controller.getStatus(fakeRequest)
+        ScalaFutures.whenReady(result.failed) { res =>
+          res mustBe a[SessionIdNotFound]
+        }
       }
     }
 

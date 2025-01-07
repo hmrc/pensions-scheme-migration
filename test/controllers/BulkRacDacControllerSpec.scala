@@ -278,6 +278,32 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
         verify(mockRacDacRequestsQueueEventsLogRepository, times(0)).save(ArgumentMatchers.eq(sessionId), jsonCaptor.capture())(any())
       }
     }
+
+    "throw BadRequestException when sessionId header is missing" in {
+      val fakeRequest = FakeRequest("POST", "/").withHeaders(
+        "psaId" -> psaId
+      ).withJsonBody(Json.obj("invalid" -> "request"))
+      val result = bulkRacDacController.clearEventLogThenInitiateMigration(fakeRequest)
+      ScalaFutures.whenReady(result.failed) { e =>
+        e mustBe a[BadRequestException]
+        e.getMessage mustBe "Session ID not found - Unable to retrieve session ID"
+      }
+    }
+
+    "throw BadRequestException when psaId is missing" in {
+      val fakeRequest = FakeRequest("POST", "/").withHeaders(
+        HeaderNames.xSessionId -> sessionId
+      ).withJsonBody(Json.obj("invalid" -> "request"))
+      val captor = ArgumentCaptor.forClass(classOf[RacDacBulkMigrationTriggerAuditEvent])
+      doNothing().when(mockAuditService).sendEvent(captor.capture())(any(), any())
+      when(mockRacDacBulkSubmissionService.enqueue(any())).thenReturn(Future.successful(false))
+
+      val result = bulkRacDacController.clearEventLogThenInitiateMigration(fakeRequest)
+      ScalaFutures.whenReady(result.failed) { e =>
+        e mustBe a[BadRequestException]
+        e.getMessage mustBe "Missing Body or missing psaId in the header"
+      }
+    }
   }
 
   "clearEventLogThenInitiateMigrationSelf" must {
