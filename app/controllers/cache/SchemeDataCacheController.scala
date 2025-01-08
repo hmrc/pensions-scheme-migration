@@ -17,52 +17,38 @@
 package controllers.cache
 
 import com.google.inject.Inject
+import controllers.actions.AuthAction
 import play.api.mvc._
 import repositories.SchemeDataCacheRepository
-import uk.gov.hmrc.auth.core.retrieve.v2.Retrievals
 import uk.gov.hmrc.auth.core.{AuthConnector, AuthorisedFunctions}
-import uk.gov.hmrc.http.HeaderCarrier
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.{ExecutionContext, Future}
 
 class SchemeDataCacheController @Inject()(repository: SchemeDataCacheRepository,
-                                    val authConnector: AuthConnector,
-                                    cc: ControllerComponents
+                                          val authConnector: AuthConnector,
+                                          cc: ControllerComponents,
+                                          authAction: AuthAction
                                    )(implicit ec: ExecutionContext) extends BackendController(cc) with AuthorisedFunctions {
 
-  def save: Action[AnyContent] = Action.async {
+  def save: Action[AnyContent] = authAction.async {
     implicit request =>
-      withId { id =>
-        request.body.asJson.map { jsValue =>
-          repository.save(id, jsValue).map(_ => Ok)
-        } getOrElse Future.successful(BadRequest)
-      }
+      request.body.asJson.map { jsValue =>
+        repository.save(request.externalId, jsValue).map(_ => Ok)
+      } getOrElse Future.successful(BadRequest)
   }
 
-  def get: Action[AnyContent] = Action.async {
+  def get: Action[AnyContent] = authAction.async {
     implicit request =>
-      withId { id =>
-        repository.get(id)
-          .map {
-            case Some(lock) => Ok(lock)
-            case None => NotFound
-          }
-      }
+      repository.get(request.externalId)
+        .map {
+          case Some(lock) => Ok(lock)
+          case None => NotFound
+        }
   }
 
-  def remove: Action[AnyContent] = Action.async {
+  def remove: Action[AnyContent] = authAction.async {
     implicit request =>
-      withId { id =>
-        repository.remove(id).map(_ => Ok)
-      }
-  }
-
-  private def withId(block: (String) => Future[Result])
-                      (implicit hc: HeaderCarrier): Future[Result] = {
-    authorised().retrieve(Retrievals.externalId) {
-      case Some(id) => block(id)
-      case _ => Future.failed(CredIdNotFoundFromAuth())
-    }
+      repository.remove(request.externalId).map(_ => Ok)
   }
 }

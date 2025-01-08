@@ -19,7 +19,7 @@ package models.userAnswersToEtmp
 import models.userAnswersToEtmp.establisher.EstablisherDetails
 import models.userAnswersToEtmp.trustee.TrusteeDetails
 import play.api.libs.functional.syntax._
-import play.api.libs.json.{Format, _}
+import play.api.libs.json._
 
 case class PensionsScheme(schemeMigrationDetails:SchemeMigrationDetails,
                           customerAndSchemeDetails: CustomerAndSchemeDetails, pensionSchemeDeclaration: PensionSchemeDeclaration,

@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 HM Revenue & Customs
+ * Copyright 2024 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package models
+import com.google.inject.AbstractModule
+import play.api.{Configuration, Environment}
+import service.MigrationService
 
-import play.api.libs.json._
-
-case class ToggleDetails(toggleName: String, toggleDescription: Option[String], isEnabled: Boolean)
-
-object ToggleDetails {
-  implicit val format: OFormat[ToggleDetails] = Json.format[ToggleDetails]
+class StartupModule (environment: Environment, configuration: Configuration) extends AbstractModule {
+  override def configure(): Unit = {
+    if (configuration.get[Boolean]("mongodb.migration.enable")) bind(classOf[MigrationService]).asEagerSingleton()
+  }
 }

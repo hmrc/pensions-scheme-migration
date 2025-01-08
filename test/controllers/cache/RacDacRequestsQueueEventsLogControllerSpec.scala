@@ -16,9 +16,11 @@
 
 package controllers.cache
 
+import models.racDac.SessionIdNotFound
 import org.mockito.ArgumentMatchers.{eq => eqTo, _}
 import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfter
+import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
@@ -31,6 +33,7 @@ import play.api.test.Helpers._
 import repositories._
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.http.{HeaderCarrier, HeaderNames}
+import utils.AuthUtils
 
 import scala.concurrent.Future
 
@@ -40,14 +43,13 @@ class RacDacRequestsQueueEventsLogControllerSpec extends AnyWordSpec with Matche
 
   private val repo: RacDacRequestsQueueEventsLogRepository = mock[RacDacRequestsQueueEventsLogRepository]
   private val authConnector: AuthConnector = mock[AuthConnector]
-  private val id = "id"
+  private val sessionId = "123"
   private val fakeRequest = FakeRequest().withHeaders(HeaderNames.xSessionId -> "123")
 
   private val app: Application = new GuiceApplicationBuilder()
     .configure(conf = "auditing.enabled" -> false, "metrics.enabled" -> false, "metrics.jvm" -> false, "run.mode" -> "Test")
     .overrides(bind[AuthConnector].toInstance(authConnector),
       bind[RacDacRequestsQueueEventsLogRepository].toInstance(repo),
-      bind[AdminDataRepository].toInstance(mock[AdminDataRepository]),
       bind[DataCacheRepository].toInstance(mock[DataCacheRepository]),
       bind[ListOfLegacySchemesCacheRepository].toInstance(mock[ListOfLegacySchemesCacheRepository]),
       bind[LockCacheRepository].toInstance(mock[LockCacheRepository]),
@@ -60,32 +62,45 @@ class RacDacRequestsQueueEventsLogControllerSpec extends AnyWordSpec with Matche
   before {
     reset(repo)
     reset(authConnector)
+    AuthUtils.authStub(authConnector)
   }
 
   "RacDacRequestsQueueEventsLogController" when {
     "calling getStatus" must {
       "return OK when the status is OK" in {
-        when(repo.get(eqTo("123"))(any())) thenReturn Future.successful(Some(Json.obj("status" -> OK)))
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
+        when(repo.get(eqTo(sessionId))(any())) thenReturn Future.successful(Some(Json.obj("status" -> OK)))
 
         val result = controller.getStatus(fakeRequest)
         status(result) mustEqual OK
       }
 
       "return 500 when the status is 500" in {
-        when(repo.get(eqTo("123"))(any())) thenReturn Future.successful(Some(Json.obj("status" -> INTERNAL_SERVER_ERROR)))
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
+        when(repo.get(eqTo(sessionId))(any())) thenReturn Future.successful(Some(Json.obj("status" -> INTERNAL_SERVER_ERROR)))
 
         val result = controller.getStatus(fakeRequest)
         status(result) mustEqual INTERNAL_SERVER_ERROR
       }
 
       "return NOT FOUND when not present in repository" in {
-        when(repo.get(eqTo("123"))(any())) thenReturn Future.successful(None)
-        when(authConnector.authorise[Option[String]](any(), any())(any(), any())) thenReturn Future.successful(Some(id))
+        when(repo.get(eqTo(sessionId))(any())) thenReturn Future.successful(None)
 
         val result = controller.getStatus(fakeRequest)
         status(result) mustEqual NOT_FOUND
+      }
+
+      "return NOT FOUND when status is not found in returned json" in {
+        when(repo.get(eqTo(sessionId))(any())) thenReturn Future.successful(Some(Json.obj()))
+
+        val result = controller.getStatus(fakeRequest)
+        status(result) mustEqual NOT_FOUND
+      }
+
+      "return SessionIdNotFound sessionId not present" in {
+        val fakeRequest = FakeRequest()
+        val result = controller.getStatus(fakeRequest)
+        ScalaFutures.whenReady(result.failed) { res =>
+          res mustBe a[SessionIdNotFound]
+        }
       }
     }
 

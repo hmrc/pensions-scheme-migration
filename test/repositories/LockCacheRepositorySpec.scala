@@ -30,7 +30,10 @@ import play.api.libs.json.Json
 import uk.gov.hmrc.mongo.MongoComponent
 
 import java.time.Instant
+import java.util.UUID
+import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.duration.Duration
 
 
 class LockCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with BeforeAndAfter with
@@ -54,8 +57,14 @@ class LockCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
     super.beforeAll()
   }
 
+  override def afterAll(): Unit = {
+    super.afterAll()
+    Await.result(lockCacheRepository.collection.drop().toFuture(), Duration.Inf)
+  }
+
   override def beforeEach(): Unit = {
     reset(mockConfiguration)
+    Await.result(lockCacheRepository.collection.drop().toFuture(), Duration.Inf)
     super.beforeEach()
   }
 
@@ -205,10 +214,9 @@ object LockCacheRepositorySpec extends MockitoSugar {
       expireAt = Instant.now().plusSeconds(60)
     )
   )
-
+  val testRepositoryName = "testRepository" +  UUID.randomUUID().toString
   private def buildFormRepository(mongoHost: String, mongoPort: Int): LockCacheRepository = {
-    val databaseName = "pensions-scheme-migration"
-    val mongoUri = s"mongodb://$mongoHost:$mongoPort/$databaseName?heartbeatFrequencyMS=1000&rm.failover=default"
+    val mongoUri = s"mongodb://$mongoHost:$mongoPort/$testRepositoryName?heartbeatFrequencyMS=1000"
     new LockCacheRepository(MongoComponent(mongoUri), mockConfiguration)
   }
 }

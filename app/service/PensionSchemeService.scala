@@ -23,7 +23,8 @@ import models.userAnswersToEtmp.{PensionsScheme, RACDACPensionsScheme}
 import play.api.Logging
 import play.api.libs.json._
 import play.api.mvc.RequestHeader
-import repositories.DeclarationLockRepository
+import repositories.{DeclarationLockRepository, ListOfLegacySchemesCacheRepository}
+import uk.gov.hmrc.domain.PsaId
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpException}
 import utils.JSONPayloadSchemaValidator
 
@@ -34,8 +35,10 @@ class PensionSchemeService @Inject()(schemeConnector: SchemeConnector,
                                      auditService: AuditService,
                                      schemeAuditService: SchemeAuditService,
                                      declarationLockRepository: DeclarationLockRepository,
+                                     listOfLegacySchemesCacheRepository: ListOfLegacySchemesCacheRepository,
                                      jsonPayloadSchemaValidator: JSONPayloadSchemaValidator
-                                    ) extends Logging {
+
+                                    )(implicit ec: ExecutionContext) extends Logging {
 
   val schemaPath = "/resources/schemas/api-1359-request-schema-4.0.0.json"
 
@@ -86,7 +89,7 @@ class PensionSchemeService @Inject()(schemeConnector: SchemeConnector,
                   pruneAll(pathToBoxFields, validationResult)
                 }
 
-                schemeAuditService.sendSchemeSubscriptionEvent(psaId, pstr, auditRegisterData)(auditService.sendEvent)
+                schemeAuditService.sendSchemeSubscriptionEvent(psaId, pstr, auditRegisterData)(auditService.sendEvent _)
               }
             } else {
               Future(Right(JsBoolean(false)))
@@ -117,11 +120,46 @@ class PensionSchemeService @Inject()(schemeConnector: SchemeConnector,
               schemeAuditService.sendRACDACSchemeSubscriptionEvent(psaId, pstr, auditRegisterData)(auditService.sendExplicitAudit)
             } else {
               implicit val requestHeader: RequestHeader = request.get
-              schemeAuditService.sendRACDACSchemeSubscriptionEvent(psaId, pstr, auditRegisterData)(auditService.sendEvent)
+              schemeAuditService.sendRACDACSchemeSubscriptionEvent(psaId, pstr, auditRegisterData)(auditService.sendEvent _)
             }
           }
       }
     )
+  }
+
+  def getListOfLegacySchemes(psaId: String)(
+    implicit request: RequestHeader): Future[Either[HttpException, JsValue]] = {
+    listOfLegacySchemesCacheRepository.get(psaId).flatMap {
+      case Some(response) =>
+        Future.successful(Right(response))
+      case _ =>
+        getAndCacheListOfLegacySchemes(psaId)
+    }
+  }
+
+  private def getAndCacheListOfLegacySchemes(psaId: String)(
+    implicit request: RequestHeader): Future[Either[HttpException, JsValue]] = {
+    schemeConnector.listOfLegacySchemes(psaId) flatMap {
+      case Right(psaDetails) =>
+        listOfLegacySchemesCacheRepository.upsert(psaId, Json.toJson(psaDetails)).map(_ =>
+          Right(psaDetails)
+        )
+      case Left(e) => Future.successful(Left(e))
+    }
+  }
+
+  private case class Scheme(pstr: String)
+
+  def isAssociated(psaId: PsaId, pstr: String)(implicit request: RequestHeader): Future[Boolean] = {
+
+    implicit val schemeFormat: Format[Scheme] = Json.format
+    getListOfLegacySchemes(psaId.id).map {
+      case Left(error) =>
+        throw new RuntimeException("Unable to retrieve list of legacy schemes", error)
+      case Right(value) =>
+        val schemes = (value \ "items").toOption.flatMap(_.asOpt[Seq[Scheme]]).getOrElse(Seq())
+        schemes.exists(_.pstr == pstr)
+    }
   }
 }
 

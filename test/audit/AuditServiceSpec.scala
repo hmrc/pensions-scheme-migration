@@ -65,7 +65,6 @@ object AuditServiceSpec extends MockitoSugar {
   private val app = new GuiceApplicationBuilder()
     .overrides(
       bind[AuditConnector].toInstance(FakeAuditConnector),
-      bind[AdminDataRepository].toInstance(mock[AdminDataRepository]),
       bind[DataCacheRepository].toInstance(mock[DataCacheRepository]),
       bind[ListOfLegacySchemesCacheRepository].toInstance(mock[ListOfLegacySchemesCacheRepository]),
       bind[LockCacheRepository].toInstance(mock[LockCacheRepository]),

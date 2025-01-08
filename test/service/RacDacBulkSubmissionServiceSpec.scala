@@ -18,7 +18,7 @@ package service
 
 import org.apache.pekko.actor.ActorSystem
 import org.apache.pekko.util.Timeout
-import models.racDac.{RacDacHeaders, RacDacRequest, WorkItemRequest}
+import models.racDac.{EncryptedWorkItemRequest, RacDacHeaders, RacDacRequest, WorkItemRequest}
 import org.bson.types.ObjectId
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito._
@@ -52,6 +52,8 @@ class RacDacBulkSubmissionServiceSpec() extends AnyWordSpec with Matchers with M
 
   private val racDacRequest = WorkItemRequest("test psa id",
     RacDacRequest("test rac dac", "123456", "00615269RH", "2012-02-20", "2020-01-01"), RacDacHeaders(None, None))
+  private val racDacRequestEncrypted = EncryptedWorkItemRequest("test psa id",
+    Json.toJson(RacDacRequest("test rac dac", "123456", "00615269RH", "2012-02-20", "2020-01-01")), RacDacHeaders(None, None))
 
   "RacDac Bulk Submission Service" when {
 
@@ -73,8 +75,8 @@ class RacDacBulkSubmissionServiceSpec() extends AnyWordSpec with Matchers with M
     "a dms submission request is made" must {
       "return true after successfully enqueue the request" in {
         reset(mockRacDacSubmissionRepo)
-        val workItem: WorkItem[WorkItemRequest] = WorkItem(ObjectId.get(), Instant.now(),
-          Instant.now(), Instant.now(), ToDo, 0, racDacRequest)
+        val workItem = WorkItem(ObjectId.get(), Instant.now(),
+          Instant.now(), Instant.now(), ToDo, 0, racDacRequestEncrypted)
 
         when(mockRacDacSubmissionRepo.pushAll(any)).thenReturn(Future(Right(Seq(workItem))))
         when(mockRacDacSubmissionRepo.push(any)).thenReturn(Future(Right(workItem)))

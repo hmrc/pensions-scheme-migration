@@ -30,7 +30,6 @@ import utils.{CountryOptions, PensionSchemeJsValueGenerators}
 trait TransformationSpec extends AnyWordSpec with Matchers with OptionValues with JsonFileReader with PensionSchemeJsValueGenerators with MockitoSugar {
 
   val injector: Injector = new GuiceApplicationBuilder().overrides(
-    bind[AdminDataRepository].toInstance(mock[AdminDataRepository]),
     bind[DataCacheRepository].toInstance(mock[DataCacheRepository]),
     bind[ListOfLegacySchemesCacheRepository].toInstance(mock[ListOfLegacySchemesCacheRepository]),
     bind[LockCacheRepository].toInstance(mock[LockCacheRepository]),
