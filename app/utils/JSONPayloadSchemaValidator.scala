@@ -37,11 +37,8 @@ class JSONPayloadSchemaValidator {
     val jsonDataAsString = JsonLoader.fromString(data.toString())
     val doValidation = schema.validate(jsonDataAsString, deepValidationCheck)
     val isSuccess = doValidation.isSuccess
-    println("validation complete")
     if (!isSuccess) {
       val jsArray: collection.IndexedSeq[JsValue] = Json.parse(doValidation.asInstanceOf[ListProcessingReport].asJson().toString).asInstanceOf[JsArray].value
-      println("validation incomoplete", jsArray)
-
       val jsArrayErrors = jsArray.map {
         error =>
           ((error \ "instance" \ "pointer").asOpt[String], (error \ "message").asOpt[String]) match {
