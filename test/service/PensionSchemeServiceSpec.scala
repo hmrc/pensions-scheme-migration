@@ -35,6 +35,7 @@ import play.api.mvc.AnyContentAsEmpty
 import play.api.test.FakeRequest
 import repositories.DeclarationLockRepository
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier}
+import utils.JSONPayloadSchemaValidator
 
 import scala.concurrent.Future
 
@@ -57,6 +58,7 @@ class PensionSchemeServiceSpec
   override protected def beforeEach(): Unit = {
     reset(schemeConnector)
     reset(declarationLockRepository)
+    when(mockJSONPayloadSchemaValidator.validateJsonPayload(any(),any())).thenReturn(Right(true))
     super.beforeEach()
   }
 
@@ -179,8 +181,10 @@ object PensionSchemeServiceSpec extends MockitoSugar {
   private val declarationLockRepository: DeclarationLockRepository = mock[DeclarationLockRepository]
   private val auditService: StubSuccessfulAuditService = new StubSuccessfulAuditService()
 
+  val mockJSONPayloadSchemaValidator: JSONPayloadSchemaValidator = mock[JSONPayloadSchemaValidator]
+
   private val pensionSchemeService: PensionSchemeService = new PensionSchemeService(
-    schemeConnector, auditService, new SchemeAuditService, declarationLockRepository
+    schemeConnector, auditService, new SchemeAuditService, declarationLockRepository,mockJSONPayloadSchemaValidator
   )
 
   implicit val hc: HeaderCarrier = HeaderCarrier()

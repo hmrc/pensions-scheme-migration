@@ -25,6 +25,7 @@ import play.api.libs.json._
 import play.api.mvc.RequestHeader
 import repositories.DeclarationLockRepository
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpException}
+import utils.JSONPayloadSchemaValidator
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -32,8 +33,11 @@ import scala.concurrent.{ExecutionContext, Future}
 class PensionSchemeService @Inject()(schemeConnector: SchemeConnector,
                                      auditService: AuditService,
                                      schemeAuditService: SchemeAuditService,
-                                     declarationLockRepository: DeclarationLockRepository
+                                     declarationLockRepository: DeclarationLockRepository,
+                                     jsonPayloadSchemaValidator: JSONPayloadSchemaValidator
                                     ) extends Logging {
+
+  val schemaPath = "/resources/schemas/api-1359-request-schema-4.0.0.json"
 
   def registerScheme(psaId: String, json: JsValue)
                     (implicit ec: ExecutionContext,
@@ -56,7 +60,16 @@ class PensionSchemeService @Inject()(schemeConnector: SchemeConnector,
           declarationLockRepository.insertLockData(pstr, psaId).flatMap { isAvailable =>
 
             if (isAvailable) {
-              schemeConnector.registerScheme(psaId, registerData) andThen {
+              val validationResult = jsonPayloadSchemaValidator.validateJsonPayload(schemaPath, registerData) match {
+                case Left(errors) =>
+                  logger.warn(s"Error Registering Scheme because payload had validation errors:-\n${errors.mkString}")
+                  registerData
+                case Right(_) =>
+                  logger.warn(s"Payload for registering scheme passed validation")
+                  registerData
+              }
+
+              schemeConnector.registerScheme(psaId, validationResult) andThen {
 
                 val auditRegisterData = {
                   val pathToBoxFields = Seq(
@@ -70,7 +83,7 @@ class PensionSchemeService @Inject()(schemeConnector: SchemeConnector,
                     jspaths.foldLeft(jsObject) { (act, path) => act.transform(path).asOpt.get }
                   }
 
-                  pruneAll(pathToBoxFields, registerData)
+                  pruneAll(pathToBoxFields, validationResult)
                 }
 
                 schemeAuditService.sendSchemeSubscriptionEvent(psaId, pstr, auditRegisterData)(auditService.sendEvent)

@@ -12,6 +12,7 @@ object AppDependencies {
     "uk.gov.hmrc"                   %% "domain-play-30"                    % "10.0.0",
     "com.typesafe.play"             %% "play-json"                         % "2.10.5",
     "com.networknt"                 %  "json-schema-validator"             % "1.5.1",
+    "com.github.java-json-tools"    %% "json-schema-validator"             % "2.2.14",
     "com.fasterxml.jackson.module"  %% "jackson-module-scala"              % "2.17.2",
     ehcache
   )
