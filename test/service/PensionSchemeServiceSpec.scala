@@ -35,6 +35,9 @@ import play.api.http.Status
 import play.api.libs.json._
 import play.api.mvc.AnyContentAsEmpty
 import play.api.test.FakeRequest
+import repositories.DeclarationLockRepository
+import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier}
+import utils.JSONPayloadSchemaValidator
 import repositories.{DeclarationLockRepository, ListOfLegacySchemesCacheRepository}
 import uk.gov.hmrc.domain.PsaId
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpException}
@@ -62,12 +65,13 @@ class PensionSchemeServiceSpec
     reset(schemeConnector)
     reset(declarationLockRepository)
     reset(mockListOfLegacySchemesCacheRepository)
+    when(mockJSONPayloadSchemaValidator.validateJsonPayload(any(),any())).thenReturn(Right(true))
     super.beforeEach()
   }
 
   private val pensionSchemeService: PensionSchemeService = new PensionSchemeService(
     schemeConnector, auditService, new SchemeAuditService, declarationLockRepository,
-    mockListOfLegacySchemesCacheRepository
+    mockListOfLegacySchemesCacheRepository,mockJSONPayloadSchemaValidator
   )
 
   "registerScheme" must "return the result of false when declaration has already done with same psaId and pstr " in {
@@ -348,6 +352,8 @@ object PensionSchemeServiceSpec extends MockitoSugar {
   private val declarationLockRepository: DeclarationLockRepository = mock[DeclarationLockRepository]
   private val auditService: StubSuccessfulAuditService = new StubSuccessfulAuditService()
 private val mockListOfLegacySchemesCacheRepository = mock[ListOfLegacySchemesCacheRepository]
+  val mockJSONPayloadSchemaValidator: JSONPayloadSchemaValidator = mock[JSONPayloadSchemaValidator]
+
 
   implicit val hc: HeaderCarrier = HeaderCarrier()
   implicit val request: FakeRequest[AnyContentAsEmpty.type] =
