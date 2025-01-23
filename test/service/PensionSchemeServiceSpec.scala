@@ -35,13 +35,10 @@ import play.api.http.Status
 import play.api.libs.json._
 import play.api.mvc.AnyContentAsEmpty
 import play.api.test.FakeRequest
-import repositories.DeclarationLockRepository
-import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier}
-import utils.JSONPayloadSchemaValidator
 import repositories.{DeclarationLockRepository, ListOfLegacySchemesCacheRepository}
 import uk.gov.hmrc.domain.PsaId
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, HttpException}
-import utils.AuthUtils
+import utils.{AuthUtils, JSONPayloadSchemaValidator}
 
 import scala.concurrent.Future
 

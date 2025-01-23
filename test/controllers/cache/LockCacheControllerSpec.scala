@@ -21,7 +21,6 @@ import models.cache.MigrationLock
 import org.mockito.ArgumentMatchers.{eq => eqTo, _}
 import org.mockito.Mockito.{reset, when}
 import org.scalatest.BeforeAndAfter
-import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
@@ -32,7 +31,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import repositories._
 import uk.gov.hmrc.auth.core.AuthConnector
-import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier}
+import uk.gov.hmrc.http.HeaderCarrier
 import utils.{AuthUtils, FakeSchemeAuthAction}
 
 import scala.concurrent.Future

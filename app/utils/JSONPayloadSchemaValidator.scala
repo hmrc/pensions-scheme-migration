@@ -30,7 +30,6 @@ class JSONPayloadSchemaValidator {
 
   def validateJsonPayload(jsonSchemaPath: String, data: JsValue): ValidationReport = {
     val deepValidationCheck = true
-    val index = 0
     val factory = JsonSchemaFactory.byDefault()
     val schemaPath = JsonLoader.fromPath(s"$basePath/conf/$jsonSchemaPath")
     val schema = factory.getJsonSchema(schemaPath)
@@ -53,16 +52,5 @@ class JSONPayloadSchemaValidator {
       Right(true)
     }
   }
-
-  private def removeInputData(data: String): String = {
-    val index = data.indexOf("input")
-    if (index == -1) {
-      data
-    }
-    else {
-      data.substring(0, index)
-    }
-  }
-
 }
 
