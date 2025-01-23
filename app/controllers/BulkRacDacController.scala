@@ -84,41 +84,6 @@ class BulkRacDacController @Inject()(appConfig: AppConfig,
     }(executionContext)
   }
 
-  def clearEventLogThenInitiateMigration: Action[AnyContent] = authAction.async { implicit request =>
-      val hc = HeaderCarrierConverter.fromRequest(request)
-    (hc.sessionId match {
-        case Some(SessionId(sessionId)) =>
-          val optionPsaId = request.headers.get("psaId")
-          val feJson = request.body.asJson
-          val executionContext: ExecutionContext = system.dispatchers.lookup(id = "racDacWorkItem")
-          (optionPsaId, feJson) match {
-            case (Some(psaId), Some(jsValue)) =>
-              jsValue.validate[Seq[RacDacRequest]] match {
-                case JsSuccess(seqRacDacRequest, _) =>
-                  repository.remove(sessionId)(ec).map { _ =>
-                    putAllItemsOnQueueThenSendAuditEventAndEmail(sessionId, psaId, seqRacDacRequest)(request, hc, executionContext)
-                    Ok
-                  }
-                case JsError(_) =>
-                  val error = new BadRequestException(s"Invalid request received from frontend for rac dac migration")
-                  auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(psaId, 0, error.message))(request, executionContext)
-                  Future.failed(error)
-              }
-            case _ =>
-              val error = new BadRequestException("Missing Body or missing psaId in the header")
-              auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent(optionPsaId.getOrElse(""), 0, error.message
-              ))(request, ec)
-              Future.failed(error)
-          }
-
-        case _ =>
-          val error = new BadRequestException("Session ID not found - Unable to retrieve session ID")
-          auditService.sendEvent(RacDacBulkMigrationTriggerAuditEvent("", 0, error.message
-          ))(request, ec)
-          Future.failed(error)
-      }) recoverWith recoverFromError
-  }
-
   def clearEventLogThenInitiateMigrationSelf: Action[AnyContent] = authAction.async { implicit request =>
     val hc = HeaderCarrierConverter.fromRequest(request)
     (hc.sessionId match {
