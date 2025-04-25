@@ -11,7 +11,7 @@ lazy val microservice = Project(appName, file("."))
   .settings(
     name                             := appName,
     majorVersion                     := 0,
-    scalaVersion                     := "2.13.12",
+    scalaVersion                     := "3.6.2",
     libraryDependencies              ++= AppDependencies.compile ++ AppDependencies.test
   )
   .settings(
@@ -25,7 +25,13 @@ lazy val microservice = Project(appName, file("."))
   .settings(
     RoutesKeys.routesImport ++= Seq("models.enumeration.JourneyType"),
     PlayKeys.devSettings += "play.server.http.port" -> "8214",
-    scalacOptions += "-Wconf:src=routes/.*:s"
+    scalacOptions := Seq(
+      "-deprecation",
+      "-feature",
+      "-unchecked",
+      "-encoding", "utf8",
+      "-Wconf:src=routes/.*:s"
+    ),
   )
   .settings(
     ScoverageKeys.coverageExcludedFiles := "<empty>;Reverse.*;.*repositories.*;" +
