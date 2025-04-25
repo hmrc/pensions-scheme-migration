@@ -29,6 +29,7 @@ import uk.gov.hmrc.mongo.workitem.ProcessingStatus.{PermanentlyFailed, ToDo}
 import uk.gov.hmrc.mongo.workitem._
 import uk.gov.hmrc.mongo.{MongoComponent, MongoUtils}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
+import org.mongodb.scala.gridfs.ObservableFuture
 
 import java.time.{Duration, Instant}
 import java.util.concurrent.TimeUnit
@@ -115,7 +116,7 @@ class RacDacRequestsQueueRepository @Inject()(configuration: Configuration,
       filter = Filters.and(
         Filters.eq("item.psaId", psaId)
       )
-    ).toFuture().map(Right(_)).recover {
+    ).toFuture().map { seq =>Right(seq.headOption.getOrElse(0L)) }.recover {
       case exception: Exception => Left(WorkItemProcessingException(
         s"getting no of requests failed due to ${exception.getMessage}"))
     }
@@ -127,7 +128,7 @@ class RacDacRequestsQueueRepository @Inject()(configuration: Configuration,
         Filters.eq(workItemFields.status, PermanentlyFailed.name),
         Filters.eq("item.psaId", psaId)
       )
-    ).toFuture().map(Right(_)).recover {
+    ).toFuture().map { seq =>Right(seq.headOption.getOrElse(0L)) }.recover {
       case exception: Exception => Left(WorkItemProcessingException(
         s"getting no of failed requests failed due to ${exception.getMessage}"))
     }

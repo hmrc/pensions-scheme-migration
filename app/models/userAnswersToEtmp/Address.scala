@@ -73,7 +73,7 @@ object CorrespondenceAddress {
       (JsPath \ "line4").readNullable[String] and
       (JsPath \ "countryCode").read[String] and
       (JsPath \ "postalCode").readNullable[String]
-    ) (CorrespondenceAddress.apply _)
+    ) (CorrespondenceAddress.apply)
 }
 
 case class UkAddress(addressLine1: String, addressLine2: Option[String] = None, addressLine3: Option[String] = None,

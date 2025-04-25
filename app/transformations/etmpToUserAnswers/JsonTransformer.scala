@@ -17,7 +17,7 @@
 package transformations.etmpToUserAnswers
 
 import play.api.libs.functional.syntax._
-import play.api.libs.json.Reads._
+import play.api.libs.json.Reads.JsObjectReducer
 import play.api.libs.json._
 
 import scala.language.postfixOps

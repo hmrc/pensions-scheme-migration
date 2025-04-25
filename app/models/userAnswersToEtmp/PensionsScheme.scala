@@ -20,6 +20,10 @@ import models.userAnswersToEtmp.establisher.EstablisherDetails
 import models.userAnswersToEtmp.trustee.TrusteeDetails
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
+import models.userAnswersToEtmp.PensionSchemeDeclaration.formats
+
+implicit val formatsPensionsScheme: Format[PensionsScheme] = Json.format[PensionsScheme]
+
 
 case class PensionsScheme(schemeMigrationDetails:SchemeMigrationDetails,
                           customerAndSchemeDetails: CustomerAndSchemeDetails, pensionSchemeDeclaration: PensionSchemeDeclaration,

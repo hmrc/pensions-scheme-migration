@@ -57,7 +57,7 @@ class RacDacBulkSubmissionPoller @Inject()(
 
 
 
-  val `_`: Cancellable = {
+  val cancellable: Cancellable = {
     object MyThread extends Runnable {
       def run(): Unit = {
         poller()

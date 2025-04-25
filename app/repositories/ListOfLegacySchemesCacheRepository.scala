@@ -25,6 +25,8 @@ import play.api.libs.json.{JsObject, JsValue}
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.{Codecs, PlayMongoRepository}
+import org.mongodb.scala.gridfs.ObservableFuture
+
 
 import java.time.Instant
 import java.util.concurrent.TimeUnit
@@ -48,7 +50,7 @@ class ListOfLegacySchemesCacheRepository@Inject()(
         indexOptions = IndexOptions().name("dataExpiry")
           .background(true)
           .expireAfter(
-            configuration.get[Int](path = "mongodb.migration-cache.list-of-legacy-schemes.timeToLiveInSeconds"),
+            configuration.get[Long](path = "mongodb.migration-cache.list-of-legacy-schemes.timeToLiveInSeconds"),
             TimeUnit.SECONDS)
       )
     )
