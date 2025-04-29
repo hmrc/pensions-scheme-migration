@@ -51,8 +51,9 @@ class SchemeActionSpec extends PlaySpec with MockitoSugar with BeforeAndAfterAll
   private def getResult = {
     new SchemeAuthAction(mockPensionSchemeService)
       .apply(pstr)
-      .invokeBlock(authRequest, { _: AuthRequest[AnyContent] => Future.successful(Ok("success")) })
+      .invokeBlock(authRequest, { (_: AuthRequest[AnyContent]) => Future.successful(Ok("success")) })
   }
+
 
   private def mockCheckForAssociation = {
     when(mockPensionSchemeService.isAssociated(ArgumentMatchers.eq(PsaId(AuthUtils.psaId)), ArgumentMatchers.eq(pstr))(ArgumentMatchers.any()))

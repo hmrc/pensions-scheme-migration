@@ -30,6 +30,7 @@ import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.mongo.MongoComponent
+import org.mongodb.scala.gridfs.ObservableFuture
 
 import java.time.Instant
 import scala.concurrent.Await
@@ -37,13 +38,12 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 
 
-class ListOfLegacySchemesCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with BeforeAndAfter with
-  BeforeAndAfterAll with BeforeAndAfterEach with ScalaFutures  { // scalastyle:off magic.number
+class ListOfLegacySchemesCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with BeforeAndAfter with BeforeAndAfterAll with BeforeAndAfterEach with ScalaFutures  { // scalastyle:off magic.number
 
   import ListOfLegacySchemesCacheRepositorySpec._
   val mongoHost = "localhost"
   var mongoPort: Int = 27017
-  var listOfLegacySchemesCacheRepository: ListOfLegacySchemesCacheRepository = _
+  var listOfLegacySchemesCacheRepository: ListOfLegacySchemesCacheRepository = mock[ListOfLegacySchemesCacheRepository]
 
   private val modules: Seq[GuiceableModule] = Seq(
     bind[AuthConnector].toInstance(mock[AuthConnector]),
@@ -61,7 +61,7 @@ class ListOfLegacySchemesCacheRepositorySpec extends AnyWordSpec with MockitoSug
       "metrics.enabled" -> false,
       "metrics.jvm" -> false,
       "run.mode" -> "Test"
-    ).overrides(modules: _*).build()
+    ).overrides(modules*).build()
 
   private def buildFormRepository(mongoHost: String, mongoPort: Int): ListOfLegacySchemesCacheRepository = {
     val databaseName = "pensions-scheme-migration"

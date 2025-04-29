@@ -38,7 +38,7 @@ trait SpecBase extends PlaySpec with GuiceOneAppPerSuite with JsonFileReader wit
       "metrics.jvm" -> false,
       "metrics.enabled" -> false
     )
-    .overrides(bindings: _*)
+    .overrides(bindings*)
     .build()
 
   protected def bindings: Seq[GuiceableModule] = {

@@ -25,7 +25,6 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.doNothing
 import org.scalatest._
 import org.scalatest.flatspec.AsyncFlatSpec
-import org.scalatest.matchers.should.Matchers.convertToAnyShouldWrapper
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.inject.bind
 import play.api.inject.guice.GuiceableModule
@@ -35,6 +34,7 @@ import play.api.test.FakeRequest
 import play.api.test.Helpers._
 import repositories._
 import uk.gov.hmrc.http.{BadRequestException, UpstreamErrorResponse}
+import org.scalatest.matchers.should.Matchers._
 
 import java.time.LocalDate
 

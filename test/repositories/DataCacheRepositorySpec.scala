@@ -32,20 +32,19 @@ import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.libs.json.Json
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.mongo.MongoComponent
+import org.mongodb.scala.gridfs.ObservableFuture
 
 import java.time.Instant
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.{Duration, DurationInt}
 import scala.concurrent.{Await, Future}
 
-
-class DataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with BeforeAndAfter with
-  BeforeAndAfterAll with BeforeAndAfterEach with ScalaFutures { // scalastyle:off magic.number
+class DataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with BeforeAndAfter with BeforeAndAfterAll with BeforeAndAfterEach with ScalaFutures { // scalastyle:off magic.number
 
   import DataCacheRepositorySpec._
   import repositories.DataCacheRepository.LockCouldNotBeSetException
 
-  var dataCacheRepository: DataCacheRepository = _
+  var dataCacheRepository: DataCacheRepository = mock[DataCacheRepository]
   val mongoHost = "localhost"
   var mongoPort: Int = 27017
 
@@ -65,7 +64,7 @@ class DataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matcher
       "metrics.enabled" -> false,
       "metrics.jvm" -> false,
       "run.mode" -> "Test"
-    ).overrides(modules: _*).build()
+    ).overrides(modules*).build()
 
   private def buildFormRepository(mongoHost: String, mongoPort: Int): DataCacheRepository = {
     val databaseName = "pensions-scheme-migration"

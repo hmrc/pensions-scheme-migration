@@ -65,7 +65,7 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
       "metrics.enabled" -> false,
       "metrics.jvm" -> false,
       "run.mode" -> "Test"
-    ).overrides(modules: _*).build()
+    ).overrides(modules*).build()
 
   private val controller = app.injector.instanceOf[LockCacheController]
 
@@ -76,7 +76,7 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
   "LockCacheController" when {
     "calling getLockOnScheme" must {
       "return OK with the data" in {
-        when(repo.getLockByPstr(eqTo(pstr))) thenReturn Future.successful(Some(lock))
+        when(repo.getLockByPstr(eqTo(pstr))).thenReturn (Future.successful(Some(lock)))
         AuthUtils.authStub(authConnector)
 
         val result = controller.getLockOnScheme(fakeRequest)
@@ -85,7 +85,7 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
       }
 
       "return NOT FOUND when the data doesn't exist" in {
-        when(repo.getLockByPstr(eqTo(pstr))) thenReturn Future.successful(None)
+        when(repo.getLockByPstr(eqTo(pstr))).thenReturn (Future.successful(None))
         AuthUtils.authStub(authConnector)
 
         val result = controller.getLockOnScheme(fakeRequest)
@@ -93,7 +93,7 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
       }
 
       "throw an exception when the repository call fails" in {
-        when(repo.getLockByPstr(eqTo(pstr))) thenReturn Future.failed(new Exception())
+        when(repo.getLockByPstr(eqTo(pstr))).thenReturn (Future.failed(new Exception()))
         AuthUtils.authStub(authConnector)
 
         val result = controller.getLockOnScheme(fakeRequest)
@@ -108,7 +108,7 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
       }
 
       "return a BadRequestException when no pstr in headers" in {
-        when(repo.getLockByPstr(eqTo(pstr))) thenReturn Future.successful(Some(lock))
+        when(repo.getLockByPstr(eqTo(pstr))).thenReturn (Future.successful(Some(lock)))
         AuthUtils.authStub(authConnector)
 
         val result = controller.getLockOnScheme(FakeRequest())
@@ -120,7 +120,7 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
 
     "calling getLock" must {
       "return OK with the data" in {
-        when(repo.getLock(eqTo(lock))(any())) thenReturn Future.successful(Some(lock))
+        when(repo.getLock(eqTo(lock))(any())).thenReturn (Future.successful(Some(lock)))
         AuthUtils.authStub(authConnector)
 
         val result = controller.getLock(fakeRequest)
@@ -129,7 +129,7 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
       }
 
       "return NOT FOUND when the data doesn't exist" in {
-        when(repo.getLock(eqTo(lock))(any())) thenReturn Future.successful(None)
+        when(repo.getLock(eqTo(lock))(any())).thenReturn (Future.successful(None))
         AuthUtils.authStub(authConnector)
 
         val result = controller.getLock(fakeRequest)
@@ -137,7 +137,7 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
       }
 
       "throw an exception when the repository call fails" in {
-        when(repo.getLock(eqTo(lock))(any())) thenReturn Future.failed(new Exception())
+        when(repo.getLock(eqTo(lock))(any())).thenReturn (Future.failed(new Exception()))
         AuthUtils.authStub(authConnector)
 
         val result = controller.getLock(fakeRequest)
@@ -148,7 +148,7 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
 
     "calling getLockByUser" must {
       "return OK with the data" in {
-        when(repo.getLockByCredId(eqTo(id))) thenReturn Future.successful(Some(lock))
+        when(repo.getLockByCredId(eqTo(id))).thenReturn (Future.successful(Some(lock)))
         AuthUtils.authStub(authConnector)
 
         val result = controller.getLockByUser(fakeRequest)
@@ -157,7 +157,7 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
       }
 
       "return NOT FOUND when the data doesn't exist" in {
-        when(repo.getLockByCredId(eqTo(id))) thenReturn Future.successful(None)
+        when(repo.getLockByCredId(eqTo(id))).thenReturn (Future.successful(None))
         AuthUtils.authStub(authConnector)
 
         val result = controller.getLockByUser(fakeRequest)
@@ -165,7 +165,7 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
       }
 
       "throw an exception when the repository call fails" in {
-        when(repo.getLockByCredId(eqTo(id))) thenReturn Future.failed(new Exception())
+        when(repo.getLockByCredId(eqTo(id))).thenReturn (Future.failed(new Exception()))
         AuthUtils.authStub(authConnector)
 
         val result = controller.getLockByUser(fakeRequest)
@@ -177,14 +177,14 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
     "calling save" must {
 
       "return OK when the data is saved successfully" in {
-        when(repo.setLock(any())) thenReturn Future.successful(true)
+        when(repo.setLock(any())).thenReturn (Future.successful(true))
         AuthUtils.authStub(authConnector)
 
         val result = controller.lock(fakePostRequest)
         status(result) mustEqual OK
       }
       "return Conflict when the data is not saved successfully" in {
-        when(repo.setLock(any())) thenReturn Future.successful(false)
+        when(repo.setLock(any())).thenReturn (Future.successful(false))
         AuthUtils.authStub(authConnector)
 
         val result = controller.lock(fakePostRequest)
@@ -194,7 +194,7 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
 
     "calling removeLockOnScheme" must {
       "return OK when the data is removed successfully" in {
-        when(repo.releaseLockByPstr(eqTo(pstr))) thenReturn Future.successful(true)
+        when(repo.releaseLockByPstr(eqTo(pstr))).thenReturn (Future.successful(true))
         AuthUtils.authStub(authConnector)
 
         val result = controller.removeLockOnScheme()(fakeRequest)
@@ -209,7 +209,7 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
       }
 
       "return a BadRequestException when no pstr in headers" in {
-        when(repo.releaseLockByPstr(eqTo(pstr))) thenReturn Future.successful(true)
+        when(repo.releaseLockByPstr(eqTo(pstr))).thenReturn (Future.successful(true))
         AuthUtils.authStub(authConnector)
 
         val result = controller.removeLockOnScheme()(FakeRequest())
@@ -220,7 +220,7 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
 
     "calling removeLockByUser" must {
       "return OK when the data is removed successfully" in {
-        when(repo.releaseLockByCredId(eqTo(id))) thenReturn Future.successful(true)
+        when(repo.releaseLockByCredId(eqTo(id))).thenReturn (Future.successful(true))
         AuthUtils.authStub(authConnector)
 
         val result = controller.removeLockByUser()(fakeRequest)
@@ -230,7 +230,7 @@ class LockCacheControllerSpec extends AnyWordSpec with Matchers with MockitoSuga
 
     "calling removeLock" must {
       "return OK when the data is removed successfully" in {
-        when(repo.releaseLock(eqTo(lock))) thenReturn Future.successful(true)
+        when(repo.releaseLock(eqTo(lock))).thenReturn (Future.successful(true))
         AuthUtils.authStub(authConnector)
 
         val result = controller.removeLock()(fakeRequest)

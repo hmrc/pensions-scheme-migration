@@ -50,7 +50,7 @@ class ListOfLegacySchemesCacheRepository@Inject()(
         indexOptions = IndexOptions().name("dataExpiry")
           .background(true)
           .expireAfter(
-            configuration.get[Long](path = "mongodb.migration-cache.list-of-legacy-schemes.timeToLiveInSeconds"),
+            configuration.get[Int](path = "mongodb.migration-cache.list-of-legacy-schemes.timeToLiveInSeconds").toLong,
             TimeUnit.SECONDS)
       )
     )

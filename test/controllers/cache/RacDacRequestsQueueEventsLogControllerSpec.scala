@@ -68,28 +68,28 @@ class RacDacRequestsQueueEventsLogControllerSpec extends AnyWordSpec with Matche
   "RacDacRequestsQueueEventsLogController" when {
     "calling getStatus" must {
       "return OK when the status is OK" in {
-        when(repo.get(eqTo(sessionId))(any())) thenReturn Future.successful(Some(Json.obj("status" -> OK)))
+        when(repo.get(eqTo(sessionId))(any())).thenReturn (Future.successful(Some(Json.obj("status" -> OK))))
 
         val result = controller.getStatus(fakeRequest)
         status(result) mustEqual OK
       }
 
       "return 500 when the status is 500" in {
-        when(repo.get(eqTo(sessionId))(any())) thenReturn Future.successful(Some(Json.obj("status" -> INTERNAL_SERVER_ERROR)))
+        when(repo.get(eqTo(sessionId))(any())).thenReturn (Future.successful(Some(Json.obj("status" -> INTERNAL_SERVER_ERROR))))
 
         val result = controller.getStatus(fakeRequest)
         status(result) mustEqual INTERNAL_SERVER_ERROR
       }
 
       "return NOT FOUND when not present in repository" in {
-        when(repo.get(eqTo(sessionId))(any())) thenReturn Future.successful(None)
+        when(repo.get(eqTo(sessionId))(any())).thenReturn (Future.successful(None))
 
         val result = controller.getStatus(fakeRequest)
         status(result) mustEqual NOT_FOUND
       }
 
       "return NOT FOUND when status is not found in returned json" in {
-        when(repo.get(eqTo(sessionId))(any())) thenReturn Future.successful(Some(Json.obj()))
+        when(repo.get(eqTo(sessionId))(any())).thenReturn (Future.successful(Some(Json.obj())))
 
         val result = controller.getStatus(fakeRequest)
         status(result) mustEqual NOT_FOUND

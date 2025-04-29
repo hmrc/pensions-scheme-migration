@@ -26,6 +26,7 @@ import org.scalatestplus.mockito.MockitoSugar
 import play.api.Configuration
 import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.mongo.MongoComponent
+import org.mongodb.scala.gridfs.ObservableFuture
 
 import java.time.Instant
 import scala.concurrent.Await
@@ -33,12 +34,11 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 
 
-class RacDacRequestsQueueEventsLogRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with BeforeAndAfter with
-  BeforeAndAfterAll with BeforeAndAfterEach with ScalaFutures { // scalastyle:off magic.number
+class RacDacRequestsQueueEventsLogRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with BeforeAndAfter with BeforeAndAfterAll with BeforeAndAfterEach with ScalaFutures { // scalastyle:off magic.number
 
   import RacDacRequestsQueueEventsLogRepositorySpec._
 
-  var racDacRequestsQueueEventsLogRepository: RacDacRequestsQueueEventsLogRepository = _
+  var racDacRequestsQueueEventsLogRepository: RacDacRequestsQueueEventsLogRepository = mock[RacDacRequestsQueueEventsLogRepository]
   val mongoHost = "localhost"
   var mongoPort: Int = 27017
   override def beforeAll(): Unit = {

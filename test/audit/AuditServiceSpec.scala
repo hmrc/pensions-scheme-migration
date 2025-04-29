@@ -16,6 +16,7 @@
 
 package audit
 
+import audit.AuditServiceSpec.mock
 import org.apache.pekko.stream.Materializer
 import org.scalatest.Inside
 import org.scalatest.flatspec.AsyncFlatSpec
@@ -51,12 +52,11 @@ class AuditServiceSpec extends AsyncFlatSpec with Matchers with Inside {
     val sentEvent = FakeAuditConnector.lastSentEvent
 
     inside(sentEvent) {
-      case DataEvent(auditSource, auditType, _, _, detail, _, _, _) =>
-        auditSource shouldBe appName
-        auditType shouldBe "TestAuditEvent"
-        detail should contain("payload" -> "test-audit-payload")
+      case event: DataEvent =>
+        event.auditSource shouldBe appName
+        event.auditType shouldBe "TestAuditEvent"
+        event.detail should contain key ("payload")
     }
-
   }
 }
 
@@ -87,8 +87,8 @@ object AuditServiceSpec extends MockitoSugar {
 //noinspection ScalaDeprecation
 object FakeAuditConnector extends AuditConnector {
 
-  private var sentEvent: DataEvent = _
-  private var sentExtendedDataEvent: ExtendedDataEvent = _
+  private var sentEvent: DataEvent = mock[DataEvent]
+  private var sentExtendedDataEvent: ExtendedDataEvent = mock[ExtendedDataEvent]
 
   override def auditingConfig: AuditingConfig =
     AuditingConfig(

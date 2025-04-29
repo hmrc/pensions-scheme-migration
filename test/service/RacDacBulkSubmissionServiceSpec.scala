@@ -156,8 +156,8 @@ class RacDacBulkSubmissionServiceSpec() extends AnyWordSpec with Matchers with M
 
     "the submission poller queries the queue" must {
       "return none if no request are in the queue" in {
-        when(mockRacDacSubmissionRepo.getTotalNoOfRequestsByPsaId(any)).thenReturn(Future(Right(0)))
-        when(mockRacDacSubmissionRepo.getNoOfFailureByPsaId(any)).thenReturn(Future(Right(0)))
+        when(mockRacDacSubmissionRepo.getTotalNoOfRequestsByPsaId(any)).thenReturn(Future(Right(0L)))
+        when(mockRacDacSubmissionRepo.getNoOfFailureByPsaId(any)).thenReturn(Future(Right(0L)))
         await(racDacBulkSubmissionService.isAllFailed("test psa id")) mustBe Right(None)
       }
 
