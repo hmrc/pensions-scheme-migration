@@ -33,13 +33,7 @@ lazy val microservice = Project(appName, file("."))
       "-Wconf:src=routes/.*:s"
     ),
   )
-  .settings(
-    ScoverageKeys.coverageExcludedFiles := "<empty>;Reverse.*;.*repositories.*;" +
-      ".*BuildInfo.*;.*javascript.*;.*Routes.*;.*GuiceInjector;.*Module.*;.*TestBulkRacDacController*.*;.*MigrationService",
-    ScoverageKeys.coverageMinimumStmtTotal := 80,
-    ScoverageKeys.coverageFailOnMinimum := true,
-    ScoverageKeys.coverageHighlighting := true
-  )
+  .settings(CodeCoverageSettings.settings)
   .settings(
     RoutesKeys.routesImport ++= Seq(
       "models.MigrationType"
