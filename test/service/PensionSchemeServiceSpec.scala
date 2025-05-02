@@ -348,7 +348,7 @@ object PensionSchemeServiceSpec extends MockitoSugar {
   private val schemeConnector: SchemeConnector = mock[SchemeConnector]
   private val declarationLockRepository: DeclarationLockRepository = mock[DeclarationLockRepository]
   private val auditService: StubSuccessfulAuditService = new StubSuccessfulAuditService()
-private val mockListOfLegacySchemesCacheRepository = mock[ListOfLegacySchemesCacheRepository]
+  private val mockListOfLegacySchemesCacheRepository = mock[ListOfLegacySchemesCacheRepository]
   val mockJSONPayloadSchemaValidator: JSONPayloadSchemaValidator = mock[JSONPayloadSchemaValidator]
 
 
