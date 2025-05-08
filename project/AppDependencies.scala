@@ -16,7 +16,6 @@ object AppDependencies {
     "com.fasterxml.jackson.module"  %% "jackson-module-scala"              % "2.19.0"
   )
 
-  val AkkaVersion = "2.6.14"
 
   val test = Seq(
     "uk.gov.hmrc"             %% "bootstrap-test-play-30"       % bootstrapVersion,

@@ -11,7 +11,7 @@ lazy val microservice = Project(appName, file("."))
   .settings(
     name                             := appName,
     majorVersion                     := 0,
-    scalaVersion                     := "3.6.2",
+    scalaVersion                     := "3.6.4",
     libraryDependencies              ++= AppDependencies.compile ++ AppDependencies.test
   )
   .settings(
