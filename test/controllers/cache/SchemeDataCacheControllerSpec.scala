@@ -73,7 +73,7 @@ class SchemeDataCacheControllerSpec extends AnyWordSpec with Matchers with Mocki
   "SchemeDataCacheController" when {
     "calling get" must {
       "return OK with the data" in {
-        when(repo.get(eqTo(id))(any())) thenReturn Future.successful(Some(Json.obj("testId" -> "data")))
+        when(repo.get(eqTo(id))(any())).thenReturn (Future.successful(Some(Json.obj("testId" -> "data"))))
         AuthUtils.authStub(authConnector)
 
         val result = controller.get(fakeRequest)
@@ -82,7 +82,7 @@ class SchemeDataCacheControllerSpec extends AnyWordSpec with Matchers with Mocki
       }
 
       "return NOT FOUND when the data doesn't exist" in {
-        when(repo.get(eqTo(id))(any())) thenReturn Future.successful(None)
+        when(repo.get(eqTo(id))(any())).thenReturn (Future.successful(None))
         AuthUtils.authStub(authConnector)
 
         val result = controller.get(fakeRequest)
@@ -90,7 +90,7 @@ class SchemeDataCacheControllerSpec extends AnyWordSpec with Matchers with Mocki
       }
 
       "throw an exception when the repository call fails" in {
-        when(repo.get(eqTo(id))(any())) thenReturn Future.failed(new Exception())
+        when(repo.get(eqTo(id))(any())).thenReturn (Future.failed(new Exception()))
         AuthUtils.authStub(authConnector)
 
         val result = controller.get(fakeRequest)
@@ -102,7 +102,7 @@ class SchemeDataCacheControllerSpec extends AnyWordSpec with Matchers with Mocki
     "calling save" must {
 
       "return OK when the data is saved successfully" in {
-        when(repo.save(any(), any())(any())) thenReturn Future.successful(true)
+        when(repo.save(any(), any())(any())).thenReturn (Future.successful(true))
         AuthUtils.authStub(authConnector)
 
         val result = controller.save(fakePostRequest.withJsonBody(Json.obj("value" -> "data")))
@@ -110,7 +110,7 @@ class SchemeDataCacheControllerSpec extends AnyWordSpec with Matchers with Mocki
       }
 
       "return BAD REQUEST when the request body cannot be parsed" in {
-        when(repo.save(any(), any())(any())) thenReturn Future.successful(true)
+        when(repo.save(any(), any())(any())).thenReturn (Future.successful(true))
         AuthUtils.authStub(authConnector)
 
         val result = controller.save(fakePostRequest.withRawBody(ByteString(RandomUtils.nextBytes(512001))))
@@ -120,7 +120,7 @@ class SchemeDataCacheControllerSpec extends AnyWordSpec with Matchers with Mocki
 
     "calling remove" must {
       "return OK when the data is removed successfully" in {
-        when(repo.remove(eqTo(id))(any())) thenReturn Future.successful(true)
+        when(repo.remove(eqTo(id))(any())).thenReturn (Future.successful(true))
         AuthUtils.authStub(authConnector)
 
         val result = controller.remove(fakeRequest)

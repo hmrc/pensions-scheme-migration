@@ -72,7 +72,7 @@ class EmailResponseControllerSpec extends SpecBase {
 
   }
 
-  "respond with FORBIDDEN" when {
+    "respond with FORBIDDEN" when {
     "URL contains an id does not match PSAID pattern" in {
         fakeAuditService.reset()
 
@@ -89,6 +89,7 @@ class EmailResponseControllerSpec extends SpecBase {
 
       }
     }
+
   }
 
   "retrieveStatusPsa" must {

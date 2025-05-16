@@ -28,6 +28,7 @@ import org.scalatestplus.mockito.MockitoSugar
 import play.api.Configuration
 import play.api.libs.json.Json
 import uk.gov.hmrc.mongo.MongoComponent
+import org.mongodb.scala.gridfs.ObservableFuture
 
 import java.time.Instant
 import java.util.UUID
@@ -36,14 +37,13 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 
 
-class LockCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with BeforeAndAfter with
-  BeforeAndAfterAll with BeforeAndAfterEach with ScalaFutures { // scalastyle:off magic.number
+class LockCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with BeforeAndAfter with BeforeAndAfterAll with BeforeAndAfterEach with ScalaFutures { // scalastyle:off magic.number
 
   override implicit val patienceConfig: PatienceConfig = PatienceConfig(Span(30, Seconds), Span(1, Millis))
 
   import LockCacheRepositorySpec._
 
-  var lockCacheRepository: LockCacheRepository = _
+  var lockCacheRepository: LockCacheRepository = mock[LockCacheRepository]
   val mongoHost = "localhost"
   var mongoPort: Int = 27017
   override def beforeAll(): Unit = {

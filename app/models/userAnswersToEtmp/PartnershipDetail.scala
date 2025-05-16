@@ -35,5 +35,5 @@ object PartnershipDetail {
       (JsPath \ "addressYears").read[Boolean] and
       (JsPath \ "tradingTime").readNullable[Boolean] and
       (JsPath \ "previousAddress").readNullable[Address]
-    ) (PartnershipDetail.apply _)
+    ) (PartnershipDetail.apply)
 }

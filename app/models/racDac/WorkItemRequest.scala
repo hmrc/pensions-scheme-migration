@@ -21,7 +21,10 @@ import play.api.libs.json.{JsValue, Json, OFormat}
 import uk.gov.hmrc.http.{HeaderCarrier, RequestId, SessionId}
 
 case class RacDacHeaders(requestId: Option[String], sessionId: Option[String]) {
-  def toHeaderCarrier: HeaderCarrier = HeaderCarrier(requestId = requestId.map(RequestId), sessionId = sessionId.map(SessionId))
+  def toHeaderCarrier: HeaderCarrier = HeaderCarrier(
+    requestId = requestId.map(RequestId.apply),
+    sessionId = sessionId.map(SessionId.apply)
+    )
 }
 
 object RacDacHeaders {

@@ -89,7 +89,7 @@ class PensionSchemeService @Inject()(schemeConnector: SchemeConnector,
                   pruneAll(pathToBoxFields, validationResult)
                 }
 
-                schemeAuditService.sendSchemeSubscriptionEvent(psaId, pstr, auditRegisterData)(auditService.sendEvent _)
+                schemeAuditService.sendSchemeSubscriptionEvent(psaId, pstr, auditRegisterData)(auditService.sendEvent)
               }
             } else {
               Future(Right(JsBoolean(false)))
@@ -120,7 +120,7 @@ class PensionSchemeService @Inject()(schemeConnector: SchemeConnector,
               schemeAuditService.sendRACDACSchemeSubscriptionEvent(psaId, pstr, auditRegisterData)(auditService.sendExplicitAudit)
             } else {
               implicit val requestHeader: RequestHeader = request.get
-              schemeAuditService.sendRACDACSchemeSubscriptionEvent(psaId, pstr, auditRegisterData)(auditService.sendEvent _)
+              schemeAuditService.sendRACDACSchemeSubscriptionEvent(psaId, pstr, auditRegisterData)(auditService.sendEvent)
             }
           }
       }

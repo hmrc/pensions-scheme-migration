@@ -28,7 +28,7 @@ object RACDACDeclaration {
 
   import play.api.libs.json._
 
-  val reads: Reads[RACDACDeclaration] = (Reads.pure(true) and Reads.pure(true) and Reads.pure(true)) (RACDACDeclaration.apply _)
+  val reads: Reads[RACDACDeclaration] = (Reads.pure(true) and Reads.pure(true) and Reads.pure(true)) (RACDACDeclaration.apply)
 
   implicit val formats: Format[RACDACDeclaration] = Json.format[RACDACDeclaration]
 

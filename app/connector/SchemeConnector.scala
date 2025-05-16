@@ -27,6 +27,7 @@ import play.api.mvc.RequestHeader
 import uk.gov.hmrc.http.HttpReads.Implicits._
 import uk.gov.hmrc.http._
 import uk.gov.hmrc.http.client.HttpClientV2
+import play.api.libs.ws.WSBodyWritables.writeableOf_JsValue
 
 import scala.concurrent.{ExecutionContext, Future}
 
@@ -85,7 +86,7 @@ class SchemeConnector @Inject()(
     logger.debug(s"[Register-Migration-Scheme--Outgoing-Payload] - ${registerData.toString()}")
 
     http.post(url"$url")(hc)
-      .setHeader(headerUtils.integrationFrameworkHeader: _*)
+      .setHeader(headerUtils.integrationFrameworkHeader*)
       .withBody(registerData).execute[HttpResponse].map { response =>
       response.status match {
         case OK =>

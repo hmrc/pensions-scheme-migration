@@ -38,5 +38,5 @@ object Company {
       (JsPath \ "tradingTime").readNullable[Boolean] and
       (JsPath \ "previousAddress").readNullable[Address] and
       (JsPath \ "addressYears").read[Boolean]
-    ) (Company.apply _)
+    ) (Company.apply)
 }

@@ -52,7 +52,7 @@ class LegacySchemeDetailsConnector @Inject()(
     logger.debug(s"Calling get scheme details API on IF with url $url and hc $hc")
 
     http.get(url"$url")(hc)
-      .setHeader(headerUtils.integrationFrameworkHeader: _*)
+      .setHeader(headerUtils.integrationFrameworkHeader*)
       .execute[HttpResponse].map(response =>
       handleSchemeDetailsResponse(response, url)
     ) andThen

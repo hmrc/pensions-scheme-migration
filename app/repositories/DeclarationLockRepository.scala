@@ -23,6 +23,8 @@ import org.mongodb.scala.model._
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
+import org.mongodb.scala.gridfs.ObservableFuture
+
 
 import java.time.temporal.ChronoUnit
 import java.time.{Instant, LocalDateTime, ZoneId, ZoneOffset}

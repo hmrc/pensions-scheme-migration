@@ -16,7 +16,7 @@
 
 package audit
 
-import play.api.libs.json.{Reads, Writes}
+import play.api.libs.json._
 
 object SchemeType extends Enumeration {
   val singleTrust = Value("Single trust")
@@ -26,6 +26,6 @@ object SchemeType extends Enumeration {
   val other = Value("Other")
 
   implicit val reads: Reads[SchemeType.Value] = Reads.enumNameReads(SchemeType)
-  implicit val writes: Writes[SchemeType.Value] = Writes.enumNameWrites
+  implicit val writes: Writes[SchemeType.Value] = Writes { v => JsString(v.toString) }
 
 }

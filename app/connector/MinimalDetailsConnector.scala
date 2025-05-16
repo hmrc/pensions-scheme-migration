@@ -40,7 +40,7 @@ class MinimalDetailsConnector @Inject()(http: HttpClientV2, config: AppConfig)
     val url = config.getPSAMinDetails
     val headers: Seq[(String, String)] = Seq(("loggedInAsPsa", "true"))
     http.get(url"$url")(hc)
-      .setHeader(headers: _*)
+      .setHeader(headers*)
       .execute[HttpResponse].map { response =>
       handleSchemeDetailsResponse(response, url)
     }

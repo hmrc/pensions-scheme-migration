@@ -47,7 +47,7 @@ class DataCacheController @Inject()(repository: DataCacheRepository,
   def save: Action[AnyContent] = authAction.async { implicit req =>
     req.headers.get("pstr") match {
       case Some(pstr) =>
-        schemeAuthAction(pstr).invokeBlock(req, { req:AuthRequest[AnyContent] =>
+        schemeAuthAction(pstr).invokeBlock(req, { (req:AuthRequest[AnyContent]) =>
           val lock = MigrationLock(pstr, req.externalId, req.psaId)
             req.body.asJson.map { jsValue =>
             repository.renewLockAndSave(lock, jsValue).map(_ => Ok)

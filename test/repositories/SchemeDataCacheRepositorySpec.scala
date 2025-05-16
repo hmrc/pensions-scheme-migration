@@ -30,6 +30,7 @@ import play.api.inject.guice.{GuiceApplicationBuilder, GuiceableModule}
 import play.api.libs.json.{JsObject, Json}
 import uk.gov.hmrc.auth.core.AuthConnector
 import uk.gov.hmrc.mongo.MongoComponent
+import org.mongodb.scala.gridfs.ObservableFuture
 
 import java.time.Instant
 import scala.concurrent.Await
@@ -37,12 +38,11 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.Duration
 
 
-class SchemeDataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with BeforeAndAfter with
-  BeforeAndAfterAll with BeforeAndAfterEach with ScalaFutures { // scalastyle:off magic.number
+class SchemeDataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with Matchers with BeforeAndAfter with BeforeAndAfterAll with BeforeAndAfterEach with ScalaFutures { // scalastyle:off magic.number
 
   import SchemeDataCacheRepositorySpec._
 
-  var schemeDataCacheRepository: SchemeDataCacheRepository = _
+  var schemeDataCacheRepository: SchemeDataCacheRepository = mock[SchemeDataCacheRepository]
   val mongoHost = "localhost"
   var mongoPort: Int = 27017
 
@@ -62,7 +62,7 @@ class SchemeDataCacheRepositorySpec extends AnyWordSpec with MockitoSugar with M
       "metrics.enabled" -> false,
       "metrics.jvm" -> false,
       "run.mode" -> "Test"
-    ).overrides(modules: _*).build()
+    ).overrides(modules*).build()
 
   private def buildFormRepository(mongoHost: String, mongoPort: Int): SchemeDataCacheRepository = {
     val databaseName = "pensions-scheme-migration"

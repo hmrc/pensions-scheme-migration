@@ -29,8 +29,13 @@ object AuthUtils {
   val psaId = "A2000001"
   val externalId = "external-id"
 
-  def failedAuthStub(mockAuthConnector: AuthConnector): OngoingStubbing[Future[Unit]] = when(mockAuthConnector.authorise[Unit](any(), any())(any(), any())) thenReturn Future.failed(new Exception())
-  def authStub(mockAuthConnector: AuthConnector): OngoingStubbing[Future[Enrolments ~ Option[String]]] = when(mockAuthConnector.authorise[Enrolments ~ Option[String]](any(), any())(any(), any())) thenReturn Future.successful(AuthUtils.authResponse)
+  def failedAuthStub(mockAuthConnector: AuthConnector): OngoingStubbing[Future[Unit]] =
+    when(mockAuthConnector.authorise[Unit](any(), any())(any(), any()))
+      .thenReturn(Future.failed(new Exception()))
+
+  def authStub(mockAuthConnector: AuthConnector): OngoingStubbing[Future[Enrolments ~ Option[String]]] =
+    when(mockAuthConnector.authorise[Enrolments ~ Option[String]](any(), any())(any(), any()))
+      .thenReturn(Future.successful(AuthUtils.authResponse))
   val authResponse = new ~(
     Enrolments(
       Set(
