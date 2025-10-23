@@ -89,7 +89,7 @@ object UkAddress {
       (JsPath \ "addressType").write[String]
     ) (ukAddress => ((ukAddress.addressLine1, ukAddress.addressLine2, ukAddress.addressLine3, ukAddress.addressLine4),
     ukAddress.countryCode,
-    ukAddress.postalCode,
+    ukAddress.postalCode.replaceAll("\\s+", " "),
     "UK"))
 
   val defaultWrites: Writes[UkAddress] = Json.writes[UkAddress]
