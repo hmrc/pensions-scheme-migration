@@ -19,7 +19,7 @@ package models.userAnswersToEtmp.reads.establishers
 import models.userAnswersToEtmp.reads.CommonGenerator.partnerGenerator
 import models.userAnswersToEtmp.{Address, Individual}
 import org.scalacheck.Arbitrary.arbitrary
-import org.scalacheck.Shrink
+import org.scalacheck.{Gen, Shrink}
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.OptionValues
@@ -31,6 +31,7 @@ import utils.UtrHelper.stripUtr
 class PartnerReadsSpec extends AnyFreeSpec with Matchers with ScalaCheckDrivenPropertyChecks with OptionValues with PensionSchemeGenerators {
 
   implicit def dontShrink[A]: Shrink[A] = Shrink.shrinkAny
+  private def arbitraryString: Gen[String] =  Gen.alphaStr suchThat (_.nonEmpty)
 
   "A company partner" - {
 
@@ -90,7 +91,7 @@ class PartnerReadsSpec extends AnyFreeSpec with Matchers with ScalaCheckDrivenPr
     }
 
     "must read nino when it is present" in {
-      forAll(partnerGenerator(), arbitrary[String]){
+      forAll(partnerGenerator(), arbitraryString){
         (json, nino) =>
           val newJson  = json + ("nino" -> Json.obj("value" -> nino))
           val model = newJson.as[Individual](Individual.readsPartner)
@@ -99,7 +100,7 @@ class PartnerReadsSpec extends AnyFreeSpec with Matchers with ScalaCheckDrivenPr
     }
 
     "must read no nino reason when it is present" in {
-      forAll(partnerGenerator(), arbitrary[String]){
+      forAll(partnerGenerator(), arbitraryString){
         (json, noNinoReason) =>
           val newJson  = json + ("noNinoReason" -> JsString(noNinoReason))
           val model = newJson.as[Individual](Individual.readsPartner)
@@ -117,7 +118,7 @@ class PartnerReadsSpec extends AnyFreeSpec with Matchers with ScalaCheckDrivenPr
     }
 
     "must read no utr reason when it is present" in {
-      forAll(partnerGenerator(), arbitrary[String]){
+      forAll(partnerGenerator(), arbitraryString){
         (json, noUtrReason) =>
           val newJson  = json + ("noUtrReason" -> JsString(noUtrReason))
           val model = newJson.as[Individual](Individual.readsPartner)

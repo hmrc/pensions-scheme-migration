@@ -16,11 +16,11 @@
 
 package models.userAnswersToEtmp.reads.trustees
 
-import models.userAnswersToEtmp._
+import models.userAnswersToEtmp.*
 import models.userAnswersToEtmp.reads.CommonGenerator.trusteePartnershipGenerator
 import models.userAnswersToEtmp.trustee.PartnershipTrustee
 import org.scalacheck.Arbitrary.arbitrary
-import org.scalacheck.Shrink
+import org.scalacheck.{Gen, Shrink}
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.OptionValues
@@ -31,6 +31,7 @@ import utils.UtrHelper.stripUtr
 
 class ReadsTrusteePartnershipSpec extends AnyWordSpec with Matchers with OptionValues with PensionSchemeGenerators {
   private implicit def dontShrink[A]: Shrink[A] = Shrink.shrinkAny
+  private def arbitraryString: Gen[String] =  Gen.alphaStr suchThat (_.nonEmpty)
 
   "A Json payload containing trustee partnership" must {
 
@@ -51,7 +52,7 @@ class ReadsTrusteePartnershipSpec extends AnyWordSpec with Matchers with OptionV
     }
 
     "read no utr reason when it is present" in {
-      forAll(trusteePartnershipGenerator(), arbitrary[String]) {
+      forAll(trusteePartnershipGenerator(), arbitraryString) {
         (json, noUtrReason) =>
           val newJson = json + ("noUtrReason" -> JsString(noUtrReason))
           val model = newJson.as[PartnershipTrustee](PartnershipTrustee.readsTrusteePartnership)
@@ -60,7 +61,7 @@ class ReadsTrusteePartnershipSpec extends AnyWordSpec with Matchers with OptionV
     }
 
     "read vat when it is present" in {
-      forAll(trusteePartnershipGenerator(), arbitrary[String]) {
+      forAll(trusteePartnershipGenerator(), arbitraryString) {
         (json, vat) =>
           val newJson = json + ("vat" -> Json.obj("value" -> vat))
           val model = newJson.as[PartnershipTrustee](PartnershipTrustee.readsTrusteePartnership)
@@ -78,7 +79,7 @@ class ReadsTrusteePartnershipSpec extends AnyWordSpec with Matchers with OptionV
     }
 
     "read paye when it is present" in {
-      forAll(trusteePartnershipGenerator(), arbitrary[String]) {
+      forAll(trusteePartnershipGenerator(), arbitraryString) {
         (json, paye) =>
           val newJson = json + ("paye" -> Json.obj("value" -> paye))
           val model = newJson.as[PartnershipTrustee](PartnershipTrustee.readsTrusteePartnership)

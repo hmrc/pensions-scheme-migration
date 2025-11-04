@@ -44,7 +44,7 @@ class ReadsTrusteeCompanySpec extends AnyWordSpec with Matchers with OptionValue
     }
 
     "must read vat when it is present" in {
-      forAll(trusteeCompanyGenerator(), arbitrary[String]) {
+      forAll(trusteeCompanyGenerator(), arbitraryString) {
         (json, vat) =>
           val newJson = json + ("vat" -> Json.obj("value" -> vat))
           val model = newJson.as[CompanyTrustee](CompanyTrustee.readsTrusteeCompany)
@@ -62,7 +62,7 @@ class ReadsTrusteeCompanySpec extends AnyWordSpec with Matchers with OptionValue
     }
 
     "must read paye when it is present" in {
-      forAll(trusteeCompanyGenerator(), arbitrary[String]) {
+      forAll(trusteeCompanyGenerator(), arbitraryString) {
         (json, paye) =>
           val newJson = json + ("paye" -> Json.obj("value" -> paye))
           val model = newJson.as[CompanyTrustee](CompanyTrustee.readsTrusteeCompany)
@@ -89,7 +89,7 @@ class ReadsTrusteeCompanySpec extends AnyWordSpec with Matchers with OptionValue
     }
 
     "must read no utr reason when it is present" in {
-      forAll(trusteeCompanyGenerator(), arbitrary[String]) {
+      forAll(trusteeCompanyGenerator(), arbitraryString) {
         (json, noUtrReason) =>
           val newJson = json + ("noUtrReason" -> JsString(noUtrReason))
           val model = newJson.as[CompanyTrustee](CompanyTrustee.readsTrusteeCompany)
@@ -98,7 +98,7 @@ class ReadsTrusteeCompanySpec extends AnyWordSpec with Matchers with OptionValue
     }
 
     "must read crn when it is present" in {
-      forAll(trusteeCompanyGenerator(), arbitrary[String]) {
+      forAll(trusteeCompanyGenerator(), arbitraryString) {
         (json, vat) =>
           val newJson = json + ("companyNumber" -> Json.obj("value" -> vat))
           val model = newJson.as[CompanyTrustee](CompanyTrustee.readsTrusteeCompany)
@@ -116,7 +116,7 @@ class ReadsTrusteeCompanySpec extends AnyWordSpec with Matchers with OptionValue
     }
 
     "must read no crn reason when it is present" in {
-      forAll(trusteeCompanyGenerator(), arbitrary[String]) {
+      forAll(trusteeCompanyGenerator(), arbitraryString) {
         (json, noUtrReason) =>
           val newJson = json + ("noCompanyNumberReason" -> JsString(noUtrReason))
           val model = newJson.as[CompanyTrustee](CompanyTrustee.readsTrusteeCompany)

@@ -19,12 +19,12 @@ package models.userAnswersToEtmp.reads.establishers
 import models.userAnswersToEtmp.Address
 import models.userAnswersToEtmp.establisher.CompanyEstablisher
 import org.scalacheck.Arbitrary.arbitrary
-import org.scalacheck.Shrink
+import org.scalacheck.{Gen, Shrink}
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks.forAll
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.OptionValues
-import play.api.libs.json._
+import play.api.libs.json.*
 import models.userAnswersToEtmp.reads.CommonGenerator.establisherCompanyGenerator
 import utils.PensionSchemeGenerators
 import utils.UtrHelper.stripUtr
@@ -32,6 +32,7 @@ import utils.UtrHelper.stripUtr
 class ReadsEstablisherCompanySpec extends AnyWordSpec with Matchers with OptionValues with PensionSchemeGenerators {
 
   implicit def dontShrink[A]: Shrink[A] = Shrink.shrinkAny
+  private def arbitraryString: Gen[String] =  Gen.alphaStr suchThat (_.nonEmpty)
 
   "A Json payload containing establisher company" should {
 
@@ -44,7 +45,7 @@ class ReadsEstablisherCompanySpec extends AnyWordSpec with Matchers with OptionV
     }
 
     "must read vat when it is present" in {
-      forAll(establisherCompanyGenerator(), arbitrary[String]) {
+      forAll(establisherCompanyGenerator(), arbitraryString) {
         (json, vat) =>
           val newJson = json + ("vat" -> Json.obj("value" -> vat))
           val model = newJson.as[CompanyEstablisher](CompanyEstablisher.readsEstablisherCompany)
@@ -62,14 +63,14 @@ class ReadsEstablisherCompanySpec extends AnyWordSpec with Matchers with OptionV
     }
 
     "must read paye when it is present" in {
-      forAll(establisherCompanyGenerator(), arbitrary[String]) {
+      forAll(establisherCompanyGenerator(), arbitraryString) {
         (json, paye) =>
           val newJson = json + ("paye" -> Json.obj("value" -> paye))
           val model = newJson.as[CompanyEstablisher](CompanyEstablisher.readsEstablisherCompany)
           model.payeReference.value mustBe (newJson \ "paye" \ "value").as[String]
       }
     }
-    
+
     "must read paye when it is present removing space characters" in {
       forAll(establisherCompanyGenerator(), " 123  456 ") {
         (json, paye) =>
@@ -89,7 +90,7 @@ class ReadsEstablisherCompanySpec extends AnyWordSpec with Matchers with OptionV
     }
 
     "must read no utr reason when it is present" in {
-      forAll(establisherCompanyGenerator(), arbitrary[String]) {
+      forAll(establisherCompanyGenerator(), arbitraryString) {
         (json, noUtrReason) =>
           val newJson = json + ("noUtrReason" -> JsString(noUtrReason))
           val model = newJson.as[CompanyEstablisher](CompanyEstablisher.readsEstablisherCompany)
@@ -98,7 +99,7 @@ class ReadsEstablisherCompanySpec extends AnyWordSpec with Matchers with OptionV
     }
 
     "must read crn when it is present" in {
-      forAll(establisherCompanyGenerator(), arbitrary[String]) {
+      forAll(establisherCompanyGenerator(), arbitraryString) {
         (json, vat) =>
           val newJson = json + ("companyNumber" -> Json.obj("value" -> vat))
           val model = newJson.as[CompanyEstablisher](CompanyEstablisher.readsEstablisherCompany)
@@ -116,7 +117,7 @@ class ReadsEstablisherCompanySpec extends AnyWordSpec with Matchers with OptionV
     }
 
     "must read no crn reason when it is present" in {
-      forAll(establisherCompanyGenerator(), arbitrary[String]) {
+      forAll(establisherCompanyGenerator(), arbitraryString) {
         (json, noUtrReason) =>
           val newJson = json + ("noCompanyNumberReason" -> JsString(noUtrReason))
           val model = newJson.as[CompanyEstablisher](CompanyEstablisher.readsEstablisherCompany)

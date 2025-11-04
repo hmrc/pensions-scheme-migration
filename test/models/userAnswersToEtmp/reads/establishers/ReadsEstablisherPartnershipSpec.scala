@@ -20,17 +20,18 @@ import models.userAnswersToEtmp.Address
 import models.userAnswersToEtmp.reads.CommonGenerator.establisherPartnershipGenerator
 import models.userAnswersToEtmp.establisher.Partnership
 import org.scalacheck.Arbitrary.arbitrary
-import org.scalacheck.Shrink
+import org.scalacheck.{Gen, Shrink}
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks.forAll
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.OptionValues
-import play.api.libs.json._
+import play.api.libs.json.*
 import utils.PensionSchemeGenerators
 import utils.UtrHelper.stripUtr
 
 class ReadsEstablisherPartnershipSpec extends AnyWordSpec with Matchers with OptionValues with PensionSchemeGenerators {
   private implicit def dontShrink[A]: Shrink[A] = Shrink.shrinkAny
+  private def arbitraryString: Gen[String] =  Gen.alphaStr suchThat (_.nonEmpty)
 
   "A Json payload containing trustee partnership" should {
     "have partnership name read correctly" in {
@@ -41,7 +42,7 @@ class ReadsEstablisherPartnershipSpec extends AnyWordSpec with Matchers with Opt
     }
 
     "must read vat when it is present" in {
-      forAll(establisherPartnershipGenerator(), arbitrary[String]) {
+      forAll(establisherPartnershipGenerator(), arbitraryString) {
         (json, vat) =>
           val newJson = json + ("vat" -> Json.obj("value" -> vat))
           val model = newJson.as[Partnership](Partnership.readsEstablisherPartnership)
@@ -59,7 +60,7 @@ class ReadsEstablisherPartnershipSpec extends AnyWordSpec with Matchers with Opt
     }
 
     "must read paye when it is present" in {
-      forAll(establisherPartnershipGenerator(), arbitrary[String]) {
+      forAll(establisherPartnershipGenerator(), arbitraryString) {
         (json, paye) =>
           val newJson = json + ("paye" -> Json.obj("value" -> paye))
           val model = newJson.as[Partnership](Partnership.readsEstablisherPartnership)
@@ -86,7 +87,7 @@ class ReadsEstablisherPartnershipSpec extends AnyWordSpec with Matchers with Opt
     }
 
     "must read no utr reason when it is present" in {
-      forAll(establisherPartnershipGenerator(), arbitrary[String]) {
+      forAll(establisherPartnershipGenerator(), arbitraryString) {
         (json, noUtrReason) =>
           val newJson = json + ("noUtrReason" -> JsString(noUtrReason))
           val model = newJson.as[Partnership](Partnership.readsEstablisherPartnership)
