@@ -65,7 +65,7 @@ class PensionSchemeService @Inject()(schemeConnector: SchemeConnector,
             if (isAvailable) {
               val validationResult = jsonPayloadSchemaValidator.validateJsonPayload(schemaPath, registerData) match {
                 case Left(errors) =>
-                  logger.warn(s"Error Registering Scheme because payload had validation errors:-\n${errors.mkString}")
+                  logger.warn(s"Error Registering Scheme because payload had validation errors:-\n${errors.headOption.getOrElse("")}")
                   throw new RuntimeException("Error Registering Scheme because payload had validation errors")
                 case Right(_) =>
                   logger.warn(s"Payload for registering scheme passed validation")
