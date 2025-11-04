@@ -38,9 +38,6 @@ case class CompanyTrustee(
 object CompanyTrustee {
   implicit val formats: Format[CompanyTrustee] = Json.format[CompanyTrustee]
 
-  private def removeSpaces(value: Option[String]): Option[String] =
-    value.map(_.trim.replaceAll("\\s+", ""))
-
   val readsTrusteeCompany: Reads[CompanyTrustee] =
     JsPath.read(Company.companyReads).map(test =>
       CompanyTrustee(
