@@ -17,10 +17,11 @@
 package models.userAnswersToEtmp.establisher
 
 import models.userAnswersToEtmp.ReadsHelper.{previousAddressDetails, readsFiltered}
-import models.userAnswersToEtmp._
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
+import models.userAnswersToEtmp.*
+import play.api.libs.functional.syntax.*
+import play.api.libs.json.*
 import utils.UtrHelper.stripUtr
+import utils.RemoveSpaces.*
 
 case class CompanyEstablisher(
                                organizationName: String,
@@ -51,10 +52,10 @@ object CompanyEstablisher {
       organizationName = company.name,
       utr = stripUtr(company.utr),
       noUtrReason = company.noUtrReason,
-      crnNumber = company.crn,
+      crnNumber = company.crn.removeSpaces(),
       noCrnReason = company.noCrnReason,
-      vatRegistrationNumber = company.vatNumber,
-      payeReference = company.payeNumber,
+      vatRegistrationNumber = company.vatNumber.removeSpaces(),
+      payeReference = company.payeNumber.removeSpaces(),
       haveMoreThanTenDirectorOrPartner = otherDirectors.getOrElse(false),
       correspondenceAddressDetails = CorrespondenceAddressDetails(company.address),
       correspondenceContactDetails = CorrespondenceContactDetails(company.contactDetails),

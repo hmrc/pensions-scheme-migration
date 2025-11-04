@@ -17,10 +17,11 @@
 package models.userAnswersToEtmp.establisher
 
 import models.userAnswersToEtmp.ReadsHelper.readsFiltered
-import models.userAnswersToEtmp._
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
+import models.userAnswersToEtmp.*
+import play.api.libs.functional.syntax.*
+import play.api.libs.json.*
 import utils.UtrHelper.stripUtr
+import utils.RemoveSpaces.*
 
 case class Partnership(
                         organizationName: String,
@@ -49,8 +50,8 @@ object Partnership {
       organizationName = partnership.name,
       utr = stripUtr(partnership.utr),
       noUtrReason = partnership.utrReason,
-      vatRegistrationNumber = partnership.vat,
-      payeReference = partnership.paye,
+      vatRegistrationNumber = partnership.vat.removeSpaces(),
+      payeReference = partnership.paye.removeSpaces(),
       haveMoreThanTenDirectorOrPartner = otherPartners.getOrElse(false),
       correspondenceAddressDetails = CorrespondenceAddressDetails(partnership.address),
       correspondenceContactDetails = CorrespondenceContactDetails(partnership.contact),

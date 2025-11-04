@@ -18,8 +18,9 @@ package models.userAnswersToEtmp.trustee
 
 import models.userAnswersToEtmp.ReadsHelper.previousAddressDetails
 import models.userAnswersToEtmp.{Company, CorrespondenceAddressDetails, CorrespondenceContactDetails, PreviousAddressDetails}
-import play.api.libs.json._
+import play.api.libs.json.*
 import utils.UtrHelper.stripUtr
+import utils.RemoveSpaces.*
 
 case class CompanyTrustee(
                            organizationName: String,
@@ -43,10 +44,10 @@ object CompanyTrustee {
         organizationName = test.name,
         utr = stripUtr(test.utr),
         noUtrReason = test.noUtrReason,
-        crnNumber = test.crn,
+        crnNumber = test.crn.removeSpaces(),
         noCrnReason = test.noCrnReason,
-        vatRegistrationNumber = test.vatNumber,
-        payeReference = test.payeNumber,
+        vatRegistrationNumber = test.vatNumber.removeSpaces(),
+        payeReference = test.payeNumber.removeSpaces(),
         correspondenceAddressDetails = CorrespondenceAddressDetails(test.address),
         correspondenceContactDetails = CorrespondenceContactDetails(test.contactDetails),
         previousAddressDetails = previousAddressDetails(test.addressYears, test.previousAddress))

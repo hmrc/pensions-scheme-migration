@@ -19,6 +19,7 @@ package models.userAnswersToEtmp
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Reads._
 import play.api.libs.json._
+import utils.RemoveSpaces.*
 
 case class ContactDetails(telephone: String, mobileNumber: Option[String] = None, fax: Option[String] = None, email: String)
 
@@ -28,11 +29,11 @@ object ContactDetails {
   val readsContactDetails: Reads[ContactDetails] = (
     ((JsPath \ "emailAddress").read[String] orElse (JsPath \ "email").read[String]) and
       ((JsPath \ "phoneNumber").read[String] orElse (JsPath \ "phone").read[String] )
-    ) ((email, phone) => ContactDetails(telephone = phone, email = email))
+    ) ((email, phone) => ContactDetails(telephone = phone, email = email.removeSpaces()))
 
 
   val readsPartnershipContactDetails: Reads[ContactDetails] = (
     (JsPath \ "partnershipEmail").read[String]  and
       (JsPath \ "partnershipPhone").read[String]
-    ) ((email, phone) => ContactDetails(telephone = phone, email = email))
+    ) ((email, phone) => ContactDetails(telephone = phone, email = email.removeSpaces()))
 }

@@ -18,7 +18,7 @@ package models.userAnswersToEtmp.reads
 
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen
-import play.api.libs.json.{JsObject, Json}
+import play.api.libs.json.{JsObject, JsString, Json}
 
 object CommonGenerator {
 
@@ -44,7 +44,10 @@ object CommonGenerator {
   } yield Json.obj("addressLine1" -> line1, "addressLine2" -> line2, "addressLine3" ->line3,
     "addressLine4" -> line4, "country" -> countryCode)
 
-  def trusteeCompanyGenerator(isDeleted: Boolean = false): Gen[JsObject] =
+  def trusteeCompanyGenerator(
+                               isDeleted: Boolean = false,
+                               email: Option[String] = None
+                             ): Gen[JsObject] =
     for {
       companyName <- arbitraryString
       correspondenceAddressDetails <- CommonGenerator.addressGen
@@ -52,7 +55,7 @@ object CommonGenerator {
       hasBeenTrading <- arbitrary[Boolean]
       previousAddressDetails <- CommonGenerator.addressGen
       mobileNumber <- arbitraryString
-      emailAddress <- arbitraryString
+      emailAddress <- email.getOrElse(arbitraryString)
     } yield Json.obj(
       "companyDetails" -> Json.obj(
         "companyName" -> companyName,
@@ -62,14 +65,17 @@ object CommonGenerator {
       "addressYears" -> addressYears,
       "tradingTime" -> hasBeenTrading,
       "previousAddress" -> previousAddressDetails,
-      "email" -> emailAddress,
+      "email" -> emailAddress.toString,
       "phone" -> mobileNumber,
       "trusteeKind" -> "company"
     )
 
-  def trusteePartnershipGenerator(isDeleted: Boolean = false): Gen[JsObject] =
+  def trusteePartnershipGenerator(
+                                   isDeleted: Boolean = false,
+                                   email: Option[String] = None
+                                 ): Gen[JsObject] =
     for {
-      emailAddress <- arbitraryString
+      emailAddress <- email.getOrElse(arbitraryString)
       phoneNumber <- arbitraryString
       addressDetails <- CommonGenerator.addressGen
       previousAddressDetails <- CommonGenerator.addressGen
@@ -78,7 +84,7 @@ object CommonGenerator {
     } yield {
       Json.obj(
         "isTrusteeNew" -> true,
-          "partnershipEmail" -> emailAddress,
+          "partnershipEmail" -> emailAddress.toString,
           "partnershipPhone" -> phoneNumber,
         "previousAddress" -> previousAddressDetails,
         "address" -> addressDetails,
@@ -92,7 +98,10 @@ object CommonGenerator {
       )
     }
 
-  def trusteeIndividualGenerator(isDeleted: Boolean = false): Gen[JsObject] =
+  def trusteeIndividualGenerator(
+                                  isDeleted: Boolean = false,
+                                  email: Option[String] = None
+                                ): Gen[JsObject] =
     for {
       firstName <- arbitrary[String]
       lastName <- arbitrary[String]
@@ -101,7 +110,7 @@ object CommonGenerator {
       addressYears <- arbitrary[Boolean]
       previousAddressDetails <- CommonGenerator.addressGen
       mobileNumber <- arbitrary[String]
-      emailAddress <- arbitrary[String]
+      emailAddress <- email.getOrElse(arbitrary[String])
     } yield Json.obj(
       "trusteeDetails" -> Json.obj(
         "firstName" -> firstName,
@@ -112,7 +121,7 @@ object CommonGenerator {
       "address" -> correspondenceAddressDetails,
       "addressYears" -> addressYears,
       "previousAddress" -> previousAddressDetails,
-        "emailAddress" -> emailAddress,
+        "emailAddress" -> emailAddress.toString,
         "phoneNumber" -> mobileNumber,
       "trusteeKind" -> "individual"
     )
@@ -133,7 +142,10 @@ object CommonGenerator {
       )
     }
 
-  def directorGenerator(isDeleted: Boolean = false): Gen[JsObject] =
+  def directorGenerator(
+                         isDeleted: Boolean = false,
+                         email: Option[String] = None
+                       ): Gen[JsObject] =
     for {
       firstName <- arbitrary[String]
       lastName <- arbitrary[String]
@@ -142,7 +154,7 @@ object CommonGenerator {
       addressYears <- arbitrary[Boolean]
       previousAddressDetails <- CommonGenerator.addressGen
       mobileNumber <- arbitrary[String]
-      emailAddress <- arbitrary[String]
+      emailAddress <- email.getOrElse(arbitrary[String])
     } yield Json.obj(
       "directorDetails" -> Json.obj(
         "firstName" -> firstName,
@@ -154,12 +166,15 @@ object CommonGenerator {
       "addressYears" -> addressYears,
       "previousAddress" -> previousAddressDetails,
       "directorContactDetails" -> Json.obj(
-        "emailAddress" -> emailAddress,
+        "emailAddress" -> emailAddress.toString,
         "phoneNumber" -> mobileNumber
       )
     )
 
-  def partnerGenerator(isDeleted: Boolean = false): Gen[JsObject] =
+  def partnerGenerator(
+                        isDeleted: Boolean = false,
+                        email: Option[String] = None
+                      ): Gen[JsObject] =
     for {
       firstName <- arbitrary[String]
       lastName <- arbitrary[String]
@@ -168,7 +183,7 @@ object CommonGenerator {
       addressYears <- arbitrary[Boolean]
       previousAddressDetails <- CommonGenerator.addressGen
       mobileNumber <- arbitrary[String]
-      emailAddress <- arbitrary[String]
+      emailAddress <- email.getOrElse(arbitrary[String])
     } yield Json.obj(
       "partnerDetails" -> Json.obj(
         "firstName" -> firstName,
@@ -180,12 +195,15 @@ object CommonGenerator {
       "addressYears" -> addressYears,
       "previousAddress" -> previousAddressDetails,
       "partnerContactDetails" -> Json.obj(
-        "emailAddress" -> emailAddress,
+        "emailAddress" -> emailAddress.toString,
         "phoneNumber" -> mobileNumber
       )
     )
 
-  def establisherIndividualGenerator(isDeleted: Boolean = false): Gen[JsObject] =
+  def establisherIndividualGenerator(
+                                      isDeleted: Boolean = false,
+                                      email: Option[String] = None
+                                    ): Gen[JsObject] =
     for {
       firstName <- arbitrary[String]
       lastName <- arbitrary[String]
@@ -194,7 +212,7 @@ object CommonGenerator {
       addressYears <- arbitrary[Boolean]
       previousAddressDetails <- CommonGenerator.addressGen
       mobileNumber <- arbitrary[String]
-      emailAddress <- arbitrary[String]
+      emailAddress <- email.getOrElse(arbitrary[String])
     } yield Json.obj(
       "establisherDetails" -> Json.obj(
         "firstName" -> firstName,
@@ -205,19 +223,22 @@ object CommonGenerator {
       "address" -> correspondenceAddressDetails,
       "addressYears" -> addressYears,
       "previousAddress" -> previousAddressDetails,
-        "emailAddress" -> emailAddress,
+        "emailAddress" -> emailAddress.toString,
         "phoneNumber" -> mobileNumber,
       "establisherKind" -> "individual"
     )
 
-  def establisherCompanyGenerator(isDeleted: Boolean = false): Gen[JsObject] =
+  def establisherCompanyGenerator(
+                                   isDeleted: Boolean = false,
+                                   email: Option[String] = None
+                                 ): Gen[JsObject] =
     for {
       companyName <- arbitraryString
       correspondenceAddressDetails <- CommonGenerator.addressGen
       addressYears <- arbitrary[Boolean]
       previousAddressDetails <- CommonGenerator.addressGen
       mobileNumber <- arbitraryString
-      emailAddress <- arbitraryString
+      emailAddress <- email.getOrElse(arbitraryString)
       otherDirectors <- arbitrary[Boolean]
       director1 <- directorGenerator()
       director2 <- directorGenerator(true)
@@ -230,7 +251,7 @@ object CommonGenerator {
       "address" -> correspondenceAddressDetails,
       "addressYears" -> addressYears,
       "previousAddress" -> previousAddressDetails,
-        "email" -> emailAddress,
+        "email" -> emailAddress.toString,
         "phone" -> mobileNumber,
       "otherDirectors" -> otherDirectors,
       "director" -> Seq(
@@ -239,9 +260,12 @@ object CommonGenerator {
       "establisherKind" -> "company"
     )
 
-  def establisherPartnershipGenerator(isDeleted: Boolean = false): Gen[JsObject] =
+  def establisherPartnershipGenerator(
+                                       isDeleted: Boolean = false,
+                                       email: Option[String] = None
+                                     ): Gen[JsObject] =
     for {
-      emailAddress <- arbitraryString
+      emailAddress <- email.getOrElse(arbitraryString)
       phoneNumber <- arbitraryString
       addressDetails <- CommonGenerator.addressGen
       previousAddressDetails <- CommonGenerator.addressGen
@@ -254,7 +278,7 @@ object CommonGenerator {
     } yield {
       Json.obj(
         "isEstablisherNew" -> true,
-          "partnershipEmail" -> emailAddress,
+          "partnershipEmail" -> emailAddress.toString,
           "partnershipPhone" -> phoneNumber,
         "previousAddress" -> previousAddressDetails,
         "address" -> addressDetails,

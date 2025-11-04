@@ -80,6 +80,15 @@ class DirectorReadsSpec extends AnyFreeSpec with Matchers with ScalaCheckDrivenP
       }
     }
 
+    "must read contact details removing white space from email address" in {
+      forAll(directorGenerator(email = Some(" an email with white space "))) {
+        json =>
+          val model = json.as[Individual](Individual.readsCompanyDirector)
+          model.correspondenceContactDetails.contactDetails.email mustBe "anemailwithwhitespace"
+          model.correspondenceContactDetails.contactDetails.telephone mustBe (json \ "directorContactDetails" \ "phoneNumber").as[String]
+      }
+    }
+
     "must read nino when it is present" in {
       forAll(directorGenerator(), arbitrary[String]){
         (json, nino) =>
