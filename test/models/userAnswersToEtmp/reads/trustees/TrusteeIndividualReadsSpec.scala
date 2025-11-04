@@ -19,7 +19,7 @@ package models.userAnswersToEtmp.reads.trustees
 import models.userAnswersToEtmp.reads.CommonGenerator.trusteeIndividualGenerator
 import models.userAnswersToEtmp.{Address, Individual}
 import org.scalacheck.Arbitrary.arbitrary
-import org.scalacheck.Shrink
+import org.scalacheck.{Gen, Shrink}
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.OptionValues
@@ -31,6 +31,7 @@ import utils.UtrHelper.stripUtr
 class TrusteeIndividualReadsSpec extends AnyFreeSpec with Matchers with ScalaCheckDrivenPropertyChecks with OptionValues with PensionSchemeGenerators {
 
   implicit def dontShrink[A]: Shrink[A] = Shrink.shrinkAny
+  private def arbitraryString: Gen[String] =  Gen.alphaStr suchThat (_.nonEmpty)
 
   "An trustee individual" - {
 
@@ -90,7 +91,7 @@ class TrusteeIndividualReadsSpec extends AnyFreeSpec with Matchers with ScalaChe
     }
 
     "must read nino when it is present" in {
-      forAll(trusteeIndividualGenerator(), arbitrary[String]){
+      forAll(trusteeIndividualGenerator(), arbitraryString){
         (json, nino) =>
           val newJson  = json + ("nino" -> Json.obj("value" -> nino))
           val model = newJson.as[Individual](Individual.readsTrusteeIndividual)
@@ -99,7 +100,7 @@ class TrusteeIndividualReadsSpec extends AnyFreeSpec with Matchers with ScalaChe
     }
 
     "must read no nino reason when it is present" in {
-      forAll(trusteeIndividualGenerator(), arbitrary[String]){
+      forAll(trusteeIndividualGenerator(), arbitraryString){
         (json, noNinoReason) =>
           val newJson  = json + ("noNinoReason" -> JsString(noNinoReason))
           val model = newJson.as[Individual](Individual.readsTrusteeIndividual)
@@ -117,7 +118,7 @@ class TrusteeIndividualReadsSpec extends AnyFreeSpec with Matchers with ScalaChe
     }
 
     "must read no utr reason when it is present" in {
-      forAll(trusteeIndividualGenerator(), arbitrary[String]){
+      forAll(trusteeIndividualGenerator(), arbitraryString){
         (json, noUtrReason) =>
           val newJson  = json + ("noUtrReason" -> JsString(noUtrReason))
           val model = newJson.as[Individual](Individual.readsTrusteeIndividual)

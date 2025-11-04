@@ -27,20 +27,20 @@ object CommonGenerator {
   def arbitraryString: Gen[String] =  Gen.alphaStr suchThat (_.nonEmpty)
 
   lazy val ukAddressGen: Gen[JsObject] = for {
-    line1 <- arbitrary[String]
-    line2 <- arbitrary[String]
+    line1 <- arbitraryString
+    line2 <- arbitraryString
     line3 <- arbitrary[Option[String]]
     line4 <- arbitrary[Option[String]]
-    postalCode <- arbitrary[String]
+    postalCode <- arbitraryString
   } yield Json.obj("addressLine1" -> line1, "addressLine2" -> line2, "addressLine3" ->line3,
     "addressLine4" -> line4, "country" -> "GB", "postalCode" -> postalCode)
 
   lazy val internationalAddressGen: Gen[JsObject] = for {
-    line1 <- arbitrary[String]
-    line2 <- arbitrary[String]
+    line1 <- arbitraryString
+    line2 <- arbitraryString
     line3 <- arbitrary[Option[String]]
     line4 <- arbitrary[Option[String]]
-    countryCode <- arbitrary[String]
+    countryCode <- arbitraryString
   } yield Json.obj("addressLine1" -> line1, "addressLine2" -> line2, "addressLine3" ->line3,
     "addressLine4" -> line4, "country" -> countryCode)
 
@@ -103,14 +103,14 @@ object CommonGenerator {
                                   email: Option[String] = None
                                 ): Gen[JsObject] =
     for {
-      firstName <- arbitrary[String]
-      lastName <- arbitrary[String]
-      dateOfBirth <- arbitrary[String]
+      firstName <- arbitraryString
+      lastName <- arbitraryString
+      dateOfBirth <- arbitraryString
       correspondenceAddressDetails <- CommonGenerator.addressGen
       addressYears <- arbitrary[Boolean]
       previousAddressDetails <- CommonGenerator.addressGen
-      mobileNumber <- arbitrary[String]
-      emailAddress <- email.getOrElse(arbitrary[String])
+      mobileNumber <- arbitraryString
+      emailAddress <- email.getOrElse(arbitraryString)
     } yield Json.obj(
       "trusteeDetails" -> Json.obj(
         "firstName" -> firstName,
@@ -147,14 +147,14 @@ object CommonGenerator {
                          email: Option[String] = None
                        ): Gen[JsObject] =
     for {
-      firstName <- arbitrary[String]
-      lastName <- arbitrary[String]
-      dateOfBirth <- arbitrary[String]
+      firstName <- arbitraryString
+      lastName <- arbitraryString
+      dateOfBirth <- arbitraryString
       correspondenceAddressDetails <- CommonGenerator.addressGen
       addressYears <- arbitrary[Boolean]
       previousAddressDetails <- CommonGenerator.addressGen
-      mobileNumber <- arbitrary[String]
-      emailAddress <- email.getOrElse(arbitrary[String])
+      mobileNumber <- arbitraryString
+      emailAddress <- email.getOrElse(arbitraryString)
     } yield Json.obj(
       "directorDetails" -> Json.obj(
         "firstName" -> firstName,
@@ -176,14 +176,14 @@ object CommonGenerator {
                         email: Option[String] = None
                       ): Gen[JsObject] =
     for {
-      firstName <- arbitrary[String]
-      lastName <- arbitrary[String]
-      dateOfBirth <- arbitrary[String]
+      firstName <- arbitraryString
+      lastName <- arbitraryString
+      dateOfBirth <- arbitraryString
       correspondenceAddressDetails <- CommonGenerator.addressGen
       addressYears <- arbitrary[Boolean]
       previousAddressDetails <- CommonGenerator.addressGen
-      mobileNumber <- arbitrary[String]
-      emailAddress <- email.getOrElse(arbitrary[String])
+      mobileNumber <- arbitraryString
+      emailAddress <- email.getOrElse(arbitraryString)
     } yield Json.obj(
       "partnerDetails" -> Json.obj(
         "firstName" -> firstName,
@@ -205,14 +205,14 @@ object CommonGenerator {
                                       email: Option[String] = None
                                     ): Gen[JsObject] =
     for {
-      firstName <- arbitrary[String]
-      lastName <- arbitrary[String]
-      dateOfBirth <- arbitrary[String]
+      firstName <- arbitraryString
+      lastName <- arbitraryString
+      dateOfBirth <- arbitraryString
       correspondenceAddressDetails <- CommonGenerator.addressGen
       addressYears <- arbitrary[Boolean]
       previousAddressDetails <- CommonGenerator.addressGen
-      mobileNumber <- arbitrary[String]
-      emailAddress <- email.getOrElse(arbitrary[String])
+      mobileNumber <- arbitraryString
+      emailAddress <- email.getOrElse(arbitraryString)
     } yield Json.obj(
       "establisherDetails" -> Json.obj(
         "firstName" -> firstName,
