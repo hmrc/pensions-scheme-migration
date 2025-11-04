@@ -80,6 +80,15 @@ class EstablisherIndividualReadsSpec extends AnyFreeSpec with Matchers with Scal
       }
     }
 
+    "must read contact details removing white space from email address" in {
+      forAll(establisherIndividualGenerator(email = Some(" an email with white space "))) {
+        json =>
+          val model = json.as[Individual](Individual.readsEstablisherIndividual)
+          model.correspondenceContactDetails.contactDetails.email mustBe "anemailwithwhitespace"
+          model.correspondenceContactDetails.contactDetails.telephone mustBe (json \ "phoneNumber").as[String]
+      }
+    }
+
     "must read nino when it is present" in {
       forAll(establisherIndividualGenerator(), arbitrary[String]){
         (json, nino) =>

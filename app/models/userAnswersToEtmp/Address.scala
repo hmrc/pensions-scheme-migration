@@ -18,6 +18,7 @@ package models.userAnswersToEtmp
 
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
+import utils.RemoveSpaces.*
 
 sealed trait Address
 
@@ -89,7 +90,7 @@ object UkAddress {
       (JsPath \ "addressType").write[String]
     ) (ukAddress => ((ukAddress.addressLine1, ukAddress.addressLine2, ukAddress.addressLine3, ukAddress.addressLine4),
     ukAddress.countryCode,
-    ukAddress.postalCode.replaceAll("\\s+", " "),
+    ukAddress.postalCode.oneSpace(),
     "UK"))
 
   val defaultWrites: Writes[UkAddress] = Json.writes[UkAddress]

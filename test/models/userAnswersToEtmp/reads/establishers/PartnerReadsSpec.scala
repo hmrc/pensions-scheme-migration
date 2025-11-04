@@ -80,6 +80,15 @@ class PartnerReadsSpec extends AnyFreeSpec with Matchers with ScalaCheckDrivenPr
       }
     }
 
+    "must read contact details removing white space from email address" in {
+      forAll(partnerGenerator(email = Some(" an email with white space "))) {
+        json =>
+          val model = json.as[Individual](Individual.readsPartner)
+          model.correspondenceContactDetails.contactDetails.email mustBe "anemailwithwhitespace"
+          model.correspondenceContactDetails.contactDetails.telephone mustBe (json \ "partnerContactDetails" \ "phoneNumber").as[String]
+      }
+    }
+
     "must read nino when it is present" in {
       forAll(partnerGenerator(), arbitrary[String]){
         (json, nino) =>

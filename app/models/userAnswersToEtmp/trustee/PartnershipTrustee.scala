@@ -18,8 +18,9 @@ package models.userAnswersToEtmp.trustee
 
 import models.userAnswersToEtmp.ReadsHelper.previousAddressDetails
 import models.userAnswersToEtmp.{CorrespondenceAddressDetails, CorrespondenceContactDetails, PartnershipDetail, PreviousAddressDetails}
-import play.api.libs.json._
+import play.api.libs.json.*
 import utils.UtrHelper.stripUtr
+import utils.RemoveSpaces.*
 
 case class PartnershipTrustee(
                                organizationName: String,
@@ -41,8 +42,8 @@ object PartnershipTrustee {
         organizationName = partnership.name,
         utr = stripUtr(partnership.utr),
         noUtrReason = partnership.utrReason,
-        vatRegistrationNumber = partnership.vat,
-        payeReference = partnership.paye,
+        vatRegistrationNumber = partnership.vat.removeSpaces(),
+        payeReference = partnership.paye.removeSpaces(),
         correspondenceAddressDetails = CorrespondenceAddressDetails(partnership.address),
         correspondenceContactDetails = CorrespondenceContactDetails(partnership.contact),
         previousAddressDetails = previousAddressDetails(partnership.addressYears, partnership.previousAddress)

@@ -80,6 +80,15 @@ class TrusteeIndividualReadsSpec extends AnyFreeSpec with Matchers with ScalaChe
       }
     }
 
+    "must read contact details removing white space from email address" in {
+      forAll(trusteeIndividualGenerator(email = Some(" an email with white space "))) {
+        json =>
+          val model = json.as[Individual](Individual.readsTrusteeIndividual)
+          model.correspondenceContactDetails.contactDetails.email mustBe "anemailwithwhitespace"
+          model.correspondenceContactDetails.contactDetails.telephone mustBe (json \ "phoneNumber").as[String]
+      }
+    }
+
     "must read nino when it is present" in {
       forAll(trusteeIndividualGenerator(), arbitrary[String]){
         (json, nino) =>

@@ -52,12 +52,30 @@ class ReadsEstablisherCompanySpec extends AnyWordSpec with Matchers with OptionV
       }
     }
 
+    "must read vat when it is present removing space characters" in {
+      forAll(establisherCompanyGenerator(), " 123  456 ") {
+        (json, vat) =>
+          val newJson = json + ("vat" -> Json.obj("value" -> vat))
+          val model = newJson.as[CompanyEstablisher](CompanyEstablisher.readsEstablisherCompany)
+          model.vatRegistrationNumber.value mustBe "123456"
+      }
+    }
+
     "must read paye when it is present" in {
       forAll(establisherCompanyGenerator(), arbitrary[String]) {
         (json, paye) =>
           val newJson = json + ("paye" -> Json.obj("value" -> paye))
           val model = newJson.as[CompanyEstablisher](CompanyEstablisher.readsEstablisherCompany)
           model.payeReference.value mustBe (newJson \ "paye" \ "value").as[String]
+      }
+    }
+    
+    "must read paye when it is present removing space characters" in {
+      forAll(establisherCompanyGenerator(), " 123  456 ") {
+        (json, paye) =>
+          val newJson = json + ("paye" -> Json.obj("value" -> paye))
+          val model = newJson.as[CompanyEstablisher](CompanyEstablisher.readsEstablisherCompany)
+          model.payeReference.value mustBe "123456"
       }
     }
 
@@ -85,6 +103,15 @@ class ReadsEstablisherCompanySpec extends AnyWordSpec with Matchers with OptionV
           val newJson = json + ("companyNumber" -> Json.obj("value" -> vat))
           val model = newJson.as[CompanyEstablisher](CompanyEstablisher.readsEstablisherCompany)
           model.crnNumber.value mustBe (newJson \ "companyNumber" \ "value").as[String]
+      }
+    }
+
+    "must read crn when it is present removing space characters" in {
+      forAll(establisherCompanyGenerator(), " 123  456 ") {
+        (json, vat) =>
+          val newJson = json + ("companyNumber" -> Json.obj("value" -> vat))
+          val model = newJson.as[CompanyEstablisher](CompanyEstablisher.readsEstablisherCompany)
+          model.crnNumber.value mustBe "123456"
       }
     }
 
@@ -140,6 +167,18 @@ class ReadsEstablisherCompanySpec extends AnyWordSpec with Matchers with OptionV
 
         model.correspondenceContactDetails.contactDetails.email mustBe
           (json  \ "email").as[String]
+
+        model.correspondenceContactDetails.contactDetails.telephone mustBe
+          (json \ "phone").as[String]
+      }
+    }
+
+    "read company contact details correctly removing white space from email address" in {
+      forAll(establisherCompanyGenerator(email = Some(" an email with white space "))) { json =>
+        val model = json.as[CompanyEstablisher](CompanyEstablisher.readsEstablisherCompany)
+
+        model.correspondenceContactDetails.contactDetails.email mustBe
+          "anemailwithwhitespace"
 
         model.correspondenceContactDetails.contactDetails.telephone mustBe
           (json \ "phone").as[String]

@@ -68,12 +68,30 @@ class ReadsTrusteePartnershipSpec extends AnyWordSpec with Matchers with OptionV
       }
     }
 
+    "read vat when it is present removing space characters" in {
+      forAll(trusteePartnershipGenerator(), " 123  456 ") {
+        (json, vat) =>
+          val newJson = json + ("vat" -> Json.obj("value" -> vat))
+          val model = newJson.as[PartnershipTrustee](PartnershipTrustee.readsTrusteePartnership)
+          model.vatRegistrationNumber.value mustBe "123456"
+      }
+    }
+
     "read paye when it is present" in {
       forAll(trusteePartnershipGenerator(), arbitrary[String]) {
         (json, paye) =>
           val newJson = json + ("paye" -> Json.obj("value" -> paye))
           val model = newJson.as[PartnershipTrustee](PartnershipTrustee.readsTrusteePartnership)
           model.payeReference.value mustBe (newJson \ "paye" \ "value").as[String]
+      }
+    }
+
+    "read paye when it is present removing space characters" in {
+      forAll(trusteePartnershipGenerator(), " 123  456 ") {
+        (json, paye) =>
+          val newJson = json + ("paye" -> Json.obj("value" -> paye))
+          val model = newJson.as[PartnershipTrustee](PartnershipTrustee.readsTrusteePartnership)
+          model.payeReference.value mustBe "123456"
       }
     }
 
@@ -109,6 +127,17 @@ class ReadsTrusteePartnershipSpec extends AnyWordSpec with Matchers with OptionV
         val model = json.as[PartnershipTrustee](PartnershipTrustee.readsTrusteePartnership)
         model.correspondenceContactDetails.contactDetails.email mustBe
           (json \ "partnershipEmail").as[String]
+
+        model.correspondenceContactDetails.contactDetails.telephone mustBe
+          (json \ "partnershipPhone").as[String]
+      }
+    }
+
+    "have partnership contact details read correctly removing white space from email address" in {
+      forAll(trusteePartnershipGenerator(email = Some(" an email with white space "))) { json =>
+        val model = json.as[PartnershipTrustee](PartnershipTrustee.readsTrusteePartnership)
+        model.correspondenceContactDetails.contactDetails.email mustBe
+          "anemailwithwhitespace"
 
         model.correspondenceContactDetails.contactDetails.telephone mustBe
           (json \ "partnershipPhone").as[String]
