@@ -27,7 +27,7 @@ import play.api.mvc.{AnyContentAsEmpty, ControllerComponents}
 import play.api.test.FakeRequest
 import play.api.{Application, Environment}
 import repositories._
-import uk.gov.hmrc.crypto.ApplicationCrypto
+import uk.gov.hmrc.play.bootstrap.frontend.filters.crypto.ApplicationCrypto
 
 trait SpecBase extends PlaySpec with GuiceOneAppPerSuite with JsonFileReader with MockitoSugar {
   def injector: Injector = app.injector

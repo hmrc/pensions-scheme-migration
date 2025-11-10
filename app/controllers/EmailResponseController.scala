@@ -24,9 +24,10 @@ import models.{EmailEvents, Opened}
 import play.api.Logger
 import play.api.libs.json.JsValue
 import play.api.mvc._
-import uk.gov.hmrc.crypto.{ApplicationCrypto, Crypted}
+import uk.gov.hmrc.crypto.Crypted
 import uk.gov.hmrc.domain.PsaId
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
+import uk.gov.hmrc.play.bootstrap.frontend.filters.crypto.ApplicationCrypto
 
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success, Try}
