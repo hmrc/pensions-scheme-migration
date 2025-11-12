@@ -24,9 +24,8 @@ import play.api.inject.bind
 import play.api.inject.guice.GuiceableModule
 import play.api.libs.json.{JsObject, Json}
 import play.api.test.Helpers._
-import uk.gov.hmrc.crypto.PlainText
+import uk.gov.hmrc.crypto.{ApplicationCrypto, PlainText}
 import uk.gov.hmrc.domain.PsaId
-import uk.gov.hmrc.play.bootstrap.frontend.filters.crypto.ApplicationCrypto
 
 import java.time.Instant
 
@@ -43,9 +42,9 @@ class EmailResponseControllerSpec extends SpecBase {
     "respond OK when given EmailEvents" which {
 
       JourneyType.values.foreach { eventType =>
-        s"will send events excluding Opened for ${eventType.toString} to audit service" in {
-            val encryptedPsa = injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText(psa.id)).value
-            val encryptedPstr = injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText(pstr)).value
+        s"will send events excluding Opened for ${eventType.toString} to audit service when psa and pstr passed in url query params" in {
+            val encryptedPsa = Some(injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText(psa.id)).value)
+            val encryptedPstr = Some(injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText(pstr)).value)
             val controller = injector.instanceOf[EmailResponseController]
 
             val result = controller.retrieveStatus(eventType, encryptedPsa, encryptedPstr)(fakeRequest.withBody(Json.toJson(emailEvents)))
@@ -54,31 +53,87 @@ class EmailResponseControllerSpec extends SpecBase {
             fakeAuditService.verifySent(EmailAuditEvent(psa, pstr, eventType, Sent)) mustBe true
             fakeAuditService.verifySent(EmailAuditEvent(psa, pstr, eventType, Delivered)) mustBe true
             fakeAuditService.verifySent(EmailAuditEvent(psa, pstr, eventType, Opened)) mustBe false
-          }
+        }
+
+        s"will send events excluding Opened for ${eventType.toString} to audit service when psa and pstr sent in request body" in {
+          val controller = injector.instanceOf[EmailResponseController]
+
+          val result = controller.retrieveStatus(
+            eventType,
+            None,
+            None
+          )(fakeRequest.withBody(Json.toJsObject(emailEvents) ++ Json.toJsObject(emailIdentifiers)))
+
+          status(result) mustBe OK
+          fakeAuditService.verifySent(EmailAuditEvent(psa, pstr, eventType, Sent)) mustBe true
+          fakeAuditService.verifySent(EmailAuditEvent(psa, pstr, eventType, Delivered)) mustBe true
+          fakeAuditService.verifySent(EmailAuditEvent(psa, pstr, eventType, Opened)) mustBe false
         }
       }
+    }
 
-    "respond with BAD_REQUEST when not given EmailEvents" in {
+    "respond with BAD_REQUEST" when {
+      "not given EmailEvents" in {
 
-      fakeAuditService.reset()
-
-      val encryptedPsa = injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText(psa.id)).value
-      val encryptedPstr = injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText(pstr)).value
-      val controller = injector.instanceOf[EmailResponseController]
-
-      val result = controller.retrieveStatus(JourneyType.SCHEME_MIG, encryptedPsa, encryptedPstr)(fakeRequest.withBody(validJson))
-
-      status(result) mustBe BAD_REQUEST
-      fakeAuditService.verifyNothingSent() mustBe true
-
-  }
-
-    "respond with FORBIDDEN" when {
-    "URL contains an id does not match PSAID pattern" in {
         fakeAuditService.reset()
 
-        val psa = injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText("psa")).value
-        val pstr = injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText("pstr")).value
+        val encryptedPsa = Some(injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText(psa.id)).value)
+        val encryptedPstr = Some(injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText(pstr)).value)
+        val controller = injector.instanceOf[EmailResponseController]
+
+        val result = controller.retrieveStatus(JourneyType.SCHEME_MIG, encryptedPsa, encryptedPstr)(fakeRequest.withBody(validJson))
+
+        status(result) mustBe BAD_REQUEST
+        fakeAuditService.verifyNothingSent() mustBe true
+
+      }
+
+      "psa and pstr NOT passed in query params AND not passed in json body" in {
+        fakeAuditService.reset()
+
+        val controller = injector.instanceOf[EmailResponseController]
+
+        val result = controller.retrieveStatus(JourneyType.SCHEME_MIG, None, None)(fakeRequest.withBody(Json.toJson(emailEvents)))
+
+        status(result) mustBe BAD_REQUEST
+        fakeAuditService.verifyNothingSent() mustBe true
+      }
+
+      "psa and pstr NOT passed in query params AND psa not passed in json body" in {
+        fakeAuditService.reset()
+
+        val controller = injector.instanceOf[EmailResponseController]
+
+        val result = controller.retrieveStatus(
+          JourneyType.SCHEME_MIG,
+          None,
+          None)(fakeRequest.withBody(Json.toJsObject(emailEvents) ++ Json.toJsObject(emailIdentifiersNoPsa)))
+
+        status(result) mustBe BAD_REQUEST
+        fakeAuditService.verifyNothingSent() mustBe true
+      }
+
+      "psa and pstr NOT passed in query params AND ptsr not passed in json body" in {
+        fakeAuditService.reset()
+
+        val controller = injector.instanceOf[EmailResponseController]
+
+        val result = controller.retrieveStatus(
+          JourneyType.SCHEME_MIG,
+          None,
+          None)(fakeRequest.withBody(Json.toJsObject(emailEvents) ++ Json.toJsObject(emailIdentifiersNoPtsr)))
+
+        status(result) mustBe BAD_REQUEST
+        fakeAuditService.verifyNothingSent() mustBe true
+      }
+    }
+
+    "respond with FORBIDDEN" when {
+      "URL contains an id does not match PSAID pattern" in {
+        fakeAuditService.reset()
+
+        val psa = Some(injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText("psa")).value)
+        val pstr = Some(injector.instanceOf[ApplicationCrypto].QueryParameterCrypto.encrypt(PlainText("pstr")).value)
 
         val controller = injector.instanceOf[EmailResponseController]
 
@@ -148,6 +203,9 @@ object EmailResponseControllerSpec {
   val psa: PsaId = PsaId("A7654321")
   val pstr = "A0000030"
   val emailEvents: EmailEvents = EmailEvents(Seq(EmailEvent(Sent, Instant.now()), EmailEvent(Delivered, Instant.now()), EmailEvent(Opened, Instant.now())))
+  val emailIdentifiers: EmailIdentifiers = EmailIdentifiers(Some(psa.id), Some(pstr))
+  val emailIdentifiersNoPsa: EmailIdentifiers = EmailIdentifiers(None, Some(pstr))
+  val emailIdentifiersNoPtsr: EmailIdentifiers = EmailIdentifiers(Some(psa.id), None)
 
   val fakeAuditService = new StubSuccessfulAuditService()
 

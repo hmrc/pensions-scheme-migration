@@ -30,10 +30,9 @@ import play.api.libs.json.*
 import play.api.mvc.*
 import repositories.RacDacRequestsQueueEventsLogRepository
 import service.RacDacBulkSubmissionService
-import uk.gov.hmrc.crypto.PlainText
+import uk.gov.hmrc.crypto.{ApplicationCrypto,PlainText}
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, SessionId}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
-import uk.gov.hmrc.play.bootstrap.frontend.filters.crypto.ApplicationCrypto
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
 
 import java.net.URLEncoder

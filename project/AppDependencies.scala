@@ -24,12 +24,11 @@ object AppDependencies {
   val compile: Seq[ModuleID] = Seq(
     ws,
     "uk.gov.hmrc"                   %% "bootstrap-backend-play-30"         % bootstrapVersion,
-    "uk.gov.hmrc"                   %% "bootstrap-frontend-play-30"        % bootstrapVersion, //needed for ApplicationCrypto
     "uk.gov.hmrc.mongo"             %% "hmrc-mongo-work-item-repo-play-30" % hmrcMongoVersion,
     "uk.gov.hmrc"                   %% "domain-play-30"                    % "13.0.0",
     "com.typesafe.play"             %% "play-json"                         % "2.10.8",
     "com.networknt"                 %  "json-schema-validator"             % "1.5.6",
-    "com.github.java-json-tools"    % "json-schema-validator"               % "2.2.14",
+    "com.github.java-json-tools"    % "json-schema-validator"              % "2.2.14",
     "com.fasterxml.jackson.module"  %% "jackson-module-scala"              % "2.19.0"
   )
 

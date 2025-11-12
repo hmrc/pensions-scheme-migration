@@ -18,7 +18,6 @@ package models.userAnswersToEtmp.reads.establishers
 
 import models.userAnswersToEtmp.Address
 import models.userAnswersToEtmp.establisher.CompanyEstablisher
-import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.{Gen, Shrink}
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks.forAll
 import org.scalatest.matchers.must.Matchers

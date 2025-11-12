@@ -19,7 +19,6 @@ package models.userAnswersToEtmp.reads.trustees
 import models.userAnswersToEtmp.Address
 import models.userAnswersToEtmp.reads.CommonGenerator.trusteeCompanyGenerator
 import models.userAnswersToEtmp.trustee.CompanyTrustee
-import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.{Gen, Shrink}
 import org.scalatest.OptionValues
 import org.scalatest.matchers.must.Matchers

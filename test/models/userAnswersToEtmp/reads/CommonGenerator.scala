@@ -18,7 +18,7 @@ package models.userAnswersToEtmp.reads
 
 import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.Gen
-import play.api.libs.json.{JsObject, JsString, Json}
+import play.api.libs.json.{JsObject, Json}
 
 object CommonGenerator {
 
