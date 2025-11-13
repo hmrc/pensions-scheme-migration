@@ -32,9 +32,6 @@ lazy val microservice = Project(appName, file("."))
     Test / javaOptions += "-Dconfig.file=" + Option(System.getProperty("conf/test.application.conf")).getOrElse("conf/test.application.conf")
 
   )
-  .settings(resolvers ++= Seq(
-    Resolver.jcenterRepo
-  ))
   .settings(
     RoutesKeys.routesImport ++= Seq(
       "models.enumeration.JourneyType",
