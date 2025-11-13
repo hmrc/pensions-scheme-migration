@@ -26,10 +26,9 @@ import play.api.libs.json.JsValue
 import play.api.{Configuration, Logger}
 import uk.gov.hmrc.mongo.play.json.Codecs
 import uk.gov.hmrc.mongo.workitem.ProcessingStatus.{PermanentlyFailed, ToDo}
-import uk.gov.hmrc.mongo.workitem._
+import uk.gov.hmrc.mongo.workitem.*
 import uk.gov.hmrc.mongo.{MongoComponent, MongoUtils}
 import uk.gov.hmrc.play.bootstrap.config.ServicesConfig
-import org.mongodb.scala.gridfs.ObservableFuture
 
 import java.time.{Duration, Instant}
 import java.util.concurrent.TimeUnit
@@ -67,91 +66,95 @@ class RacDacRequestsQueueRepository @Inject()(configuration: Configuration,
 
   override lazy val inProgressRetryAfter: Duration =
     Duration.ofMillis(configuration.get[Long]("racDacWorkItem.submission-poller.in-progress-retry-after"))
+
   private val retryPeriod = inProgressRetryAfter.toMillis
 
   private lazy val ttl = servicesConfig.getDuration("racDacWorkItem.submission-poller.mongo.ttl").toSeconds
 
-  def pushAll(racDacRequests: Seq[WorkItemRequest]): Future[Either[Exception, Seq[WorkItem[EncryptedWorkItemRequest]]]] = {
+  def pushAll(racDacRequests: Seq[WorkItemRequest]): Future[Either[Exception, Seq[WorkItem[EncryptedWorkItemRequest]]]] =
     pushNewBatch(racDacRequests.map(_.encrypt(dataEncryptor)), now(), (_: EncryptedWorkItemRequest) => ToDo).map(item => Right(item)).recover {
       case exception: Exception =>
         logger.error(s"Error occurred while pushing items to the queue: ${exception.getMessage}")
         Left(WorkItemProcessingException(s"push failed for request due to ${exception.getMessage}"))
     }
-  }
 
-  def push(racDacRequest: WorkItemRequest): Future[Either[Exception, WorkItem[EncryptedWorkItemRequest]]] = {
+  def push(racDacRequest: WorkItemRequest): Future[Either[Exception, WorkItem[EncryptedWorkItemRequest]]] =
     pushNew(racDacRequest.encrypt(dataEncryptor), now(), (_: EncryptedWorkItemRequest) => ToDo).map(item => Right(item)).recover {
       case exception: Exception =>
         logger.error(s"Error occurred while pushing items to the queue: ${exception.getMessage}")
         Left(WorkItemProcessingException(s"push failed for request due to ${exception.getMessage}"))
     }
-  }
 
   def pull: Future[Either[Exception, Option[WorkItem[WorkItemRequest]]]] =
     pullOutstanding(failedBefore = now().minusMillis(retryPeriod), availableBefore = now())
-      .map({ workItem =>
-        Right(
-          workItem.map({ workItem =>
-            workItem.copy(item = workItem.item.decrypt(dataEncryptor))
-          })
-        )
-      }).recover {
-      case exception: Exception => Left(WorkItemProcessingException(s"pull failed due to ${exception.getMessage}"))
-    }
+      .map { maybeWorkItem =>
+        Right( maybeWorkItem.map { workItem =>
+          workItem.copy(item = workItem.item.decrypt(dataEncryptor))
+        })
+      }
+      .recover {
+        case exception: Exception => Left(WorkItemProcessingException(s"pull failed due to ${exception.getMessage}"))
+      }
 
-  def setProcessingStatus(id: ObjectId, status: ProcessingStatus
+  def setProcessingStatus(id: ObjectId,
+                          status: ProcessingStatus
                          ): Future[Either[Exception, Boolean]] =
-    markAs(id, status, Some(now().plusMillis(retryPeriod)))
-      .map(result => Right(result)).recover {
-      case exception: Exception => Left(WorkItemProcessingException(s"setting processing status for $id failed due to ${exception.getMessage}"))
-    }
+    markAs(id, status, Some(now()
+      .plusMillis(retryPeriod)))
+      .map(result => Right(result))
+      .recover {
+        case exception: Exception => Left(WorkItemProcessingException(s"setting processing status for $id failed due to ${exception.getMessage}"))
+      }
 
   def setResultStatus(id: ObjectId, status: ResultStatus): Future[Either[Exception, Boolean]] =
     complete(id, status).map(result => Right(result)).recover {
       case exception: Exception => Left(WorkItemProcessingException(s"setting completion status for $id failed due to ${exception.getMessage}"))
     }
 
-  def getTotalNoOfRequestsByPsaId(psaId: String): Future[Either[Exception, Long]] = {
+  def getTotalNoOfRequestsByPsaId(psaId: String): Future[Either[Exception, Long]] =
     collection.countDocuments(
       filter = Filters.and(
         Filters.eq("item.psaId", psaId)
       )
-    ).toFuture().map { seq =>Right(seq.headOption.getOrElse(0L)) }.recover {
-      case exception: Exception => Left(WorkItemProcessingException(
-        s"getting no of requests failed due to ${exception.getMessage}"))
-    }
-  }
+    ).toFuture()
+      .map(Right(_))
+      .recover {
+        case exception: Exception => Left(WorkItemProcessingException(
+          s"getting no of requests failed due to ${exception.getMessage}"))
+      }
 
-  def getNoOfFailureByPsaId(psaId: String): Future[Either[Exception, Long]] = {
+  def getNoOfFailureByPsaId(psaId: String): Future[Either[Exception, Long]] =
     collection.countDocuments(
       filter = Filters.and(
         Filters.eq(workItemFields.status, PermanentlyFailed.name),
         Filters.eq("item.psaId", psaId)
       )
-    ).toFuture().map { seq =>Right(seq.headOption.getOrElse(0L)) }.recover {
-      case exception: Exception => Left(WorkItemProcessingException(
-        s"getting no of failed requests failed due to ${exception.getMessage}"))
-    }
-  }
+    ).toFuture()
+      .map(Right(_))
+      .recover {
+        case exception: Exception => Left(WorkItemProcessingException(
+          s"getting no of failed requests failed due to ${exception.getMessage}"))
+      }
 
-  def deleteRequest(id: ObjectId): Future[Boolean] = {
+  def deleteRequest(id: ObjectId): Future[Boolean] =
     collection.deleteOne(
       filter = Filters.eq(workItemFields.id, id)
-    ).toFuture().map(_ => true)
-  }
+    ).toFuture()
+      .map(_ => true)
 
-  def deleteAll(psaId: String): Future[Either[Exception, Boolean]] = {
+  def deleteAll(psaId: String): Future[Either[Exception, Boolean]] =
     collection.deleteOne(
       filter = Filters.eq("item.psaId", psaId)
-    ).toFuture().map(_ => Right(true)).recover {
-      case exception: Exception => Left(WorkItemProcessingException(s"deleting all requests failed due to ${exception.getMessage}"))
-    }
-  }
+    ).toFuture()
+      .map(_ => Right(true))
+      .recover {
+        case exception: Exception => Left(WorkItemProcessingException(s"deleting all requests failed due to ${exception.getMessage}"))
+      }
 
   def saveMigratedData(psaId: String, data: JsValue): Future[Boolean] = {
     val upsertOptions = new FindOneAndUpdateOptions().upsert(true)
-
     val idKey = "item.psaId"
+
     collection.findOneAndUpdate(
       filter = Filters.eq(idKey, psaId),
       update = Updates.combine(
@@ -160,8 +163,9 @@ class RacDacRequestsQueueRepository @Inject()(configuration: Configuration,
         set("updatedAt", Instant.now())
       ),
       upsertOptions
-    ).toFuture().map(_ => true)
+    ).toFuture()
+      .map(_ => true)
   }
 
-  case class WorkItemProcessingException(message: String) extends Exception(message)
+  private case class WorkItemProcessingException(message: String) extends Exception(message)
 }

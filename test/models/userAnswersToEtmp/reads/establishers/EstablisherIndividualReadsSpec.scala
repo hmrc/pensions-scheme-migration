@@ -18,7 +18,6 @@ package models.userAnswersToEtmp.reads.establishers
 
 import models.userAnswersToEtmp.reads.CommonGenerator.establisherIndividualGenerator
 import models.userAnswersToEtmp.{Address, Individual}
-import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.{Gen, Shrink}
 import org.scalatest.freespec.AnyFreeSpec
 import org.scalatest.OptionValues

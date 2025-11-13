@@ -19,18 +19,18 @@ package controllers
 import audit.{AuditService, EmailRequestAuditEvent, RacDacBulkMigrationTriggerAuditEvent}
 import com.google.inject.Inject
 import config.AppConfig
-import connector._
+import connector.*
 import connector.utils.HttpResponseHelper
 import controllers.actions.AuthAction
 import models.enumeration.JourneyType.RACDAC_BULK_MIG
 import models.racDac.{RacDacHeaders, RacDacRequest, WorkItemRequest}
 import org.apache.pekko.actor.ActorSystem
 import play.api.Logger
-import play.api.libs.json._
-import play.api.mvc._
+import play.api.libs.json.*
+import play.api.mvc.*
 import repositories.RacDacRequestsQueueEventsLogRepository
 import service.RacDacBulkSubmissionService
-import uk.gov.hmrc.crypto.{ApplicationCrypto, PlainText}
+import uk.gov.hmrc.crypto.{ApplicationCrypto,PlainText}
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, SessionId}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.play.http.HeaderCarrierConverter

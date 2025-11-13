@@ -19,7 +19,6 @@ package models.userAnswersToEtmp.reads.establishers
 import models.userAnswersToEtmp.Address
 import models.userAnswersToEtmp.reads.CommonGenerator.establisherPartnershipGenerator
 import models.userAnswersToEtmp.establisher.Partnership
-import org.scalacheck.Arbitrary.arbitrary
 import org.scalacheck.{Gen, Shrink}
 import org.scalatestplus.scalacheck.ScalaCheckPropertyChecks.forAll
 import org.scalatest.wordspec.AnyWordSpec
