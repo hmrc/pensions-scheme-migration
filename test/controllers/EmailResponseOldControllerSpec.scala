@@ -24,12 +24,12 @@ import play.api.inject.bind
 import play.api.inject.guice.GuiceableModule
 import play.api.libs.json.{JsObject, Json}
 import play.api.test.Helpers.*
-import uk.gov.hmrc.crypto.PlainText
+import uk.gov.hmrc.crypto.{ApplicationCrypto, PlainText}
 import uk.gov.hmrc.domain.PsaId
 
 import java.time.Instant
 
-class EmailResponseControllerSpec extends SpecBase {
+class EmailResponseOldControllerSpec extends SpecBase {
 
   val fakeAuditService = new StubSuccessfulAuditService()
 
@@ -37,7 +37,8 @@ class EmailResponseControllerSpec extends SpecBase {
     super.bindings ++ Seq(bind[AuditService].to(fakeAuditService))
   }
 
-  private val controller = injector.instanceOf[EmailResponseController]
+  private val appCrypto: ApplicationCrypto = injector.instanceOf[ApplicationCrypto]
+  private val controller: EmailResponseOldController = injector.instanceOf[EmailResponseOldController]
   private val psa: PsaId = PsaId("A7654321")
   private val pstr = "A0000030"
   private val emailEvents: EmailEvents = EmailEvents(
@@ -55,15 +56,15 @@ class EmailResponseControllerSpec extends SpecBase {
 
       JourneyType.values.foreach { eventType =>
         s"will send events excluding Opened for ${eventType.toString} to audit service when psa and pstr passed in url query params" in {
-          val encryptedPsa = jsonCrypto.jsonCrypto.encrypt(PlainText(psa.id)).value
-          val encryptedPstr = jsonCrypto.jsonCrypto.encrypt(PlainText(pstr)).value
+            val encryptedPsa = appCrypto.QueryParameterCrypto.encrypt(PlainText(psa.id)).value
+            val encryptedPstr = appCrypto.QueryParameterCrypto.encrypt(PlainText(pstr)).value
 
-          val result = controller.retrieveStatus(eventType, encryptedPsa, encryptedPstr)(fakeRequest.withBody(Json.toJson(emailEvents)))
+            val result = controller.retrieveStatus(eventType, encryptedPsa, encryptedPstr)(fakeRequest.withBody(Json.toJson(emailEvents)))
 
-          status(result) mustBe OK
-          fakeAuditService.verifySent(EmailAuditEvent(psa, pstr, eventType, Sent)) mustBe true
-          fakeAuditService.verifySent(EmailAuditEvent(psa, pstr, eventType, Delivered)) mustBe true
-          fakeAuditService.verifySent(EmailAuditEvent(psa, pstr, eventType, Opened)) mustBe false
+            status(result) mustBe OK
+            fakeAuditService.verifySent(EmailAuditEvent(psa, pstr, eventType, Sent)) mustBe true
+            fakeAuditService.verifySent(EmailAuditEvent(psa, pstr, eventType, Delivered)) mustBe true
+            fakeAuditService.verifySent(EmailAuditEvent(psa, pstr, eventType, Opened)) mustBe false
         }
       }
     }
@@ -72,8 +73,8 @@ class EmailResponseControllerSpec extends SpecBase {
       "not given EmailEvents" in {
         fakeAuditService.reset()
 
-        val encryptedPsa = jsonCrypto.jsonCrypto.encrypt(PlainText(psa.id)).value
-        val encryptedPstr = jsonCrypto.jsonCrypto.encrypt(PlainText(pstr)).value
+        val encryptedPsa = appCrypto.QueryParameterCrypto.encrypt(PlainText(psa.id)).value
+        val encryptedPstr = appCrypto.QueryParameterCrypto.encrypt(PlainText(pstr)).value
 
         val result = controller.retrieveStatus(JourneyType.SCHEME_MIG, encryptedPsa, encryptedPstr)(fakeRequest.withBody(validJson))
 
@@ -87,10 +88,8 @@ class EmailResponseControllerSpec extends SpecBase {
       "URL contains an id that does not match PSAID pattern" in {
         fakeAuditService.reset()
 
-        val psa = jsonCrypto.jsonCrypto.encrypt(PlainText("psa")).value
-        val pstr = jsonCrypto.jsonCrypto.encrypt(PlainText("pstr")).value
-
-        val controller = injector.instanceOf[EmailResponseController]
+        val psa = appCrypto.QueryParameterCrypto.encrypt(PlainText("psa")).value
+        val pstr = appCrypto.QueryParameterCrypto.encrypt(PlainText("pstr")).value
 
         val result = controller.retrieveStatus(JourneyType.RACDAC_IND_MIG, psa, pstr)(fakeRequest.withBody(Json.toJson(emailEvents)))
 
@@ -108,8 +107,7 @@ class EmailResponseControllerSpec extends SpecBase {
 
       JourneyType.values.foreach { eventType =>
         s"will send events excluding Opened for ${eventType.toString} to audit service" in {
-          val encryptedPsa = jsonCrypto.jsonCrypto.encrypt(PlainText(psa.id)).value
-          val controller = injector.instanceOf[EmailResponseController]
+          val encryptedPsa = appCrypto.QueryParameterCrypto.encrypt(PlainText(psa.id)).value
 
           val result = controller.retrieveStatusPsa(eventType, encryptedPsa)(fakeRequest.withBody(Json.toJson(emailEvents)))
 
@@ -124,8 +122,7 @@ class EmailResponseControllerSpec extends SpecBase {
     "respond with BAD_REQUEST when not given EmailEvents" in {
       fakeAuditService.reset()
 
-      val encryptedPsa = jsonCrypto.jsonCrypto.encrypt(PlainText(psa.id)).value
-      val controller = injector.instanceOf[EmailResponseController]
+      val encryptedPsa = appCrypto.QueryParameterCrypto.encrypt(PlainText(psa.id)).value
 
       val result = controller.retrieveStatusPsa(JourneyType.SCHEME_MIG, encryptedPsa)(fakeRequest.withBody(validJson))
 
@@ -137,9 +134,7 @@ class EmailResponseControllerSpec extends SpecBase {
       "URL contains an id does not match PSAID pattern" in {
         fakeAuditService.reset()
 
-        val psa = jsonCrypto.jsonCrypto.encrypt(PlainText("psa")).value
-
-        val controller = injector.instanceOf[EmailResponseController]
+        val psa = appCrypto.QueryParameterCrypto.encrypt(PlainText("psa")).value
 
         val result = controller.retrieveStatusPsa(JourneyType.RACDAC_IND_MIG, psa)(fakeRequest.withBody(Json.toJson(emailEvents)))
 

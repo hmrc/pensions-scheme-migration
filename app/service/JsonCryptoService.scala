@@ -14,6 +14,18 @@
  * limitations under the License.
  */
 
-package models
+package service
 
-case class EmailIdentifiers (psaId: String, pstrId: Option[String])
+import com.google.inject.Inject
+import play.api.Configuration
+import uk.gov.hmrc.crypto.{Crypted, Decrypter, Encrypter, PlainContent, SymmetricCryptoFactory}
+
+class JsonCryptoService @Inject()(config: Configuration){
+
+  lazy val jsonCrypto: Encrypter & Decrypter =
+    SymmetricCryptoFactory.aesCryptoFromConfig(baseConfigKey = "queryParameter.encryption", config.underlying)
+
+  def encrypt(value: PlainContent): String = jsonCrypto.encrypt(value).value
+
+  def decrypt(value: Crypted): String = jsonCrypto.decrypt(value).value
+}

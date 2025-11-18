@@ -18,8 +18,8 @@ package controllers
 
 import audit.{AuditService, EmailAuditEvent, StubSuccessfulAuditService}
 import com.github.tomakehurst.wiremock.client.WireMock.{ok, post, urlEqualTo}
-import models.{Delivered, EmailEvent, EmailEvents, Opened, Sent}
 import models.enumeration.JourneyType
+import models.*
 import org.scalatest.matchers.must.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
@@ -29,14 +29,20 @@ import play.api.inject.bind
 import play.api.inject.guice.GuiceApplicationBuilder
 import play.api.libs.json.Json
 import play.api.test.FakeRequest
-import play.api.test.Helpers.{POST, defaultAwaitTimeout, route, status, writeableOf_AnyContentAsJson}
-import uk.gov.hmrc.crypto.{Decrypter, Encrypter, PlainText, SymmetricCryptoFactory}
+import play.api.test.Helpers.{
+  POST,
+  defaultAwaitTimeout,
+  route,
+  status,
+  writeableOf_AnyContentAsJson
+}
+import uk.gov.hmrc.crypto.{ApplicationCrypto, PlainText}
 import uk.gov.hmrc.domain.PsaId
 import uk.gov.hmrc.http.test.WireMockSupport
 
 import java.time.Instant
 
-class EmailResponseControllerISpec
+class EmailResponseOldControllerISpec
   extends AnyWordSpec
   with GuiceOneAppPerSuite
   with WireMockSupport
@@ -67,20 +73,19 @@ class EmailResponseControllerISpec
   }
 
   startWireMock()
+
+  val crypto = new ApplicationCrypto(fakeApplication().configuration.underlying)
   
-  val jsonCrypto: Encrypter & Decrypter =
-    SymmetricCryptoFactory.aesCryptoFromConfig(baseConfigKey = "queryParameter.encryption", fakeApplication().configuration.underlying)
-  
-  val encryptedPsa: String = jsonCrypto.encrypt(PlainText(psa.id)).value
-  val encryptedPstr: String = jsonCrypto.encrypt(PlainText(pstr)).value
+  val encryptedPsa: String = crypto.QueryParameterCrypto.encrypt(PlainText(psa.id)).value
+  val encryptedPstr: String = crypto.QueryParameterCrypto.encrypt(PlainText(pstr)).value
 
   "retrieveStatus" must {
 
     "respond OK when given EmailEvents" which {
       JourneyType.values.foreach { eventType =>
 
-        s"will send events excluding Opened for ${eventType.toString} to audit service when psa and pstr passed as Json encoded params" in {
-          val controllerUrl = s"/pensions-scheme-migration/email-status-response/$eventType/$encryptedPsa/$encryptedPstr"
+        s"will send events excluding Opened for ${eventType.toString} to audit service when psa and pstr passed as original ParamQuery encoded params" in {
+          val controllerUrl = s"/pensions-scheme-migration/email-response/$eventType/$encryptedPsa/$encryptedPstr"
 
           val request = FakeRequest(POST, controllerUrl)
             .withJsonBody(Json.toJson(emailEvents))
