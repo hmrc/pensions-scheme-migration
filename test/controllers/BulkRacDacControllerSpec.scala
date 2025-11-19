@@ -72,7 +72,7 @@ class BulkRacDacControllerSpec extends SpecBase with MockitoSugar with BeforeAnd
     actorSystem,
     mockEmailConnector,
     mockMinimalDetailsConnector,
-    crypto,
+    jsonCrypto,
     new actions.AuthAction(mockAuthConnector, app.injector.instanceOf[BodyParsers.Default])
   )
 

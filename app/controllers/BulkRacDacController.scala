@@ -29,8 +29,8 @@ import play.api.Logger
 import play.api.libs.json.*
 import play.api.mvc.*
 import repositories.RacDacRequestsQueueEventsLogRepository
-import service.RacDacBulkSubmissionService
-import uk.gov.hmrc.crypto.{ApplicationCrypto,PlainText}
+import service.{JsonCryptoService, RacDacBulkSubmissionService}
+import uk.gov.hmrc.crypto.PlainText
 import uk.gov.hmrc.http.{BadRequestException, HeaderCarrier, SessionId}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import uk.gov.hmrc.play.http.HeaderCarrierConverter
@@ -47,7 +47,7 @@ class BulkRacDacController @Inject()(appConfig: AppConfig,
                                      system: ActorSystem,
                                      emailConnector: EmailConnector,
                                      minimalDetailsConnector: MinimalDetailsConnector,
-                                     crypto: ApplicationCrypto,
+                                     crypto: JsonCryptoService,
                                      authAction: AuthAction
                                     )(
                                       implicit ec: ExecutionContext
@@ -148,7 +148,7 @@ class BulkRacDacController @Inject()(appConfig: AppConfig,
   }
 
   private def callbackUrl(psaId: String): String = {
-    val encryptedPsa = URLEncoder.encode(crypto.QueryParameterCrypto.encrypt(PlainText(psaId)).value, StandardCharsets.UTF_8.toString)
+    val encryptedPsa = URLEncoder.encode(crypto.encrypt(PlainText(psaId)), StandardCharsets.UTF_8.toString)
     s"${appConfig.baseUrlPensionsSchemeMigration}/pensions-scheme-migration/email-response/${RACDAC_BULK_MIG}/$encryptedPsa"
   }
 

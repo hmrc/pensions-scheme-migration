@@ -1,5 +1,5 @@
 /*
- * Copyright 2025 HM Revenue & Customs
+ * Copyright 2023 HM Revenue & Customs
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,35 +16,35 @@
 
 package controllers
 
+
 import audit.AuditService
 import com.google.inject.Inject
 import models.enumeration.JourneyType
 import play.api.Logger
 import play.api.libs.json.JsValue
-import play.api.mvc.{Action, ControllerComponents, PlayBodyParsers}
-import service.JsonCryptoService
-import uk.gov.hmrc.crypto.{Decrypter, Encrypter}
+import play.api.mvc.*
+import uk.gov.hmrc.crypto.{ApplicationCrypto, Decrypter, Encrypter}
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 
 import scala.concurrent.ExecutionContext
 
-class EmailResponseController  @Inject()(
-                                          val auditService: AuditService,
-                                          val jsonCrypto: JsonCryptoService,
-                                          val cc: ControllerComponents,
-                                          parsers: PlayBodyParsers
-                                        )(implicit val ec: ExecutionContext)
+class EmailResponseOldController @Inject()(
+                                         val auditService: AuditService,
+                                         val appCrypto: ApplicationCrypto,
+                                         val cc: ControllerComponents,
+                                         parsers: PlayBodyParsers
+                                       )(implicit val ec: ExecutionContext)
   extends BackendController(cc) with AuditEmailStatus {
 
-  override protected val logger: Logger = Logger(classOf[EmailResponseController])
-  override protected val crypto: Encrypter & Decrypter = jsonCrypto.jsonCrypto
+  override protected val logger: Logger = Logger(classOf[EmailResponseOldController])
+  override protected val crypto: Encrypter & Decrypter = appCrypto.QueryParameterCrypto
 
   def retrieveStatus(journeyType: JourneyType.Name,
                      encryptedPsaId: String,
                      encryptedPstrId: String): Action[JsValue] =
     Action(parsers.tolerantJson) {
       implicit request =>
-        logger.warn("json encrypted email psa & pstr status parameters")
+        logger.warn("query parameter encrypted email psa & pstr status parameters")
         auditEmailStatus(journeyType, getIDs(encryptedPsaId, encryptedPstrId))
     }
 
@@ -52,7 +52,7 @@ class EmailResponseController  @Inject()(
                         encryptedPsaId: String): Action[JsValue] =
     Action(parsers.tolerantJson) {
       implicit request =>
-        logger.warn("json encrypted email psa status parameter")
+        logger.warn("query parameter encrypted email psa status parameter")
         auditEmailStatus(journeyType, getPSAID(encryptedPsaId))
     }
 
