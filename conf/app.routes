@@ -29,8 +29,5 @@ GET           /bulk-migration/isRequestInProgress                               
 GET           /bulk-migration/isAllFailed                                           controllers.BulkRacDacController.isAllFailed
 DELETE        /bulk-migration/deleteAll                                             controllers.BulkRacDacController.deleteAll
 
-POST          /email-response/:journeyType/:encryptedPsaId/:encryptedPstrId         controllers.EmailResponseOldController.retrieveStatus(journeyType: JourneyType.Name, encryptedPsaId: String, encryptedPstrId: String)
-POST          /email-response/:journeyType/:encryptedPsaId                          controllers.EmailResponseOldController.retrieveStatusPsa(journeyType: JourneyType.Name, encryptedPsaId: String)
-
 POST          /email-status-response/:journeyType/:encryptedPsaId/:encryptedPstrId  controllers.EmailResponseController.retrieveStatus(journeyType: JourneyType.Name, encryptedPsaId: String, encryptedPstrId: String)
 POST          /email-status-response/:journeyType/:encryptedPsaId                   controllers.EmailResponseController.retrieveStatusPsa(journeyType: JourneyType.Name, encryptedPsaId: String)
