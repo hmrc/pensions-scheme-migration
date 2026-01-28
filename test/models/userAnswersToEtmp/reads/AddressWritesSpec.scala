@@ -122,4 +122,32 @@ class AddressWritesSpec extends AnyWordSpec with Matchers with OptionValues {
       }
     }
   }
+
+  "A UK Address with postcode containing leading spaces and lowercase letters" should {
+    "create valid json" when {
+      val validUkAddressPartial = UkAddress(
+        addressLine1 = "address 1",
+        countryCode = "GB",
+        postalCode = "  zz1  1zz"
+      )
+
+      val result: JsValue = Json.toJson(validUkAddressPartial)
+
+      "with addressline 1" in {
+        (result \ "line1").as[String] mustBe validUkAddressPartial.addressLine1
+      }
+
+      "with countryCode" in {
+        (result \ "countryCode").as[String] mustBe validUkAddressPartial.countryCode
+      }
+
+      "with postcode only containing 1 space" in {
+        (result \ "postalCode").as[String] mustBe "ZZ1 1ZZ"
+      }
+
+      "with addressType" in {
+        (result \ "addressType").as[String] mustBe "UK"
+      }
+    }
+  }
 }
