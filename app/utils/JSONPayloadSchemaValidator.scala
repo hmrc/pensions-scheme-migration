@@ -25,8 +25,8 @@ case class ErrorReport(instance: String, errors: String)
 
 
 class JSONPayloadSchemaValidator {
-  type ValidationReport = Either[List[ErrorReport], Boolean]
-  val basePath: String = System.getProperty("user.dir")
+  private type ValidationReport = Either[List[ErrorReport], Boolean]
+  private val basePath: String = System.getProperty("user.dir")
 
   def validateJsonPayload(jsonSchemaPath: String, data: JsValue): ValidationReport = {
     val deepValidationCheck = true
