@@ -20,12 +20,12 @@ import com.google.inject.Inject
 import connector.utils.HttpResponseHelper
 import models.MigrationType.isRacDac
 import models.{ListOfLegacySchemes, MigrationType}
-import play.api.Logger
-import play.api.libs.json.{JsBoolean, JsObject, Json}
-import play.api.mvc._
+import play.api.Logging
+import play.api.libs.json.{JsValue, Json}
+import play.api.mvc.*
 import repositories.ListOfLegacySchemesCacheRepository
 import service.PensionSchemeService
-import uk.gov.hmrc.http._
+import uk.gov.hmrc.http.*
 import uk.gov.hmrc.play.bootstrap.backend.controller.BackendController
 import utils.ValidationUtils.genResponse
 
@@ -39,9 +39,7 @@ class SchemeController @Inject()(
                                 )(
                                   implicit ec: ExecutionContext
                                 )
-  extends BackendController(cc) with HttpResponseHelper {
-
-  private val logger = Logger(classOf[SchemeController])
+  extends BackendController(cc) with HttpResponseHelper with Logging {
 
   def listOfLegacySchemes: Action[AnyContent] = authAction.async {
     implicit request =>
@@ -53,23 +51,28 @@ class SchemeController @Inject()(
 
   def registerScheme(migrationType: MigrationType): Action[AnyContent] = authAction.async {
     implicit request =>
-      val feJson = request.body.asJson
+      val feJson: Option[JsValue] = request.body.asJson
       val checkRacDac: Boolean = isRacDac(migrationType)
       logger.debug(s"[PSA-Scheme-Migration-Incoming-Payload] $feJson for Migration Type: $checkRacDac")
       feJson.map { jsValue =>
-        val registerSchemeCall = {
+
+        val registerSchemeCall: Future[Either[HttpException, JsValue]] =
           if (checkRacDac)
             pensionSchemeService.registerRacDac(request.psaId, jsValue)(implicitly, implicitly, Some(implicitly))
           else
             pensionSchemeService.registerScheme(request.psaId, jsValue)
-        }
+
         registerSchemeCall.map {
-          case Right(json: JsObject) => Ok(json)
-          case Right(_: JsBoolean) => NoContent
-          case Right(_) => throw new RuntimeException("Unexpected json type")
-          case Left(e) => result(e)
+          case Right(json) =>
+            Ok(json)
+          case Left(e) =>
+            result(e)
         }
-      }.getOrElse(Future.failed(new BadRequestException("Bad Request without PSAId or request body"))) recoverWith recoverFromError
+      }.getOrElse {
+        Future.failed(new BadRequestException("Bad Request without PSAId or request body"))
+      }.recoverWith {
+        recoverFromError
+      }
   }
 
   def removeListOfLegacySchemesCache: Action[AnyContent] = authAction.async { implicit request =>

@@ -16,23 +16,23 @@
 
 package service
 
-import audit._
+import audit.*
 import connector.SchemeConnector
 import models.enumeration.SchemeType
 import models.userAnswersToEtmp.establisher.EstablisherDetails
 import models.userAnswersToEtmp.trustee.TrusteeDetails
 import models.userAnswersToEtmp.{CustomerAndSchemeDetails, PensionSchemeDeclaration, PensionsScheme, SchemeMigrationDetails}
 import org.mockito.ArgumentMatchers
-import org.mockito.ArgumentMatchers.{any, eq => eqTo}
-import org.mockito.Mockito._
+import org.mockito.ArgumentMatchers.{any, eq as eqTo}
+import org.mockito.Mockito.*
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.flatspec.AsyncFlatSpec
-import org.scalatest.matchers.must.Matchers._
+import org.scalatest.matchers.must.Matchers.*
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.{BeforeAndAfterEach, EitherValues}
 import org.scalatestplus.mockito.MockitoSugar
 import play.api.http.Status
-import play.api.libs.json._
+import play.api.libs.json.*
 import play.api.mvc.AnyContentAsEmpty
 import play.api.test.FakeRequest
 import repositories.{DeclarationLockRepository, ListOfLegacySchemesCacheRepository}
@@ -48,7 +48,7 @@ class PensionSchemeServiceSpec
     with EitherValues
     with BeforeAndAfterEach {
 
-  import PensionSchemeServiceSpec._
+  import PensionSchemeServiceSpec.*
 
   val schemeSubscription: SchemeMigrationAuditEvent = SchemeMigrationAuditEvent(
     psaId = psaId,
@@ -73,13 +73,14 @@ class PensionSchemeServiceSpec
 
   "registerScheme" must "return the result of false when declaration has already done with same psaId and pstr " in {
     val regDataWithRacDacNode = schemeJsValue.as[JsObject]
-    when(declarationLockRepository.insertLockData(any(), any())).
-      thenReturn(Future.successful(false))
+    when(declarationLockRepository.insertLockData(any(), any()))
+      .thenReturn(Future.successful(false))
     pensionSchemeService.registerScheme(psaId, pensionsSchemeJson).map {
       response =>
         verify(schemeConnector, never()).registerScheme(any(), eqTo(regDataWithRacDacNode))(any())
         verify(declarationLockRepository, times(1)).insertLockData(any(), any())
-        response mustBe Right(JsBoolean(false))
+        response.left.value.responseCode mustBe 423
+        response.left.value.message mustBe s"Scheme locked with pstr $pstr and psaId $psaId"
     }
   }
 

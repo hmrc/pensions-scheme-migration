@@ -24,83 +24,48 @@ import scala.util.{Failure, Success, Try}
 
 class SchemeAuditService {
 
-  def sendSchemeDetailsEvent(psaId: String,
-                             pstr: String)
+  def sendSchemeDetailsEvent(psaId: String, pstr: String)
                             (sendEvent: LegacySchemeDetailsAuditEvent => Unit): PartialFunction[Try[Either[HttpException, JsValue]], Unit] = {
-
-
     case Success(Right(schemeDetails)) =>
-      sendEvent(
-        LegacySchemeDetailsAuditEvent(
-          psaId = psaId,
-          pstr = pstr,
-          status = Status.OK,
-          response = Json.stringify(schemeDetails)
-        )
-      )
-    case Success(Left(e)) =>
-      sendEvent(
-        LegacySchemeDetailsAuditEvent(
-          psaId = psaId,
-          pstr = pstr,
-          status = e.responseCode,
-          response = e.message
-        )
-      )
-    case Failure(e: UpstreamErrorResponse) =>
-      sendEvent(
-        LegacySchemeDetailsAuditEvent(
-          psaId = psaId,
-          pstr = pstr,
-          status = e.statusCode,
-          response = e.message
-        )
-      )
-    case Failure(e: HttpException) =>
-      sendEvent(
-        LegacySchemeDetailsAuditEvent(
-          psaId = psaId,
-          pstr = pstr,
-          status = e.responseCode,
-          response = e.message
-        )
-      )
+      sendEvent(LegacySchemeDetailsAuditEvent(psaId, pstr, Status.OK, Json.stringify(schemeDetails)))
 
+    case Success(Left(e)) =>
+      sendEvent(LegacySchemeDetailsAuditEvent(psaId, pstr, e.responseCode, e.message))
+
+    case Failure(e: UpstreamErrorResponse) =>
+      sendEvent(LegacySchemeDetailsAuditEvent(psaId, pstr, e.statusCode, e.message))
+
+    case Failure(e: HttpException) =>
+      sendEvent(LegacySchemeDetailsAuditEvent(psaId, pstr, e.responseCode, e.message))
   }
 
-  def sendRACDACSchemeSubscriptionEvent(psaId: String,pstr:String, registerData: JsValue)
-                                       (
-                                         sendEvent: RacDacMigrationAuditEvent => Unit
-                                       ):
-  PartialFunction[Try[Either[HttpException, JsValue]], Unit] = {
+  def sendRACDACSchemeSubscriptionEvent(psaId: String, pstr: String, registerData: JsValue)
+                                       (sendEvent: RacDacMigrationAuditEvent => Unit): PartialFunction[Try[Either[HttpException, JsValue]], Unit] = {
     case Success(Right(outputResponse)) =>
-      sendEvent(RacDacMigrationAuditEvent(psaId,pstr, Status.OK, registerData, Some(outputResponse)))
+      sendEvent(RacDacMigrationAuditEvent(psaId, pstr, Status.OK, registerData, Some(outputResponse)))
 
     case Success(Left(e)) =>
-      sendEvent(RacDacMigrationAuditEvent(psaId,pstr, e.responseCode, registerData, None))
+      sendEvent(RacDacMigrationAuditEvent(psaId, pstr, e.responseCode, registerData, None))
 
     case Failure(e: UpstreamErrorResponse) =>
-      sendEvent(RacDacMigrationAuditEvent(psaId,pstr, e.statusCode, registerData, None))
+      sendEvent(RacDacMigrationAuditEvent(psaId, pstr, e.statusCode, registerData, None))
 
     case Failure(e: HttpException) =>
-      sendEvent(RacDacMigrationAuditEvent(psaId,pstr, e.responseCode, registerData, None))
+      sendEvent(RacDacMigrationAuditEvent(psaId, pstr, e.responseCode, registerData, None))
   }
 
-  def sendSchemeSubscriptionEvent(psaId: String,pstr:String, registerData: JsValue)
-                                       (
-                                         sendEvent: SchemeMigrationAuditEvent => Unit
-                                       ):
-  PartialFunction[Try[Either[HttpException, JsValue]], Unit] = {
+  def sendSchemeSubscriptionEvent(psaId: String, pstr: String, registerData: JsValue)
+                                 (sendEvent: SchemeMigrationAuditEvent => Unit): PartialFunction[Try[Either[HttpException, JsValue]], Unit] = {
     case Success(Right(outputResponse)) =>
-      sendEvent(SchemeMigrationAuditEvent(psaId,pstr, Status.OK, registerData, Some(outputResponse)))
+      sendEvent(SchemeMigrationAuditEvent(psaId, pstr, Status.OK, registerData, Some(outputResponse)))
 
     case Success(Left(e)) =>
-      sendEvent(SchemeMigrationAuditEvent(psaId,pstr, e.responseCode, registerData, None))
+      sendEvent(SchemeMigrationAuditEvent(psaId, pstr, e.responseCode, registerData, None))
 
     case Failure(e: UpstreamErrorResponse) =>
-      sendEvent(SchemeMigrationAuditEvent(psaId,pstr, e.statusCode, registerData, None))
+      sendEvent(SchemeMigrationAuditEvent(psaId, pstr, e.statusCode, registerData, None))
 
     case Failure(e: HttpException) =>
-      sendEvent(SchemeMigrationAuditEvent(psaId,pstr, e.responseCode, registerData, None))
+      sendEvent(SchemeMigrationAuditEvent(psaId, pstr, e.responseCode, registerData, None))
   }
 }

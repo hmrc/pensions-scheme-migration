@@ -19,7 +19,7 @@ package repositories
 import com.google.inject.Inject
 import models.cache.DeclarationLockJson
 import org.mongodb.scala.MongoWriteException
-import org.mongodb.scala.model._
+import org.mongodb.scala.model.*
 import play.api.{Configuration, Logging}
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
@@ -45,24 +45,26 @@ class DeclarationLockRepository @Inject()(
         IndexOptions().name("PsaId_Pstr").unique(true).background(true)
       ),
       IndexModel(
-        keys = Indexes.ascending("expireAt"),
-        indexOptions = IndexOptions().name("dataExpiry").expireAfter(0, TimeUnit.SECONDS)
+        Indexes.ascending("expireAt"),
+        IndexOptions().name("dataExpiry").expireAfter(0, TimeUnit.SECONDS)
       )
     )
   ) with Logging {
 
-  private def expireInSeconds: Instant = LocalDateTime.now(ZoneId.of("UTC")).toInstant(ZoneOffset.UTC).
-    plus(configuration.get[Int](path = "mongodb.migration-cache.declaration-lock.timeToLiveInSeconds"), ChronoUnit.SECONDS)
+  private def expireInSeconds: Instant =
+    LocalDateTime
+      .now(ZoneId.of("UTC")).toInstant(ZoneOffset.UTC)
+      .plus(configuration.get[Int](path = "mongodb.migration-cache.declaration-lock.timeToLiveInSeconds"), ChronoUnit.SECONDS)
 
   private lazy val documentExistsErrorCode = 11000
 
-  def insertLockData(pstr: String, psaId: String): Future[Boolean] = {
-
-    collection.insertOne(DeclarationLockJson(pstr, psaId, expireInSeconds)
-    ).toFuture().map { _ => true }
+  def insertLockData(pstr: String, psaId: String): Future[Boolean] =
+    collection
+      .insertOne(DeclarationLockJson(pstr, psaId, expireInSeconds))
+      .toFuture()
+      .map(_ => true)
       .recoverWith {
         case e: MongoWriteException if e.getCode == documentExistsErrorCode =>
           Future.successful(false)
       }
-  }
 }

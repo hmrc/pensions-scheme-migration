@@ -165,13 +165,13 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
     def fakeRequest(data: JsValue): FakeRequest[AnyContentAsJson] = FakeRequest("POST", "/").withJsonBody(data).withHeaders(("psaId", psaId))
 
     val validData = readJsonFromFile("/data/validSchemeRegistrationRequest.json")
-    "return No_Content when the scheme is already registered  by the user within the TTL" in {
-      when(mockPensionSchemeService.registerScheme(any(), any())(any(), any())).thenReturn(
-        Future.successful(Right(JsBoolean(false))))
+    "return Locked when the scheme is already registered by the user within the TTL" in {
+      when(mockPensionSchemeService.registerScheme(any(), any())(any(), any()))
+        .thenReturn(Future.successful(Left(LockedException("locked"))))
 
       val result = schemeController.registerScheme(Scheme)(fakeRequest(validData))
       ScalaFutures.whenReady(result) { _ =>
-        status(result) mustBe NO_CONTENT
+        status(result) mustBe LOCKED
       }
     }
 
@@ -250,12 +250,12 @@ class SchemeControllerSpec extends SpecBase with MockitoSugar with BeforeAndAfte
 
     "return exception when incorrect data type returned from api" in {
       when(mockPensionSchemeService.registerScheme(any(), any())(any(), any())).thenReturn(
-        Future.successful(Right(JsString("Something went wrong"))))
+        Future.failed(HttpException("response body", 200)))
 
       val result = schemeController.registerScheme(Scheme)(fakeRequest(validData))
       ScalaFutures.whenReady(result.failed) { e =>
         e mustBe a[Exception]
-        e.getMessage mustBe "Unexpected json type"
+        e.getMessage mustBe "response body"
       }
     }
   }
