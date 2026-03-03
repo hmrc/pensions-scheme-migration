@@ -18,8 +18,8 @@ import play.sbt.PlayImport.*
 import sbt.*
 
 object AppDependencies {
-  private val bootstrapVersion = "10.4.0"
-  private val hmrcMongoVersion = "2.10.0"
+  private val bootstrapVersion = "10.6.0"
+  private val hmrcMongoVersion = "2.12.0"
 
   val compile: Seq[ModuleID] = Seq(
     ws,
@@ -29,7 +29,7 @@ object AppDependencies {
     "com.typesafe.play"             %% "play-json"                         % "2.10.8",
     "com.networknt"                 %  "json-schema-validator"             % "1.5.6",
     "com.github.java-json-tools"    % "json-schema-validator"              % "2.2.14",
-    "com.fasterxml.jackson.module"  %% "jackson-module-scala"              % "2.19.0"
+    "com.fasterxml.jackson.module"  %% "jackson-module-scala"              % "2.21.1"
   )
 
 
