@@ -72,7 +72,7 @@
               "country": "Republic of Ireland"
             },
             "correspContDetails": {
-              "email": "sdf@sdf",
+              "email": "sdf@sdf.com",
               "telephone": "23234"
             },
             "crnNumber": "",
@@ -93,7 +93,7 @@
               "country": "Liechtenstein"
             },
             "correspContDetails": {
-              "email": "sdfds@dfdsf",
+              "email": "sdfds@dfdsf.com",
               "telephone": "324324"
             },
             "crnNumber": "123458",
@@ -116,7 +116,7 @@
               "country": "Norway"
             },
             "correspContDetails": {
-              "email": "asdasd@dfdsf",
+              "email": "asdasd@dfdsf.com",
               "telephone": "34234"
             },
             "crnNumber": "",

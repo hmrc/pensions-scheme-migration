@@ -84,7 +84,7 @@ This API retrieves the details of a legacy scheme.
       "establisherKind": "company",
       "noCompanyNumberReason": "fsdfdsf",
       "haveVat": false,
-      "email": "sdf@sdf"
+      "email": "sdf@sdf.com"
     },
     {
       "havePaye": true,
@@ -111,7 +111,7 @@ This API retrieves the details of a legacy scheme.
         "value": "123AB456"
       },
       "haveVat": true,
-      "email": "sdfds@dfdsf"
+      "email": "sdfds@dfdsf.com"
     }
   ],
   "schemeType": {
@@ -189,7 +189,7 @@ This API retrieves the details of a legacy scheme.
       "noCompanyNumberReason": "dsfdsfsdf",
       "haveVat": true,
       "trusteeKind": "company",
-      "email": "asdasd@dfdsf"
+      "email": "asdasd@dfdsf.com"
     }
   ],
   "schemeEstablishedCountry": "SI",
