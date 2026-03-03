@@ -23,6 +23,9 @@ class TrusteeDetailsTransformerSpec extends TransformationSpec {
 
   private val transformer: TrusteeDetailsTransformer = injector.instanceOf[TrusteeDetailsTransformer]
 
+  private val invalidEmail: Reads[JsObject] =
+    (__ \ "correspContDetails" \ "email").json.update(__.read[String].map(_ => JsString("...@..co.uk")))
+
   "An if payload containing trustee details" must {
     "have the individual details transformed correctly to valid user answers format" that {
 
@@ -58,6 +61,23 @@ class TrusteeDetailsTransformerSpec extends TransformationSpec {
 
             (result \ "email").as[String] mustBe
               (details \ "correspContDetails" \ "email").as[String]
+            (result \ "phone").as[String] mustBe
+              (details \ "correspContDetails" \ "telephone").as[String]
+          }
+        }
+      }
+
+      s"exclude invalid email address" in {
+        forAll(individualJsValueGen(isEstablisher = false)) {
+          individualDetails => {
+            val details: JsObject =
+              individualDetails._1.transform(invalidEmail).get
+
+            val result: JsObject =
+              details.transform(transformer.userAnswersContactDetailsReads).get
+
+            (result \ "email").validate[String].asOpt mustBe None
+
             (result \ "phone").as[String] mustBe
               (details \ "correspContDetails" \ "telephone").as[String]
           }
@@ -130,6 +150,22 @@ class TrusteeDetailsTransformerSpec extends TransformationSpec {
             val result = details.transform(transformer.userAnswersContactDetailsReads).get
             (result \ "email").as[String] mustBe
               (details \ "correspContDetails" \ "email").as[String]
+            (result \ "phone").as[String] mustBe
+              (details \ "correspContDetails" \ "telephone").as[String]
+          }
+        }
+      }
+
+      s"exclude invalid email address" in {
+        forAll(companyJsValueGen(isEstablisher = false)) {
+          companyDetails => {
+            val details: JsObject =
+              companyDetails._1.transform(invalidEmail).get
+
+            val result: JsObject =
+              details.transform(transformer.userAnswersContactDetailsReads).get
+
+            (result \ "email").validate[String].asOpt mustBe None
             (result \ "phone").as[String] mustBe
               (details \ "correspContDetails" \ "telephone").as[String]
           }

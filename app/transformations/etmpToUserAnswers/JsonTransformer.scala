@@ -16,9 +16,10 @@
 
 package transformations.etmpToUserAnswers
 
-import play.api.libs.functional.syntax._
+import play.api.libs.functional.syntax.*
 import play.api.libs.json.Reads.JsObjectReducer
-import play.api.libs.json._
+import play.api.libs.json.*
+import utils.Constraints.regexEmailRestrictive
 
 import scala.language.postfixOps
 
@@ -59,8 +60,13 @@ trait JsonTransformer {
 
 
   def userAnswersContactDetailsReads: Reads[JsObject] =
-    ((__ \ Symbol("email")).json.copyFrom((__ \ Symbol("correspContDetails") \ Symbol("email")).json.pick) orElse doNothing) and
-      ((__ \ Symbol("phone")).json.copyFrom((__ \ Symbol("correspContDetails") \ Symbol("telephone")).json.pick) orElse doNothing) reduce
+    (
+      (__ \ "email").json.copyFrom((__ \ "correspContDetails" \ "email").json.pick.map { jsValue =>
+        if (jsValue.as[String].matches(regexEmailRestrictive)) jsValue else Json.obj()
+      }) orElse doNothing
+    ) and (
+      (__ \ "phone").json.copyFrom((__ \ "correspContDetails" \ "telephone").json.pick) orElse doNothing
+    ) reduce
 
   def userAnswersCompanyDetailsReads: Reads[JsObject] =
     (__ \ Symbol("companyDetails") \ Symbol("companyName")).json.copyFrom((__ \ Symbol("comOrOrganisationName")).json.pick) orElse doNothing
