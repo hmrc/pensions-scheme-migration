@@ -119,7 +119,7 @@
         "correspondenceContactDetails":{
           "contactDetails":{
             "telephone":"23234",
-            "email":"sdf@sdf"
+            "email":"sdf@sdf.com"
           }
         },
         "previousAddressDetails":{
@@ -404,7 +404,7 @@
         "correspondenceContactDetails":{
           "contactDetails":{
             "telephone":"234",
-            "email":"sdfds@dfdsf"
+            "email":"sdfds@dfdsf.com"
           }
         },
         "directorDetails":[
@@ -514,7 +514,7 @@
         "correspondenceContactDetails":{
           "contactDetails":{
             "telephone":"23141234",
-            "email":"asdasd@dfdsf"
+            "email":"asdasd@dfdsf.com"
           }
         }
       }

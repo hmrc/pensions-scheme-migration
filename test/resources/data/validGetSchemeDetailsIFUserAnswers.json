@@ -61,7 +61,7 @@
       },
       "noCompanyNumberReason": "fsdfdsf",
       "haveVat": false,
-      "email": "sdf@sdf"
+      "email": "sdf@sdf.com"
     },
     {
       "havePaye": true,
@@ -89,7 +89,7 @@
         "value": "1234567"
       },
       "haveVat": true,
-      "email": "sdfds@dfdsf"
+      "email": "sdfds@dfdsf.com"
     }
   ],
   "schemeType": {
@@ -121,7 +121,7 @@
       "noCompanyNumberReason": "dsfdsfsdf",
       "haveVat": false,
       "trusteeKind": "company",
-      "email": "asdasd@dfdsf"
+      "email": "asdasd@dfdsf.com"
     }
   ],
   "schemeEstablishedCountry": "SI",
